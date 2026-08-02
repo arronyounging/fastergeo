@@ -14,6 +14,8 @@ import {
 } from '@fastergeo/providers';
 import { computeMetrics, parseGeoLookSamples, makeLlmJudge } from '@fastergeo/metrics';
 import { auditSite } from '@fastergeo/audit';
+import { generateTickets, verifyTickets } from '@fastergeo/tickets';
+import { writeFileSync } from 'node:fs';
 
 const [, , command, ...rest] = process.argv;
 
@@ -29,6 +31,8 @@ const { values: flags } = parseArgs({
     judge: { type: 'string' },
     root: { type: 'string' },
     urls: { type: 'string' },
+    tickets: { type: 'string' },
+    out: { type: 'string' },
     json: { type: 'boolean', default: false },
   },
   allowPositionals: true,
@@ -163,7 +167,76 @@ async function cmdAudit() {
   }
 }
 
-const commands = { check: cmdCheck, sample: cmdSample, metrics: cmdMetrics, audit: cmdAudit };
+/** 组装验收上下文：按传入的参数重测 audit / metrics，缺的就不测。 */
+async function buildContext() {
+  const ctx = {};
+  if (flags.root) {
+    const urls = flags.urls
+      ? flags.urls.split(',').map(u => (u.startsWith('http') ? u : new URL(u, flags.root).href))
+      : [flags.root];
+    ctx.audit = await auditSite(flags.root, urls);
+  }
+  if (flags.samples && flags.brand) {
+    const brand = JSON.parse(readFileSync(flags.brand, 'utf8'));
+    const raw = readFileSync(flags.samples, 'utf8');
+    const samples = flags.format === 'geolook'
+      ? parseGeoLookSamples(raw)
+      : raw.split('\n').filter(Boolean).map(l => JSON.parse(l));
+    let judge;
+    if (flags.judge) {
+      const jp = resolveProvider(flags.judge);
+      judge = makeLlmJudge(async prompt =>
+        (await ask(jp, { question: prompt, maxTokens: 500 })).answer);
+    }
+    ctx.metrics = await computeMetrics(samples, brand, { judge, brandDescription: brand.description });
+  }
+  return ctx;
+}
+
+function printTickets(tickets) {
+  for (const t of tickets) {
+    const acc = t.acceptance.type === 'auto' ? `[自动] ${t.acceptance.check}` : '[人工]';
+    console.log(`${t.priority} ${t.id} [${t.status}] ${t.title}`);
+    console.log(`   依据: ${t.rationale.slice(0, 90)}`);
+    console.log(`   验收: ${acc} — ${t.acceptance.desc}`);
+  }
+}
+
+async function cmdPlan() {
+  if (!flags.root && !flags.samples) {
+    console.error('用法: fastergeo plan --root <site> [--urls /a,/b] [--samples f --brand b --format geolook --judge glm] [--out tickets.json]');
+    process.exit(1);
+  }
+  const ctx = await buildContext();
+  const tickets = generateTickets(ctx.audit, ctx.metrics);
+  if (flags.out) {
+    writeFileSync(flags.out, JSON.stringify(tickets, null, 2));
+    console.log(`已写入 ${flags.out}（${tickets.length} 条工单）\n`);
+  }
+  if (flags.json) console.log(JSON.stringify(tickets, null, 2));
+  else printTickets(tickets);
+}
+
+async function cmdVerify() {
+  if (!flags.tickets) {
+    console.error('用法: fastergeo verify --tickets tickets.json [--root <site> --urls ...] [--samples f --brand b] ');
+    process.exit(1);
+  }
+  const tickets = JSON.parse(readFileSync(flags.tickets, 'utf8'));
+  const ctx = await buildContext();
+  const summary = verifyTickets(tickets, ctx);
+  writeFileSync(flags.tickets, JSON.stringify(tickets, null, 2));
+  console.log(`验收: 通过 ${summary.counts.pass} · 未达标 ${summary.counts.fail} · 未测 ${summary.counts.unmeasurable} · 待人工 ${summary.counts.manual}\n`);
+  for (const v of summary.verdicts) {
+    const icon = { pass: '✓', fail: '✗', unmeasurable: '·', manual: '◇' }[v.outcome];
+    console.log(`${icon} ${v.ticketId} ${v.detail.slice(0, 100)}`);
+  }
+  for (const tr of summary.transitions) {
+    console.log(`↻ ${tr.ticketId}: ${tr.from} → ${tr.to}`);
+  }
+}
+
+const commands = { check: cmdCheck, sample: cmdSample, metrics: cmdMetrics, audit: cmdAudit, plan: cmdPlan, verify: cmdVerify };
 const run = commands[command];
 if (!run) {
   console.log('fastergeo <check|sample|metrics> — 用法见各命令 --help 或源码头部注释');

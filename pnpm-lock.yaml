@@ -19,6 +19,9 @@ importers:
       '@fastergeo/providers':
         specifier: workspace:*
         version: link:../../packages/providers
+      '@fastergeo/tickets':
+        specifier: workspace:*
+        version: link:../../packages/tickets
     devDependencies:
       '@types/node':
         specifier: ^20.0.0
@@ -104,6 +107,28 @@ importers:
       vitest:
         specifier: ^3.0.0
         version: 3.2.7(@types/node@25.9.5)(jiti@2.7.0)
+
+  packages/tickets:
+    dependencies:
+      '@fastergeo/audit':
+        specifier: workspace:*
+        version: link:../audit
+      '@fastergeo/metrics':
+        specifier: workspace:*
+        version: link:../metrics
+    devDependencies:
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.43
+      tsup:
+        specifier: ^8.0.0
+        version: 8.5.1(jiti@2.7.0)(postcss@8.5.25)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.6.0
+        version: 5.9.3
+      vitest:
+        specifier: ^3.0.0
+        version: 3.2.7(@types/node@20.19.43)(jiti@2.7.0)
 
 packages:
 
