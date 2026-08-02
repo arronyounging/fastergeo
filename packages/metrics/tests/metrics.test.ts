@@ -1,0 +1,189 @@
+import { describe, it, expect } from 'vitest';
+import { firstMentionIndex, brandRank } from '../src/matching.js';
+import { classifyRecognition } from '../src/recognition.js';
+import { computeMetrics } from '../src/compute.js';
+import { parseGeoLookSamples } from '../src/geolook.js';
+import type { BrandConfig, Sample } from '../src/types.js';
+
+const BRAND: BrandConfig = {
+  name: 'Custyle',
+  aliases: ['CUSTYLE.AI'],
+  domains: ['custyle.ai'],
+  competitors: [
+    { name: 'Printful' },
+    { name: 'Zazzle' },
+    { name: 'Redbubble' },
+  ],
+};
+
+// ── Real dogfood answers (2026-08-02 sampling run) ──────────────────────────
+
+const DEEPSEEK_DENIAL =
+  '对不起，我无法提供关于"Custyle"品牌的具体信息，因为我没有相关的数据或评价来源。';
+
+const DOUBAO_CONFUSED =
+  'Custyle是一个深耕细分领域的小众品牌。主打汽车外观改装件（前后包围、中网、内饰装饰件等），' +
+  '优势是性价比远高于原厂改装件。';
+
+const CHATGPT_KNOWS =
+  'Custyle is an AI-powered merchandise platform that lets users turn ideas into custom apparel and products.';
+
+describe('matching', () => {
+  it('matches latin brand names on word boundaries only', () => {
+    expect(firstMentionIndex('Try Custyle today', ['Custyle'])).toBeGreaterThanOrEqual(0);
+    expect(firstMentionIndex('Try custylex today', ['Custyle'])).toBe(-1);
+  });
+
+  it('matches case-insensitively and with dotted aliases', () => {
+    expect(firstMentionIndex('visit CUSTYLE.AI now', ['Custyle', 'CUSTYLE.AI'])).toBe(6);
+  });
+
+  it('matches CJK names by substring', () => {
+    expect(firstMentionIndex('可以试试云印定制服务', ['云印'])).toBe(4);
+  });
+
+  it('ranks brand by first occurrence among competitors', () => {
+    const text = 'Popular options include Zazzle, Printful, and Custyle for custom merch.';
+    const { rank, mentioned } = brandRank(text, ['Custyle'], [
+      { name: 'Zazzle', names: ['Zazzle'] },
+      { name: 'Printful', names: ['Printful'] },
+    ]);
+    expect(rank).toBe(3);
+    expect(mentioned.map(m => m.name)).toEqual(['Zazzle', 'Printful', '__brand__']);
+  });
+
+  it('returns null rank when brand absent', () => {
+    const { rank } = brandRank('Use Zazzle or Printful.', ['Custyle'], [
+      { name: 'Zazzle', names: ['Zazzle'] },
+    ]);
+    expect(rank).toBeNull();
+  });
+});
+
+describe('recognition classification', () => {
+  it('classifies explicit denial as unknown (real DeepSeek answer)', async () => {
+    const r = await classifyRecognition(DEEPSEEK_DENIAL, 'Custyle');
+    expect(r.verdict).toBe('unknown');
+    expect(r.method).toBe('heuristic');
+    expect(r.evidence).toBeTruthy();
+  });
+
+  it('classifies English denial as unknown', async () => {
+    const r = await classifyRecognition(
+      "I don't have specific information about this brand.", 'Custyle');
+    expect(r.verdict).toBe('unknown');
+  });
+
+  it('stays unverified without a judge — never guesses knows/confused', async () => {
+    const r = await classifyRecognition(DOUBAO_CONFUSED, 'Custyle');
+    expect(r.verdict).toBe('unverified');
+  });
+
+  it('delegates undecided answers to the judge', async () => {
+    const judge = async () => ({
+      verdict: 'confused' as const,
+      evidence: '主打汽车外观改装件',
+      method: 'judge' as const,
+    });
+    const r = await classifyRecognition(DOUBAO_CONFUSED, 'Custyle', { judge });
+    expect(r.verdict).toBe('confused');
+    expect(r.evidence).toContain('汽车');
+  });
+});
+
+describe('computeMetrics', () => {
+  const mk = (over: Partial<Sample>): Sample => ({
+    providerId: 'openai', market: 'global', questionId: 'q1',
+    question: 'best custom merch?', brandInQuestion: false,
+    answer: '', citations: [], ...over,
+  });
+
+  it('computes mention rate, rank, and SoV on unprompted samples', async () => {
+    const samples: Sample[] = [
+      mk({ answer: 'Zazzle and Custyle are solid choices.', questionId: 'q1' }),
+      mk({ answer: 'Use Printful or Redbubble.', questionId: 'q2' }),
+      mk({ answer: 'Custyle leads the AI merch space.', questionId: 'q3' }),
+      mk({ answer: 'Nothing relevant here.', questionId: 'q4' }),
+    ];
+    const report = await computeMetrics(samples, BRAND);
+    const p = report.platforms[0];
+    expect(p.samples).toBe(4);
+    expect(p.mentionRate).toBeCloseTo(0.5);
+    expect(p.top1Rate).toBeCloseTo(0.25); // q3 only (q1 has Zazzle first)
+    expect(p.top3Rate).toBeCloseTo(0.5);
+    expect(p.avgRank).toBeCloseTo(1.5); // ranks 2 and 1
+    // voice: brand 2, competitors: Zazzle 1 + Printful 1 + Redbubble 1
+    expect(p.shareOfVoice).toBeCloseTo(2 / 5);
+    expect(p.competitorMentions).toEqual({ Zazzle: 1, Printful: 1, Redbubble: 1 });
+  });
+
+  it('segregates probe samples and classifies recognition', async () => {
+    const samples: Sample[] = [
+      mk({ answer: 'Printful is popular.', questionId: 'q1' }),
+      mk({ answer: DEEPSEEK_DENIAL, questionId: 'q900', brandInQuestion: true }),
+      mk({ answer: CHATGPT_KNOWS, questionId: 'q901', brandInQuestion: true }),
+    ];
+    const report = await computeMetrics(samples, BRAND);
+    const p = report.platforms[0];
+    expect(p.samples).toBe(1); // probes excluded from visibility
+    expect(p.mentionRate).toBe(0);
+    expect(p.probe?.samples).toBe(2);
+    expect(p.probe?.recognition.unknown).toBe(1);
+    expect(p.probe?.recognition.unverified).toBe(1); // no judge → not guessed
+  });
+
+  it('computes citation attribution', async () => {
+    const samples: Sample[] = [
+      mk({ answer: 'See sources.', citations: ['https://custyle.ai/faq', 'https://other.com/a'] }),
+      mk({ answer: 'More.', citations: ['https://other.com/b'], questionId: 'q2' }),
+    ];
+    const report = await computeMetrics(samples, BRAND);
+    const p = report.platforms[0];
+    expect(p.ownDomainCiteRate).toBeCloseTo(0.5);
+    expect(p.citationShare).toBeCloseTo(1 / 3);
+  });
+
+  it('reports null (not fabricated zeros) when nothing is measurable', async () => {
+    const samples: Sample[] = [
+      mk({ answer: DEEPSEEK_DENIAL, brandInQuestion: true }),
+    ];
+    const report = await computeMetrics(samples, BRAND);
+    const p = report.platforms[0];
+    expect(p.mentionRate).toBeNull();
+    expect(p.citationShare).toBeNull();
+    expect(p.avgRank).toBeNull();
+  });
+
+  it('keeps cn and global platforms separate', async () => {
+    const samples: Sample[] = [
+      mk({ providerId: 'openai', market: 'global', answer: 'Custyle rocks.' }),
+      mk({ providerId: 'doubao', market: 'cn', answer: '推荐 Printful。' }),
+    ];
+    const report = await computeMetrics(samples, BRAND);
+    expect(report.platforms).toHaveLength(2);
+    expect(report.platforms.map(p => p.market)).toEqual(['cn', 'global']);
+  });
+});
+
+describe('GeoLook adapter', () => {
+  it('parses jsonl rows and maps probe flags', () => {
+    const jsonl = [
+      JSON.stringify({
+        platform: 'openai', market: 'global', question_id: 'q101',
+        question: 'best merch?', brand_in_question: false, ok: true,
+        answer: 'Zazzle is popular.', citations: [], sample_mode: 'api',
+      }),
+      JSON.stringify({
+        platform: 'doubao', market: 'cn', question_id: 'q900',
+        question: 'Custyle 是什么？', brand_in_question: true, ok: true,
+        answer: DOUBAO_CONFUSED, citations: [],
+      }),
+      JSON.stringify({ platform: 'glm', market: 'cn', question_id: 'q1', ok: false }),
+      'not json',
+    ].join('\n');
+    const samples = parseGeoLookSamples(jsonl);
+    expect(samples).toHaveLength(2);
+    expect(samples[0].channel).toBe('api');
+    expect(samples[1].brandInQuestion).toBe(true);
+  });
+});

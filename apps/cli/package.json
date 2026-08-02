@@ -1,0 +1,22 @@
+{
+  "name": "@fastergeo/cli",
+  "version": "0.1.0",
+  "description": "FasterGEO command line \u2014 engine health checks, answer sampling, and metrics.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "bin": {
+    "fastergeo": "./src/cli.js"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "node src/cli.js"
+  },
+  "dependencies": {
+    "@fastergeo/providers": "workspace:*",
+    "@fastergeo/metrics": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0",
+    "@types/node": "^20.0.0"
+  }
+}
