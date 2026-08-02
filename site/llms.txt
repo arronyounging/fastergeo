@@ -4,7 +4,7 @@
 
 ## Key facts
 
-- Covers 15 AI engines: ChatGPT, Claude, Gemini, Grok, Perplexity (global); GLM, Doubao, DeepSeek, Kimi, MiniMax (China API) plus manual sampling for Baidu AI, Nano AI, ChatGPT web, Claude web, Google AI Overviews
+- Covers 18 AI engines: ChatGPT, Claude, Gemini, Grok, Perplexity (global); GLM, Doubao, DeepSeek, Kimi, MiniMax, Qwen, ERNIE, Spark (China API) plus manual sampling for Baidu AI, Nano AI, ChatGPT web, Claude web, Google AI Overviews
 - The Brand Entity Funnel: knows → doesn't confuse → considers → ranks → cites
 - Recognition judging classifies answers as knows / unknown / confused, with quoted evidence; brand confusion is a P0 alert
 - Improvement tickets carry machine-verifiable acceptance criteria; done is confirmed by re-crawl and regressions flip back automatically

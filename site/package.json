@@ -1,0 +1,10 @@
+{
+  "name": "@fastergeo/site",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "dependencies": {
+    "@fastergeo/audit": "workspace:*",
+    "@fastergeo/rules": "workspace:*"
+  }
+}

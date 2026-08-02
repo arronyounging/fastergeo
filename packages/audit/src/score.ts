@@ -14,7 +14,7 @@
  * blocks 25 · authority 15 · relevance 10.
  */
 
-import { segmentCjkWords, isCjkDominant } from '@fastergeo/rules';
+import { segmentCjkWords, isCjkDominant } from '@fastergeo/rules/text';
 import type {
   BlockSignals, DimensionScore, PageAudit, PageFeatures,
 } from './types.js';
@@ -129,10 +129,10 @@ export function scorePage(
   const blockers: string[] = [];
   if (f.wordCount < SHELL_WORD_COUNT && f.htmlBytes > 50_000) {
     blockers.push(
-      `spa-shell: 页面 HTML ${Math.round(f.htmlBytes / 1024)}KB 但可见正文仅 ${f.wordCount} 词等效 — AI 爬虫看到的是空壳，修复渲染前其他优化无效`,
+      `spa-shell: ${Math.round(f.htmlBytes / 1024)}KB of HTML but only ${f.wordCount} visible word-equivalents — AI crawlers see an empty shell; nothing else matters until rendering is fixed`,
     );
   }
-  if (f.noindex) blockers.push('noindex: 页面禁止索引');
+  if (f.noindex) blockers.push('noindex: page forbids indexing');
 
   return {
     url: f.url,

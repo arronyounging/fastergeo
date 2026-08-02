@@ -68,11 +68,11 @@ npx fastergeo report --root https://yoursite.com --out report.html
 
 从 GeoLook 迁移？`fastergeo metrics --format geolook` 直接重算你的现有采样数据。
 
-## 15 个引擎
+## 18 个引擎
 
 | 市场 | API 采样 | 人工采样表 |
 |---|---|---|
-| 🇨🇳 国内 | 智谱GLM · 豆包(方舟) · DeepSeek · Kimi · MiniMax | 纳米AI · 百度AI |
+| 🇨🇳 国内 | 智谱GLM · 豆包(方舟) · DeepSeek · Kimi · MiniMax · 通义千问 · 文心一言 · 讯飞星火 | 纳米AI · 百度AI |
 | 🌍 海外 | ChatGPT · Claude · Gemini · Grok · Perplexity | ChatGPT 网页版 · Claude 网页版 · Google AI Overviews |
 
 `fastergeo check` 逐个诊断 Key：无 Key / 鉴权失败 / **鉴权通过但模型未开通** / 网络不可达——每种都给可操作的提示。支持 `HTTPS_PROXY`（国内端点可用 `NO_PROXY` 排除）。
@@ -86,7 +86,7 @@ npx fastergeo report --root https://yoursite.com --out report.html
 
 ## 架构
 
-九个包的 monorepo，每个可独立使用：`rules`（100+ 确定性规则，fork 自 [geo-lint](https://github.com/IJONIS/geo-lint) 并补全 CJK）· `providers`（15 引擎适配 + Key 健康检查）· `metrics`（漏斗指标 + LLM 认知裁判 + 人工采样表）· `audit`（六维体检，实证锚定）· `tickets`（验收 DSL）· `content`（事实库 + 编造门禁 + bootstrap）· `trends`（期历史 + 归因纪律）· `report`（自包含 HTML）· `cli`
+九个包的 monorepo，每个可独立使用：`rules`（100+ 确定性规则，fork 自 [geo-lint](https://github.com/IJONIS/geo-lint) 并补全 CJK）· `providers`（18 引擎适配 + Key 健康检查）· `metrics`（漏斗指标 + LLM 认知裁判 + 人工采样表）· `audit`（六维体检，实证锚定）· `tickets`（验收 DSL）· `content`（事实库 + 编造门禁 + bootstrap）· `trends`（期历史 + 归因纪律）· `report`（自包含 HTML）· `cli`
 
 ```bash
 pnpm install && pnpm -r build && pnpm -r test   # 578 个测试

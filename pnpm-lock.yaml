@@ -208,6 +208,15 @@ importers:
         specifier: ^3.0.0
         version: 3.2.7(@types/node@20.19.43)(jiti@2.7.0)
 
+  site:
+    dependencies:
+      '@fastergeo/audit':
+        specifier: workspace:*
+        version: link:../packages/audit
+      '@fastergeo/rules':
+        specifier: workspace:*
+        version: link:../packages/rules
+
 packages:
 
   '@ampproject/remapping@2.3.0':

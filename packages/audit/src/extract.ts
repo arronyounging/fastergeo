@@ -7,7 +7,7 @@
  * finding, not an extraction failure.
  */
 
-import { countWords } from '@fastergeo/rules';
+import { countWords } from '@fastergeo/rules/text';
 import type { BlockSignals, PageFeatures } from './types.js';
 
 function stripTags(html: string): string {

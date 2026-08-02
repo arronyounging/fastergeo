@@ -13,11 +13,11 @@
 <script type="application/ld+json">
 {"@context":"https://schema.org","@graph":[
 {"@type":"Organization","@id":"https://fastergeo.co/#org","name":"FasterGEO","url":"https://fastergeo.co","sameAs":["https://github.com/arronyounging/fastergeo","https://www.npmjs.com/package/fastergeo"]},
-{"@type":"SoftwareApplication","datePublished":"2026-08-02","author":{"@id":"https://fastergeo.co/#org"},"name":"FasterGEO","applicationCategory":"DeveloperApplication","operatingSystem":"macOS, Linux","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Open-source GEO platform: brand entity funnel measurement across 15 AI engines (China + global), machine-verified improvement tickets, fabrication-gated content generation.","url":"https://fastergeo.co","publisher":{"@id":"https://fastergeo.co/#org"}},
+{"@type":"SoftwareApplication","datePublished":"2026-08-02","author":{"@id":"https://fastergeo.co/#org"},"name":"FasterGEO","applicationCategory":"DeveloperApplication","operatingSystem":"macOS, Linux","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Open-source GEO platform: brand entity funnel measurement across 18 AI engines (China + global), machine-verified improvement tickets, fabrication-gated content generation.","url":"https://fastergeo.co","publisher":{"@id":"https://fastergeo.co/#org"}},
 {"@type":"FAQPage","mainEntity":[
 {"@type":"Question","name":"What is GEO (Generative Engine Optimization)?","acceptedAnswer":{"@type":"Answer","text":"GEO is a practice of making AI engines — ChatGPT, Claude, Perplexity, Doubao, DeepSeek — mention and cite your brand when users ask them for recommendations. Unlike SEO, which optimizes for ranked links, GEO optimizes for being part of the answer itself."}},
 {"@type":"Question","name":"Is FasterGEO free?","acceptedAnswer":{"@type":"Answer","text":"Yes. FasterGEO is Apache-2.0 open source and self-hosted. You bring your own AI engine API keys, or use manual sampling sheets with zero keys. Your data never leaves your machine."}},
-{"@type":"Question","name":"Which AI engines does FasterGEO cover?","acceptedAnswer":{"@type":"Answer","text":"15 engines across two markets: ChatGPT, Claude, Gemini, Grok and Perplexity globally; GLM, Doubao, DeepSeek, Kimi and MiniMax in China via API — plus manual sampling sheets for engines without public APIs, such as Baidu AI, Nano AI, and Google AI Overviews."}},
+{"@type":"Question","name":"Which AI engines does FasterGEO cover?","acceptedAnswer":{"@type":"Answer","text":"18 engines across two markets: ChatGPT, Claude, Gemini, Grok and Perplexity globally; GLM, Doubao, DeepSeek, Kimi, MiniMax, Qwen, ERNIE and Spark in China via API — plus manual sampling sheets for engines without public APIs, such as Baidu AI, Nano AI, and Google AI Overviews."}},
 {"@type":"Question","name":"Do I need API keys to use FasterGEO?","acceptedAnswer":{"@type":"Answer","text":"No. Site auditing needs no keys at all. Answer sampling works with any keys you have, and engines without keys fall back to manual sampling sheets that import into the same metrics pipeline."}},
 {"@type":"Question","name":"How is FasterGEO different from AI visibility monitoring tools?","acceptedAnswer":{"@type":"Answer","text":"Three ways. It measures the head of the funnel — whether AI even knows your brand or confuses it with another company — with quoted evidence, not just mention counts. It closes the loop: findings become tickets with machine-verifiable acceptance criteria, re-checked automatically. And it is the only tool covering both China and global engines."}}
 ]}]}
@@ -130,6 +130,34 @@ tr:last-child td{border-bottom:none}
 .faq details[open] summary::after{content:"–"}
 .faq p{color:var(--dim);margin:12px 0 4px;font-size:15px;max-width:720px}
 
+.scanbox{display:flex;gap:10px;max-width:560px}
+.scanbox input{flex:1;background:var(--well);border:1px solid var(--line-strong);border-radius:12px;
+  padding:14px 18px;font-size:15px;color:var(--tx);outline:none;font-family:ui-monospace,Menlo,monospace}
+.scanbox input:focus{border-color:var(--acc)}
+.scanbox button{background:var(--acc);color:#fff;border:none;border-radius:12px;padding:0 26px;
+  font-size:15px;font-weight:700;cursor:pointer}
+.scanbox button:disabled{opacity:.6;cursor:wait}
+#scanResult{max-width:640px}
+.scan-card{margin-top:16px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px 22px;text-align:left}
+.scan-head{display:flex;align-items:center;gap:14px;margin-bottom:12px}
+.scan-grade{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+  font-weight:800;font-size:20px}
+.scan-grade.A,.scan-grade.B{background:var(--green-soft);color:var(--green)}
+.scan-grade.C{background:rgba(240,178,74,.12);color:var(--amber)}
+.scan-grade.D{background:var(--red-soft);color:var(--red)}
+.scan-score{font-size:22px;font-weight:800}.scan-score small{font-size:13px;color:var(--faint);font-weight:400}
+.scan-dims{display:grid;gap:8px;margin:12px 0}
+.sdim{display:grid;grid-template-columns:110px 1fr 52px;gap:10px;align-items:center;font-size:12.5px;color:var(--dim)}
+.sdim .bar{height:6px;background:var(--well);border-radius:3px;overflow:hidden}
+.sdim .bar i{display:block;height:100%;background:var(--acc);border-radius:3px}
+.sdim.low .bar i{background:var(--red)}
+.sdim .v{text-align:right;font-variant-numeric:tabular-nums}
+.scan-blocker{margin-top:10px;padding:10px 14px;background:var(--red-soft);border:1px solid rgba(244,83,110,.25);
+  border-radius:10px;font-size:13px}
+.scan-checks{margin-top:10px;font-size:12.5px;color:var(--dim)}
+.scan-cta{margin-top:14px;padding-top:12px;border-top:1px solid var(--line);font-size:13px;color:var(--dim)}
+.scan-cta .mono{color:var(--acc);cursor:pointer}
+.scan-err{margin-top:14px;color:var(--red);font-size:14px}
 footer{padding:48px max(24px,calc(50vw - 560px));border-top:1px solid var(--line);
   color:var(--faint);font-size:13.5px;display:flex;flex-wrap:wrap;gap:20px;align-items:center}
 footer .links{margin-left:auto;display:flex;gap:18px}
@@ -154,17 +182,20 @@ footer .links{margin-left:auto;display:flex;gap:18px}
   <p class="sub">FasterGEO is the open-source GEO platform that measures whether AI engines know you,
   confuse you, mention you, and cite you — across <b>China and global engines</b> — and turns every
   finding into a ticket that a machine verifies when you fix it.</p>
-  <div class="cmd" onclick="navigator.clipboard.writeText('npx fastergeo bootstrap --root https://yoursite.com')" title="Click to copy">
-    <span class="p">$</span> npx fastergeo bootstrap --root https://yoursite.com
-    <span class="copy">copy</span>
-  </div>
-  <p class="note">Free · Apache-2.0 · Self-hosted · Zero API keys required · Your data stays on your disk</p>
+  <form class="scanbox" id="scanForm">
+    <input id="scanUrl" type="text" inputmode="url" placeholder="yoursite.com — see what AI crawlers see, free" autocomplete="off" spellcheck="false">
+    <button type="submit" id="scanBtn">Scan</button>
+  </form>
+  <div id="scanResult"></div>
+  <p class="note">Free scan, no sign-up · Same engine as the CLI · Full loop:
+    <span class="mono" style="cursor:pointer" onclick="navigator.clipboard.writeText('npx fastergeo bootstrap --root https://yoursite.com')" title="Click to copy">npx fastergeo</span>
+    · Apache-2.0 · Self-hosted · Your data stays on your disk</p>
   <div class="engines-strip">
     <span class="chip">ChatGPT</span><span class="chip">Claude</span><span class="chip">Gemini</span>
     <span class="chip">Perplexity</span><span class="chip">Grok</span><span class="chip">Google AI Overviews</span>
     <span class="chip cn">Doubao 豆包</span><span class="chip cn">DeepSeek</span><span class="chip cn">GLM 智谱</span>
-    <span class="chip cn">Kimi</span><span class="chip cn">MiniMax</span><span class="chip cn">Baidu AI 百度</span>
-    <span class="chip">+3 more</span>
+    <span class="chip cn">Kimi</span><span class="chip cn">MiniMax</span><span class="chip cn">Qwen 通义</span><span class="chip cn">ERNIE 文心</span><span class="chip cn">Spark 星火</span>
+    <span class="chip cn">Baidu AI 百度</span><span class="chip">+3 more</span>
   </div>
 </section>
 
@@ -310,5 +341,46 @@ footer .links{margin-left:auto;display:flex;gap:18px}
   </div>
 </footer>
 
+<script>
+const form = document.getElementById('scanForm');
+const out = document.getElementById('scanResult');
+const btn = document.getElementById('scanBtn');
+const DIMS = { crawlability: 'Crawlability', length: 'Length', structure: 'Structure', blocks: 'Extractable blocks', authority: 'Authority', relevance: 'Relevance' };
+form.addEventListener('submit', async e => {
+  e.preventDefault();
+  const url = document.getElementById('scanUrl').value.trim();
+  if (!url) return;
+  btn.disabled = true; btn.textContent = 'Scanning…';
+  out.innerHTML = '';
+  try {
+    const r = await fetch('/api/scan?url=' + encodeURIComponent(url));
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'scan failed');
+    const p = d.page;
+    const dims = p.dimensions.map(x => {
+      const ratio = x.score === null ? 0 : x.score / x.max;
+      const low = x.score !== null && ratio < 0.4 ? 'low' : '';
+      const val = x.score === null ? 'n/a' : `${x.score}/${x.max}`;
+      return `<div class="sdim ${low}"><span>${DIMS[x.key] ?? x.key}</span><span class="bar"><i style="width:${Math.round(ratio*100)}%"></i></span><span class="v">${val}</span></div>`;
+    }).join('');
+    const blockers = p.blockers.map(b => `<div class="scan-blocker">🔴 ${esc(b)}</div>`).join('');
+    const site = d.site ? `<div class="scan-checks">${chk(d.site.robotsTxtFound)} robots.txt · ${chk(!d.site.blockedAiCrawlers?.length)} AI crawlers allowed · ${chk(d.site.sitemapFound)} sitemap · ${chk(d.site.llmsTxtFound)} llms.txt</div>` : '';
+    out.innerHTML = `<div class="scan-card">
+      <div class="scan-head"><div class="scan-grade ${p.grade}">${p.grade}</div>
+        <div><div class="scan-score">${p.score}<small> /100 · ${p.wordCount} visible word-equivalents</small></div>
+        <div style="font-size:12px;color:var(--faint)">${esc(p.url)}</div></div></div>
+      <div class="scan-dims">${dims}</div>${blockers}${site}
+      <div class="scan-cta">This is one page, no API keys. The full loop — engine sampling, entity funnel, machine-verified tickets — is one command:
+        <span class="mono" onclick="navigator.clipboard.writeText('npx fastergeo bootstrap --root ${esc(p.url)}')">npx fastergeo</span> (free, self-hosted)</div>
+    </div>`;
+  } catch (err) {
+    out.innerHTML = `<div class="scan-err">${esc(err.message)}</div>`;
+  } finally {
+    btn.disabled = false; btn.textContent = 'Scan';
+  }
+});
+function chk(ok){ return ok ? '<span style="color:var(--green)">✓</span>' : '<span style="color:var(--red)">✗</span>'; }
+function esc(s){ return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+</script>
 </body>
 </html>

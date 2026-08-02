@@ -117,12 +117,12 @@ export async function auditSite(
 
   const blockers: string[] = [];
   if (site.blockedAiCrawlers.length > 0) {
-    blockers.push(`robots-blocks-ai: robots.txt 屏蔽了 ${site.blockedAiCrawlers.join(', ')}`);
+    blockers.push(`robots-blocks-ai: robots.txt blocks ${site.blockedAiCrawlers.join(', ')}`);
   }
   const shellPages = pages.filter(p => p.blockers.some(b => b.startsWith('spa-shell')));
   if (shellPages.length > 0 && shellPages.length >= pages.length / 2) {
     blockers.push(
-      `spa-shell-site: ${shellPages.length}/${pages.length} 页面是客户端渲染空壳 — 门票问题，修复前一切内容优化无效`,
+      `spa-shell-site: ${shellPages.length}/${pages.length} pages are client-rendered empty shells — a ticket problem; all content work is void until fixed`,
     );
   }
 

@@ -12,13 +12,22 @@ function mockFetchOnce(status: number, json: unknown) {
 afterEach(() => vi.unstubAllGlobals());
 
 describe('registry', () => {
-  it('covers 15 engines with cn/global split', () => {
+  it('covers 18 engines with cn/global split', () => {
     const ids = Object.keys(PROVIDERS);
-    expect(ids).toHaveLength(15);
+    expect(ids).toHaveLength(18);
     const cn = ids.filter(id => PROVIDERS[id].market === 'cn');
     const global = ids.filter(id => PROVIDERS[id].market === 'global');
-    expect(cn).toHaveLength(7);
+    expect(cn).toHaveLength(10);
     expect(global).toHaveLength(8);
+  });
+
+  it('new CN engines resolve with env-convention keys', () => {
+    for (const [id, keyEnv] of [['qwen', 'DASHSCOPE_API_KEY'], ['ernie', 'QIANFAN_API_KEY'], ['spark', 'SPARK_API_KEY']]) {
+      const p = resolveProvider(id, { [keyEnv]: 'k' });
+      expect(p.apiKey).toBe('k');
+      expect(p.market).toBe('cn');
+      expect(p.protocol).toBe('openai-compatible');
+    }
   });
 
   it('resolves env overrides and flags gateway routing', () => {

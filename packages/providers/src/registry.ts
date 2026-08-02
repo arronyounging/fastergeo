@@ -48,6 +48,27 @@ export const PROVIDERS: Record<string, ProviderSpec> = {
     model: 'MiniMax-M2', keyEnv: 'MINIMAX_API_KEY', webSearch: false,
     notes: '海螺 AI 网页版需人工采样。',
   },
+  qwen: {
+    id: 'qwen', name: '通义千问', market: 'cn', driver: 'api',
+    protocol: 'openai-compatible',
+    baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+    model: 'qwen-plus', keyEnv: 'DASHSCOPE_API_KEY', webSearch: false,
+    notes: 'DashScope OpenAI 兼容端点，不联网；千问 Web 与 App 信源仅 24.5% 重合，网页端需单独人工采样。',
+  },
+  ernie: {
+    id: 'ernie', name: '文心一言', market: 'cn', driver: 'api',
+    protocol: 'openai-compatible',
+    baseUrl: 'https://qianfan.baidubce.com/v2',
+    model: 'ernie-4.0-turbo-8k', keyEnv: 'QIANFAN_API_KEY', webSearch: false,
+    notes: '百度千帆 v2 OpenAI 兼容端点（Bearer API Key），不联网。',
+  },
+  spark: {
+    id: 'spark', name: '讯飞星火', market: 'cn', driver: 'api',
+    protocol: 'openai-compatible',
+    baseUrl: 'https://spark-api-open.xf-yun.com/v1',
+    model: 'generalv3.5', keyEnv: 'SPARK_API_KEY', webSearch: false,
+    notes: 'HTTP 端点 OpenAI 兼容；Key 格式为 APIKey:APISecret 合并串。',
+  },
   // ---------------- CN · 人工采样 ----------------
   nano: {
     id: 'nano', name: '纳米AI搜索', market: 'cn', driver: 'manual', webSearch: true,

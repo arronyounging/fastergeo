@@ -68,11 +68,11 @@ Every command works standalone. Data is plain JSON on your machine — `git init
 
 Migrating from GeoLook? `fastergeo metrics --format geolook` re-scores your existing samples directly.
 
-## The 15 engines
+## The 18 engines
 
 | Market | API sampling | Manual sheets |
 |---|---|---|
-| 🇨🇳 China | GLM · Doubao (Ark) · DeepSeek · Kimi · MiniMax | 纳米AI · 百度AI |
+| 🇨🇳 China | GLM · Doubao (Ark) · DeepSeek · Kimi · MiniMax · Qwen 通义 · ERNIE 文心 · Spark 星火 | 纳米AI · 百度AI |
 | 🌍 Global | ChatGPT · Claude · Gemini · Grok · Perplexity | ChatGPT web · Claude web · Google AI Overviews |
 
 `fastergeo check` diagnoses every key — *no key / auth failed / **authenticated-but-model-not-enabled** / network* — each with an actionable hint. `HTTPS_PROXY` honored (`NO_PROXY` for domestic endpoints).
@@ -86,7 +86,7 @@ Migrating from GeoLook? `fastergeo metrics --format geolook` re-scores your exis
 
 ## Architecture
 
-Monorepo of nine packages, each usable standalone: `rules` (100+ deterministic lint rules with agent-fixable suggestions, forked from [geo-lint](https://github.com/IJONIS/geo-lint) with CJK support) · `providers` (15-engine adapters + key health checks) · `metrics` (funnel metrics + LLM recognition judge + manual sheets) · `audit` (six-dimension scoring, evidence-anchored) · `tickets` (acceptance DSL + verification) · `content` (fact store + fabrication gate + bootstrap) · `trends` (period history + attribution discipline) · `report` (self-contained HTML) · `cli`
+Monorepo of nine packages, each usable standalone: `rules` (100+ deterministic lint rules with agent-fixable suggestions, forked from [geo-lint](https://github.com/IJONIS/geo-lint) with CJK support) · `providers` (18-engine adapters + key health checks) · `metrics` (funnel metrics + LLM recognition judge + manual sheets) · `audit` (six-dimension scoring, evidence-anchored) · `tickets` (acceptance DSL + verification) · `content` (fact store + fabrication gate + bootstrap) · `trends` (period history + attribution discipline) · `report` (self-contained HTML) · `cli`
 
 ```bash
 pnpm install && pnpm -r build && pnpm -r test   # 578 tests
