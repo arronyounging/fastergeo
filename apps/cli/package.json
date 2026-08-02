@@ -16,7 +16,8 @@
     "@fastergeo/metrics": "workspace:*",
     "@fastergeo/audit": "workspace:*",
     "@fastergeo/tickets": "workspace:*",
-    "@fastergeo/content": "workspace:*"
+    "@fastergeo/content": "workspace:*",
+    "@fastergeo/report": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.6.0",

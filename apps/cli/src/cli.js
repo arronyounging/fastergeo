@@ -16,6 +16,7 @@ import { computeMetrics, parseGeoLookSamples, makeLlmJudge } from '@fastergeo/me
 import { auditSite } from '@fastergeo/audit';
 import { generateTickets, verifyTickets } from '@fastergeo/tickets';
 import { buildOutline, draftPrompt, lintFabrication } from '@fastergeo/content';
+import { renderHtmlReport } from '@fastergeo/report';
 import { writeFileSync } from 'node:fs';
 
 const [, , command, ...rest] = process.argv;
@@ -300,10 +301,29 @@ async function cmdFabcheck() {
   process.exit(issues.length > 0 ? 1 : 0);
 }
 
+async function cmdReport() {
+  if (!flags.root && !flags.samples) {
+    console.error('用法: fastergeo report --root <site> [--urls ...] [--samples f --brand b --format geolook --judge glm] [--tickets t.json] --out report.html');
+    process.exit(1);
+  }
+  const ctx = await buildContext();
+  let tickets;
+  if (flags.tickets) tickets = JSON.parse(readFileSync(flags.tickets, 'utf8'));
+  else tickets = generateTickets(ctx.audit, ctx.metrics);
+  const brandName = flags.brand
+    ? JSON.parse(readFileSync(flags.brand, 'utf8')).name
+    : (flags.root ? new URL(flags.root).hostname : 'Brand');
+  const html = renderHtmlReport({ brandName, audit: ctx.audit, metrics: ctx.metrics, tickets });
+  const out = flags.out ?? 'fastergeo-report.html';
+  writeFileSync(out, html);
+  console.log(`报告已生成 → ${out}（${Math.round(html.length / 1024)}KB，自包含单文件）`);
+}
+
 const commands = {
   check: cmdCheck, sample: cmdSample, metrics: cmdMetrics, audit: cmdAudit,
   plan: cmdPlan, verify: cmdVerify,
   outline: cmdOutline, draft: cmdDraft, fabcheck: cmdFabcheck,
+  report: cmdReport,
 };
 const run = commands[command];
 if (!run) {

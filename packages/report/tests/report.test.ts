@@ -1,0 +1,90 @@
+import { describe, it, expect } from 'vitest';
+import { renderHtmlReport } from '../src/render.js';
+import type { ReportInput } from '../src/render.js';
+
+const INPUT: ReportInput = {
+  brandName: 'Custyle',
+  generatedAt: '2026-08-02T12:00:00Z',
+  audit: {
+    root: 'https://custyle.ai',
+    generatedAt: '2026-08-02T12:00:00Z',
+    site: { robotsTxtFound: true, blockedAiCrawlers: [], sitemapFound: true, llmsTxtFound: true },
+    pages: [{
+      url: 'https://custyle.ai/products/hoodie', score: 16, grade: 'D', wordCount: 23,
+      dimensions: [
+        { key: 'crawlability', score: 11, max: 15, issues: ['spa-shell'] },
+        { key: 'relevance', score: null, max: 10, issues: [] },
+      ],
+      blocks: { definition: false, statistics: false, comparison: false, steps: false, faq: false },
+      blockers: ['spa-shell: 页面 HTML 419KB 但可见正文仅 23 词等效'],
+    }],
+    avgScore: 44.6,
+    gradeDistribution: { A: 0, B: 2, C: 1, D: 4 },
+    blockers: [],
+  },
+  metrics: {
+    generatedAt: '2026-08-02T12:00:00Z', brand: 'Custyle', totalSamples: 64,
+    platforms: [{
+      providerId: 'doubao', market: 'cn', samples: 14,
+      mentionRate: 0, top1Rate: 0, top3Rate: 0, avgRank: null,
+      shareOfVoice: 0, ownDomainCiteRate: 0, citationShare: null,
+      competitorMentions: { Printful: 1 },
+      probe: {
+        samples: 2,
+        recognition: { knows: 0, unknown: 0, confused: 1, unverified: 1 },
+        confusedEvidence: ['主打汽车外观改装件（前后包围、中网）<script>x</script>'],
+      },
+    }],
+  },
+  tickets: [{
+    id: 'T-001', title: '修复客户端渲染空壳页', priority: 'P0',
+    rationale: '3 个页面是空壳', status: 'todo', history: [],
+    acceptance: { type: 'auto', check: 'pages.issue_lte:spa-shell:0', desc: '重抓后 ≥120 词' },
+  }],
+};
+
+describe('renderHtmlReport', () => {
+  const html = renderHtmlReport(INPUT);
+
+  it('puts blockers in a red banner with confusion evidence', () => {
+    expect(html).toContain('修复前一切优化无效');
+    expect(html).toContain('spa-shell');
+    expect(html).toContain('张冠李戴');
+    expect(html).toContain('汽车外观改装件');
+  });
+
+  it('escapes HTML in evidence quotes (no script injection)', () => {
+    expect(html).not.toContain('<script>x</script>');
+    expect(html).toContain('&lt;script&gt;');
+  });
+
+  it('renders the entity funnel with confusion marked bad', () => {
+    expect(html).toContain('品牌实体漏斗');
+    expect(html).toContain('1 起混淆');
+  });
+
+  it('renders unmeasured values as 未测, never zeros', () => {
+    expect(html).toContain('未测');
+    // citationShare null → engine table shows 未测 for that cell path (own cite is 0% legitimately)
+  });
+
+  it('includes methodology tooltips and honesty footer', () => {
+    expect(html).toContain('口径');
+    expect(html).toContain('不编数');
+  });
+
+  it('renders headline from the worst findings', () => {
+    expect(html).toContain('张冠李戴到其他行业');
+    expect(html).toContain('空壳');
+  });
+
+  it('renders tickets with auto-acceptance count', () => {
+    expect(html).toContain('1 条机器自动验收');
+    expect(html).toContain('T-001');
+  });
+
+  it('is fully self-contained (no external resources)', () => {
+    expect(html).not.toMatch(/src=["']https?:/);
+    expect(html).not.toMatch(/href=["']https?:/);
+  });
+});
