@@ -11,38 +11,66 @@
 import type { HealthReport, ResolvedProvider } from './types.js';
 import { ask, ProviderError } from './drivers/api.js';
 
-const HINTS: Record<string, Partial<Record<HealthReport['status'], string>>> = {
-  doubao: {
-    'auth-failed': '检查火山方舟 API Key（控制台 → API Key 管理）。',
-    'model-unavailable':
-      'Key 有效但模型未开通：到方舟控制台「开通管理」开通该模型，或设 DOUBAO_MODEL/ARK_MODEL 指向已开通的模型 ID（GET /api/v3/models 可列出账号可用模型）。',
+export type HealthLang = 'en' | 'zh';
+
+const HINTS: Record<HealthLang, Record<string, Partial<Record<HealthReport['status'], string>>>> = {
+  en: {
+    doubao: {
+      'auth-failed': 'Check your Volcano Ark API key (console → API Key management).',
+      'model-unavailable':
+        'Key is valid but the model is not enabled: enable it in the Ark console (开通管理), or set DOUBAO_MODEL/ARK_MODEL to an enabled model ID (GET /api/v3/models lists what your account can use).',
+    },
+    deepseek: {
+      'model-unavailable': 'Verify DEEPSEEK_MODEL; if routed through Ark, the DeepSeek model must be enabled there.',
+    },
+    openai: {
+      'auth-failed': 'Check that OPENAI_API_KEY is valid and the project has quota.',
+    },
   },
-  deepseek: {
-    'model-unavailable': '确认 DEEPSEEK_MODEL 有效；若经方舟托管，需在方舟开通该 DeepSeek 模型。',
-  },
-  openai: {
-    'auth-failed': '检查 OPENAI_API_KEY 是否有效、项目是否有额度。',
+  zh: {
+    doubao: {
+      'auth-failed': '检查火山方舟 API Key（控制台 → API Key 管理）。',
+      'model-unavailable':
+        'Key 有效但模型未开通：到方舟控制台「开通管理」开通该模型，或设 DOUBAO_MODEL/ARK_MODEL 指向已开通的模型 ID（GET /api/v3/models 可列出账号可用模型）。',
+    },
+    deepseek: {
+      'model-unavailable': '确认 DEEPSEEK_MODEL 有效；若经方舟托管，需在方舟开通该 DeepSeek 模型。',
+    },
+    openai: {
+      'auth-failed': '检查 OPENAI_API_KEY 是否有效、项目是否有额度。',
+    },
   },
 };
 
-function hintFor(providerId: string, status: HealthReport['status']): string | undefined {
-  return (
-    HINTS[providerId]?.[status] ??
-    {
-      'no-key': undefined,
-      'auth-failed': '密钥被拒绝：检查 Key 是否有效、是否过期、账户是否有余额。',
-      'model-unavailable': '鉴权通过但模型不可用：检查模型 ID 是否正确、账号是否已开通该模型。',
-      'network-error': '网络不可达：检查代理设置（部分海外端点可能需要 HTTPS_PROXY）。',
-      'http-error': '服务端错误（5xx 等）：通常是引擎侧临时故障，稍后重试。',
-    }[status as string]
-  );
+const GENERIC: Record<HealthLang, Record<string, string>> = {
+  en: {
+    'auth-failed': 'Credentials rejected: check the key is valid, not expired, and the account has balance.',
+    'model-unavailable': 'Authenticated but the model is unavailable: check the model ID and that your account has it enabled.',
+    'network-error': 'Network unreachable: check proxy settings (some global endpoints may need HTTPS_PROXY).',
+    'http-error': 'Server-side error (5xx): usually transient on the engine side — retry later.',
+  },
+  zh: {
+    'auth-failed': '密钥被拒绝：检查 Key 是否有效、是否过期、账户是否有余额。',
+    'model-unavailable': '鉴权通过但模型不可用：检查模型 ID 是否正确、账号是否已开通该模型。',
+    'network-error': '网络不可达：检查代理设置（部分海外端点可能需要 HTTPS_PROXY）。',
+    'http-error': '服务端错误（5xx 等）：通常是引擎侧临时故障，稍后重试。',
+  },
+};
+
+const NO_KEY_HINT: Record<HealthLang, (keyEnv: string) => string> = {
+  en: k => `Set ${k} to enable automatic sampling; without it this engine falls back to manual sampling sheets.`,
+  zh: k => `设置环境变量 ${k} 后启用自动采样；不设也可走人工采样表。`,
+};
+
+function hintFor(providerId: string, status: HealthReport['status'], lang: HealthLang): string | undefined {
+  return HINTS[lang][providerId]?.[status] ?? GENERIC[lang][status as string];
 }
 
 /**
  * Probe a provider with a minimal 1-token request and classify the outcome.
  * Costs a fraction of a cent per check; never throws.
  */
-export async function checkProvider(p: ResolvedProvider): Promise<HealthReport> {
+export async function checkProvider(p: ResolvedProvider, lang: HealthLang = 'en'): Promise<HealthReport> {
   if (p.driver === 'manual' || p.driver === 'ui') {
     return { providerId: p.id, configured: true, status: 'manual-driver' };
   }
@@ -51,7 +79,7 @@ export async function checkProvider(p: ResolvedProvider): Promise<HealthReport> 
       providerId: p.id,
       configured: false,
       status: 'no-key',
-      hint: `设置环境变量 ${p.keyEnv} 后启用自动采样；不设也可走人工采样表。`,
+      hint: NO_KEY_HINT[lang](p.keyEnv ?? ''),
     };
   }
 
@@ -77,7 +105,7 @@ export async function checkProvider(p: ResolvedProvider): Promise<HealthReport> 
       authOk: e.kind !== 'auth',
       modelOk: false,
       status,
-      hint: hintFor(p.id, status),
+      hint: hintFor(p.id, status, lang),
       latencyMs: Date.now() - t0,
     };
   }

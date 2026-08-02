@@ -81,7 +81,7 @@ describe('computeTrends', () => {
       period('2026-08-02', { confused: 0 }),
       period('2026-08-16', { confused: 1 }),
     ]);
-    expect(r.alerts.some(a => a.level === 'P0' && a.message.includes('张冠李戴'))).toBe(true);
+    expect(r.alerts.some(a => a.level === 'P0' && a.message.includes('New brand confusion'))).toBe(true);
   });
 
   it('does not alert when confusion existed before', () => {
@@ -89,7 +89,7 @@ describe('computeTrends', () => {
       period('2026-08-02', { confused: 1 }),
       period('2026-08-16', { confused: 1 }),
     ]);
-    expect(r.alerts.filter(a => a.message.includes('张冠李戴'))).toHaveLength(0);
+    expect(r.alerts.filter(a => a.message.includes('confusion'))).toHaveLength(0);
   });
 
   it('alerts P0 on blocker count rising', () => {
@@ -106,7 +106,7 @@ describe('computeTrends', () => {
       period('2026-08-16', { mentionRate: 0.1 }),
     ]);
     const w = r.alerts.find(a => a.level === 'warn')!;
-    expect(w.message).toContain('只作观察');
+    expect(w.message).toContain('observations by default');
   });
 
   it('sorts periods by date regardless of input order', () => {
@@ -117,5 +117,16 @@ describe('computeTrends', () => {
     ]);
     expect(r.periods).toEqual(['2026-08-02', '2026-08-16', '2026-08-30']);
     expect(r.deltas.find(x => x.key === 'doubao.mentionRate')?.curr).toBe(0.25);
+  });
+});
+
+
+describe('computeTrends — zh locale', () => {
+  it('renders Chinese alerts when lang=zh', () => {
+    const r = computeTrends([
+      period('2026-08-02', { confused: 0 }),
+      period('2026-08-16', { confused: 1 }),
+    ], 'zh');
+    expect(r.alerts.some(a => a.message.includes('张冠李戴'))).toBe(true);
   });
 });

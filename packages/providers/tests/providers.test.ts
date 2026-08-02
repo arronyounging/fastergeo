@@ -122,6 +122,7 @@ describe('health checker', () => {
     expect(r.status).toBe('no-key');
     expect(r.configured).toBe(false);
     expect(r.hint).toContain('ZHIPUAI_API_KEY');
+    expect(r.hint).toContain('manual sampling');
   });
 
   it('reports manual-driver for sheet-based engines', async () => {
@@ -145,6 +146,6 @@ describe('health checker', () => {
     const r = await checkProvider(resolveProvider('doubao', { ARK_API_KEY: 'valid-key' }));
     expect(r.status).toBe('model-unavailable');
     expect(r.authOk).toBe(true);
-    expect(r.hint).toContain('开通管理');
+    expect(r.hint).toContain('开通管理'); // console UI is Chinese — hint keeps the exact menu name
   });
 });

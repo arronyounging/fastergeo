@@ -64,9 +64,9 @@ describe('generateTickets', () => {
 
   it('creates P0 entity-disambiguation ticket from confused verdicts with evidence', () => {
     const tickets = generateTickets(undefined, mkMetrics());
-    const entity = tickets.find(t => t.title.includes('实体消歧'));
+    const entity = tickets.find(t => t.title.includes('Entity disambiguation'));
     expect(entity?.priority).toBe('P0');
-    expect(entity?.rationale).toContain('汽车');
+    expect(entity?.rationale).toContain('汽车'); // evidence stays verbatim
     expect(entity?.market).toBe('cn');
   });
 
@@ -117,7 +117,7 @@ describe('verifyTickets', () => {
 
   it('no_confusion passes only with judged samples and zero confused', () => {
     const tickets = generateTickets(undefined, mkMetrics());
-    const entity = tickets.find(t => t.title.includes('实体消歧'))!;
+    const entity = tickets.find(t => t.title.includes('Entity disambiguation'))!;
     // 下期：全部 unverified（没跑 judge）→ 未测，不能算通过
     const allUnverified = mkMetrics();
     allUnverified.platforms[0].probe!.recognition = { knows: 0, unknown: 0, confused: 0, unverified: 2 };
@@ -131,5 +131,13 @@ describe('verifyTickets', () => {
     fixed.platforms[0].probe!.confusedEvidence = [];
     summary = verifyTickets(tickets, { metrics: fixed });
     expect(entity.status).toBe('done');
+  });
+});
+
+
+describe('generateTickets — zh locale', () => {
+  it('generates Chinese titles when lang=zh', () => {
+    const tickets = generateTickets(undefined, mkMetrics(), 'zh');
+    expect(tickets.some(t => t.title.includes('实体消歧'))).toBe(true);
   });
 });

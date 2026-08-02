@@ -76,7 +76,23 @@ function series(
   return periods.map(p => pick(p) ?? null);
 }
 
-export function computeTrends(periodsInput: PeriodRecord[]): TrendReport {
+export type TrendLang = 'en' | 'zh';
+
+const AL = {
+  en: {
+    newConfusion: (id: string) => `New brand confusion: ${id} started misattributing the brand this period (none last period)`,
+    blockersUp: (a: number, b: number) => `Blocker count rising: ${a} → ${b} (ticket problems regressed)`,
+    mentionDrop: (key: string, pp: string) => `${key} dropped ${pp}pp — single-period changes are observations by default; wait for two consecutive periods before concluding`,
+  },
+  zh: {
+    newConfusion: (id: string) => `新增张冠李戴：${id} 本期开始把品牌归错（上期无）`,
+    blockersUp: (a: number, b: number) => `Blocker 数量上升：${a} → ${b}（门票问题回归）`,
+    mentionDrop: (key: string, pp: string) => `${key} 下降 ${pp}pp — 单期波动默认只作观察，连续两期再定性`,
+  },
+} as const;
+
+export function computeTrends(periodsInput: PeriodRecord[], lang: TrendLang = 'en'): TrendReport {
+  const A = AL[lang];
   const periods = [...periodsInput].sort((a, b) => a.date.localeCompare(b.date));
   const deltas: MetricDelta[] = [];
   const alerts: Alert[] = [];
@@ -124,14 +140,14 @@ export function computeTrends(periodsInput: PeriodRecord[]): TrendReport {
     const before = confusedBy(prev);
     for (const id of confusedBy(last)) {
       if (!before.has(id)) {
-        alerts.push({ level: 'P0', message: `新增张冠李戴：${id} 本期开始把品牌归错（上期无）` });
+        alerts.push({ level: 'P0', message: A.newConfusion(id) });
       }
     }
 
     const blockersOf = (p: PeriodRecord): number =>
       (p.audit?.pages ?? []).reduce((a, x) => a + x.blockers.length, 0) + (p.audit?.blockers.length ?? 0);
     if (blockersOf(last) > blockersOf(prev)) {
-      alerts.push({ level: 'P0', message: `Blocker 数量上升：${blockersOf(prev)} → ${blockersOf(last)}（门票问题回归）` });
+      alerts.push({ level: 'P0', message: A.blockersUp(blockersOf(prev), blockersOf(last)) });
     }
 
     // Mention-rate drop >10pp — flagged as observation-level warning
@@ -139,7 +155,7 @@ export function computeTrends(periodsInput: PeriodRecord[]): TrendReport {
       if (d.key.endsWith('.mentionRate') && d.prev !== null && d.curr !== null && d.prev - d.curr > 0.1) {
         alerts.push({
           level: 'warn',
-          message: `${d.key} 下降 ${((d.prev - d.curr) * 100).toFixed(0)}pp — 单期波动默认只作观察，连续两期再定性`,
+          message: A.mentionDrop(d.key, ((d.prev - d.curr) * 100).toFixed(0)),
         });
       }
     }

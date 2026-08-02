@@ -60,8 +60,10 @@ export function startUi(projectDir, port = 8765) {
         const periods = loadPeriods(projectDir);
         const latest = periods[periods.length - 1];
         const brand = loadJson(join(projectDir, 'brand.json'), {});
-        if (!latest) return send(200, '<p style="color:#8b97a8;font-family:sans-serif">还没有数据——先跑一期：fastergeo cycle --dir 项目目录</p>', 'text/html');
+        if (!latest) return send(200, '<p style="color:#8b97a8;font-family:sans-serif">No data yet — run a period first: fastergeo cycle --dir &lt;project&gt;</p>', 'text/html');
+        const lang = url.searchParams.get('lang') === 'zh' ? 'zh' : 'en';
         return send(200, renderHtmlReport({
+          lang,
           brandName: brand.name ?? 'Brand',
           audit: latest.audit ?? undefined,
           metrics: latest.metrics ?? undefined,
@@ -71,7 +73,8 @@ export function startUi(projectDir, port = 8765) {
 
       if (url.pathname === '/api/trends') {
         const periods = loadPeriods(projectDir);
-        return send(200, periods.length >= 1 ? computeTrends(periods) : { periods: [], deltas: [], alerts: [] });
+        const tlang = url.searchParams.get('lang') === 'zh' ? 'zh' : 'en';
+        return send(200, periods.length >= 1 ? computeTrends(periods, tlang) : { periods: [], deltas: [], alerts: [] });
       }
 
       if (url.pathname === '/api/ticket' && req.method === 'POST') {
@@ -103,8 +106,8 @@ export function startUi(projectDir, port = 8765) {
   });
 
   server.listen(port, '127.0.0.1', () => {
-    console.log(`FasterGEO 看板: http://127.0.0.1:${port}  （项目: ${projectDir}）`);
-    console.log('只绑定本机；远程访问请用 SSH 隧道。Ctrl+C 退出。');
+    console.log(`FasterGEO dashboard: http://127.0.0.1:${port}  (project: ${projectDir})`);
+    console.log('Bound to localhost only; use an SSH tunnel for remote access. Ctrl+C to quit.');
   });
   return server;
 }

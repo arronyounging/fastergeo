@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>FasterGEO 看板</title>
+<title>FasterGEO Dashboard</title>
 <style>
 /* ── FasterGEO 设计语言：精密仪器 ─────────────────────────────
    深墨底 · 单强调色 · 等宽数字 · 8px 网格 · 克制的色彩语义     */
@@ -108,11 +108,11 @@ code{background:var(--surface-2);padding:1px 6px;border-radius:5px;font-size:12p
 <body>
 <header>
   <div class="logo">Faster<b>GEO</b></div>
-  <div class="project-chip"><span class="dot"></span><span id="brandName">加载中…</span></div>
+  <div class="project-chip"><span class="dot"></span><span id="brandName"></span></div>
   <nav>
-    <button data-tab="overview" class="active">总览</button>
-    <button data-tab="tickets">工单</button>
-    <button data-tab="trends">趋势</button>
+    <button data-tab="overview" class="active" id="nav-overview"></button>
+    <button data-tab="tickets" id="nav-tickets"></button>
+    <button data-tab="trends" id="nav-trends"></button>
   </nav>
 </header>
 <main>
@@ -121,6 +121,39 @@ code{background:var(--surface-2);padding:1px 6px;border-radius:5px;font-size:12p
   <div id="tab-trends" style="display:none"></div>
 </main>
 <script>
+// i18n: English default; zh via ?lang=zh or browser language
+const UI_LANG = new URLSearchParams(location.search).get('lang')
+  ?? (navigator.language?.startsWith('zh') ? 'zh' : 'en');
+const T = UI_LANG === 'zh' ? {
+  overview: '总览', tickets: '工单', trends: '趋势',
+  loading: '加载中…', unnamed: '未命名', periods: n => `${n} 期数据`, latest: '最新',
+  noData: '暂无数据',
+  noTickets: '暂无工单', noTicketsHint: '跑一期 <code>fastergeo cycle</code> 自动生成',
+  ticketsLabel: (n, a) => `行动工单 · ${n} 条 · ${a} 条机器自动验收`,
+  manual: '👤 人工验收', mark: '标记…', verifyOnly: 'verify 自动判定',
+  ticketsFootnote: '自动验收工单由 <code>fastergeo verify</code> / <code>cycle</code> 重抓判定，看板不可手改——机器验收的状态不接受口头确认。',
+  needTwo: n => `${n} 期数据 — 至少两期才能对比。`,
+  discipline: '口径：单期变化只作观察，连续两期同向才算趋势。',
+  periodLabel: '期间对比', unmeasured: '未测',
+  trendVerdict: d => '📈 趋势（连续' + (d === 'up' ? '上升' : '下降') + '）',
+  obsVerdict: '观察（不定性）', insufficient: '数据不足',
+  thMetric: '指标', thPrev: '上期', thCurr: '本期', thVerdict: '判定',
+} : {
+  overview: 'Overview', tickets: 'Tickets', trends: 'Trends',
+  loading: 'loading…', unnamed: 'unnamed', periods: n => `${n} period(s)`, latest: 'latest',
+  noData: 'no data yet',
+  noTickets: 'No tickets yet', noTicketsHint: 'run <code>fastergeo cycle</code> to generate them',
+  ticketsLabel: (n, a) => `Action tickets · ${n} · ${a} machine-verifiable`,
+  manual: '👤 manual', mark: 'mark…', verifyOnly: 'verify-judged',
+  ticketsFootnote: 'Auto-acceptance tickets are judged by <code>fastergeo verify</code> / <code>cycle</code> re-crawls and cannot be hand-edited here — machine-verified status does not accept verbal confirmation.',
+  needTwo: n => `${n} period(s) — at least two are needed to compare.`,
+  discipline: 'Discipline: single-period changes are observations; only two consecutive same-direction changes count as a trend.',
+  periodLabel: 'Period comparison', unmeasured: 'unmeasured',
+  trendVerdict: d => `📈 trend (${d === 'up' ? 'rising' : 'falling'} twice)`,
+  obsVerdict: 'observation (no conclusion)', insufficient: 'insufficient data',
+  thMetric: 'metric', thPrev: 'prev', thCurr: 'curr', thVerdict: 'verdict',
+};
+document.documentElement.lang = UI_LANG === 'zh' ? 'zh-CN' : 'en';
 const $ = s => document.querySelector(s);
 let project = null;
 
@@ -133,10 +166,15 @@ document.querySelectorAll('nav button').forEach(btn => btn.onclick = () => {
   if (btn.dataset.tab === 'trends') renderTrends();
 });
 
+for (const k of ['overview','tickets','trends']) $('#nav-' + k).textContent = T[k];
+$('#brandName').textContent = T.loading;
+// pass lang to the embedded report
+document.querySelector('#tab-overview iframe').src = '/api/report?lang=' + UI_LANG;
+
 async function load() {
   project = await (await fetch('/api/project')).json();
   const n = project.periods.length;
-  $('#brandName').textContent = (project.brand.name ?? '未命名') + (n ? ` · ${n} 期数据 · 最新 ${project.periods[n-1]}` : ' · 暂无数据');
+  $('#brandName').textContent = (project.brand.name ?? T.unnamed) + (n ? ` · ${T.periods(n)} · ${T.latest} ${project.periods[n-1]}` : ` · ${T.noData}`);
 }
 
 async function setStatus(id, status) {
@@ -150,12 +188,12 @@ function renderTickets() {
   const el = $('#tab-tickets');
   const ts = project.tickets;
   if (!ts.length) {
-    el.innerHTML = '<div class="card"><div class="empty">暂无工单<div class="hint">跑一期 <code>fastergeo cycle</code> 自动生成</div></div></div>';
+    el.innerHTML = `<div class="card"><div class="empty">${T.noTickets}<div class="hint">${T.noTicketsHint}</div></div></div>`;
     return;
   }
   const auto = ts.filter(t => t.acceptance.type === 'auto').length;
   el.innerHTML = `<div class="card">
-    <div class="card-label">行动工单 · ${ts.length} 条 · ${auto} 条机器自动验收</div>
+    <div class="card-label">${T.ticketsLabel(ts.length, auto)}</div>
     ${ts.map(t => `
       <div class="trow">
         <span class="pill ${t.priority}">${t.priority}</span>
@@ -164,36 +202,36 @@ function renderTickets() {
           <div class="t-rationale">${esc(t.rationale.slice(0, 110))}</div>
           <div class="t-acc">${t.acceptance.type === 'auto'
             ? `⚙ <span class="mono">${esc(t.acceptance.check)}</span>`
-            : '👤 人工验收'} · ${esc(t.acceptance.desc.slice(0, 46))}</div>
+            : T.manual} · ${esc(t.acceptance.desc.slice(0, 46))}</div>
         </div>
         <div class="t-side">
           <span class="pill ${t.status}">${t.status}</span>
           ${t.acceptance.type === 'manual'
             ? `<select onchange="setStatus('${t.id}', this.value)">
-                <option value="">标记…</option>
+                <option value="">${T.mark}</option>
                 <option value="done">done</option>
                 <option value="pending-manual">pending</option>
               </select>`
-            : '<span class="verify-note">verify 判定</span>'}
+            : `<span class="verify-note">${T.verifyOnly}</span>`}
         </div>
       </div>`).join('')}
-    <div class="footnote">自动验收工单由 <code>fastergeo verify</code> / <code>cycle</code> 重抓判定，看板不可手改——机器验收的状态不接受口头确认。</div>
+    <div class="footnote">${T.ticketsFootnote}</div>
   </div>`;
 }
 
 async function renderTrends() {
   const el = $('#tab-trends');
-  const t = await (await fetch('/api/trends')).json();
+  const t = await (await fetch('/api/trends?lang=' + UI_LANG)).json();
   if (t.periods.length < 2) {
-    el.innerHTML = `<div class="card"><div class="empty">${t.periods.length} 期数据，至少两期才能对比
-      <div class="hint">口径：单期变化只作观察，连续两期同向才算趋势</div></div></div>`;
+    el.innerHTML = `<div class="card"><div class="empty">${T.needTwo(t.periods.length)}
+      <div class="hint">${T.discipline}</div></div></div>`;
     return;
   }
-  const pct = v => v === null ? '<span class="na">未测</span>' : (v <= 1 ? (v * 100).toFixed(0) + '%' : v);
+  const pct = v => v === null ? `<span class="na">${T.unmeasured}</span>` : (v <= 1 ? (v * 100).toFixed(0) + '%' : v);
   el.innerHTML = `
     ${t.alerts.map(a => `<div class="alert ${a.level}"><span>${a.level === 'P0' ? '🔴' : '⚠️'}</span><span>${esc(a.message)}</span></div>`).join('')}
     <div class="card">
-      <div class="card-label">期间对比</div>
+      <div class="card-label">${T.periodLabel}</div>
       <div class="period-strip">${t.periods.map((p, i) =>
         `<span class="p num ${i === t.periods.length - 1 ? 'latest' : ''}">${p}</span>${i < t.periods.length - 1 ? '→' : ''}`).join('')}</div>
       ${t.deltas.map(d => `<div class="drow">

@@ -17,7 +17,7 @@ function pagesWithIssue(audit: SiteAudit, code: string): number {
   ).length;
 }
 
-function evaluate(check: string, ctx: VerifyContext): { pass: boolean; detail: string } | null {
+function evaluate(check: string, ctx: VerifyContext, T: typeof VM.en | typeof VM.zh): { pass: boolean; detail: string } | null {
   const [head, ...args] = check.split(':');
   switch (head) {
     case 'site.no_ai_block':
@@ -48,7 +48,7 @@ function evaluate(check: string, ctx: VerifyContext): { pass: boolean; detail: s
       const code = args.slice(0, -1).join(':'); // issue codes may contain ':'
       const target = Number(args[args.length - 1]);
       const count = pagesWithIssue(ctx.audit, code);
-      return { pass: count <= target, detail: `${code}: ${count} 页（目标 ≤${target}）` };
+      return { pass: count <= target, detail: T.pagesDetail(code, count, target) };
     }
     case 'metrics.mention_rate_gte': {
       if (!ctx.metrics) return null;
@@ -59,7 +59,7 @@ function evaluate(check: string, ctx: VerifyContext): { pass: boolean; detail: s
         .map(p => p.mentionRate as number);
       if (rates.length === 0) return null;
       const avg = rates.reduce((a, b) => a + b, 0) / rates.length;
-      return { pass: avg >= target, detail: `${market} 平均提及率=${(avg * 100).toFixed(1)}% 目标≥${target * 100}%` };
+      return { pass: avg >= target, detail: T.mentionDetail(market, (avg * 100).toFixed(1), target) };
     }
     case 'metrics.no_confusion': {
       if (!ctx.metrics) return null;
@@ -71,14 +71,36 @@ function evaluate(check: string, ctx: VerifyContext): { pass: boolean; detail: s
       const judged = platforms.reduce(
         (a, p) => a + (p.probe ? p.probe.samples - p.probe.recognition.unverified : 0), 0);
       if (judged === 0) return null; // 全是 unverified → 未测
-      return { pass: confused === 0, detail: `${market} confused=${confused}（已判定 ${judged} 题）` };
+      return { pass: confused === 0, detail: T.confusionDetail(market, confused, judged) };
     }
     default:
-      return { pass: false, detail: `未知验收检查: ${check}` };
+      return { pass: false, detail: T.unknownCheck(check) };
   }
 }
 
-export function verifyTickets(tickets: Ticket[], ctx: VerifyContext): VerifySummary {
+export type VerifyLang = 'en' | 'zh';
+
+const VM = {
+  en: {
+    pagesDetail: (code: string, n: number, t: number) => `${code}: ${n} page(s) (target ≤${t})`,
+    mentionDetail: (mkt: string, avg: string, t: number) => `${mkt} avg mention rate=${avg}% target≥${t * 100}%`,
+    confusionDetail: (mkt: string, c: number, j: number) => `${mkt} confused=${c} (${j} judged)`,
+    unknownCheck: (c: string) => `unknown acceptance check: ${c}`,
+    unmeasurable: 'missing measurable inputs (no re-crawl / no samples) — status unchanged',
+    regressed: (d: string) => `regressed: ${d}`,
+  },
+  zh: {
+    pagesDetail: (code: string, n: number, t: number) => `${code}: ${n} 页（目标 ≤${t}）`,
+    mentionDetail: (mkt: string, avg: string, t: number) => `${mkt} 平均提及率=${avg}% 目标≥${t * 100}%`,
+    confusionDetail: (mkt: string, c: number, j: number) => `${mkt} confused=${c}（已判定 ${j} 题）`,
+    unknownCheck: (c: string) => `未知验收检查: ${c}`,
+    unmeasurable: '缺少可测量输入（未重抓/未采样）——状态不变',
+    regressed: (d: string) => `回归: ${d}`,
+  },
+} as const;
+
+export function verifyTickets(tickets: Ticket[], ctx: VerifyContext, lang: VerifyLang = 'en'): VerifySummary {
+  const T = VM[lang];
   const verdicts: TicketVerdict[] = [];
   const transitions: VerifySummary['transitions'] = [];
   const counts = { pass: 0, fail: 0, unmeasurable: 0, manual: 0 };
@@ -97,10 +119,10 @@ export function verifyTickets(tickets: Ticket[], ctx: VerifyContext): VerifySumm
       verdicts.push({ ticketId: t.id, outcome: 'manual', detail: t.acceptance.desc });
       continue;
     }
-    const result = evaluate(t.acceptance.check, ctx);
+    const result = evaluate(t.acceptance.check, ctx, T);
     if (result === null) {
       counts.unmeasurable++;
-      verdicts.push({ ticketId: t.id, outcome: 'unmeasurable', detail: '缺少可测量输入（未重抓/未采样）——状态不变' });
+      verdicts.push({ ticketId: t.id, outcome: 'unmeasurable', detail: T.unmeasurable });
       continue;
     }
     if (result.pass) {
@@ -110,7 +132,7 @@ export function verifyTickets(tickets: Ticket[], ctx: VerifyContext): VerifySumm
     } else {
       counts.fail++;
       verdicts.push({ ticketId: t.id, outcome: 'fail', detail: result.detail });
-      if (t.status === 'done') move(t, 'regressed', `回归: ${result.detail}`);
+      if (t.status === 'done') move(t, 'regressed', T.regressed(result.detail));
     }
   }
 

@@ -1,6 +1,6 @@
 {
   "name": "fastergeo",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "Open-source GEO platform CLI \u2014 see how AI engines talk about your brand (CN + global), then fix it with machine-verified tickets.",
   "license": "Apache-2.0",
   "type": "module",

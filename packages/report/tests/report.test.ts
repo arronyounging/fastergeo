@@ -47,10 +47,10 @@ describe('renderHtmlReport', () => {
   const html = renderHtmlReport(INPUT);
 
   it('puts blockers in a red banner with confusion evidence', () => {
-    expect(html).toContain('修复前一切优化无效');
+    expect(html).toContain('Fix these before anything else');
     expect(html).toContain('spa-shell');
-    expect(html).toContain('张冠李戴');
-    expect(html).toContain('汽车外观改装件');
+    expect(html).toContain('Brand confusion');
+    expect(html).toContain('汽车外观改装件'); // evidence quotes stay verbatim
   });
 
   it('escapes HTML in evidence quotes (no script injection)', () => {
@@ -59,32 +59,43 @@ describe('renderHtmlReport', () => {
   });
 
   it('renders the entity funnel with confusion marked bad', () => {
-    expect(html).toContain('品牌实体漏斗');
-    expect(html).toContain('1 起混淆');
+    expect(html).toContain('Brand Entity Funnel');
+    expect(html).toContain('1 confusion');
   });
 
   it('renders unmeasured values as 未测, never zeros', () => {
-    expect(html).toContain('未测');
+    expect(html).toContain('unmeasured');
     // citationShare null → engine table shows 未测 for that cell path (own cite is 0% legitimately)
   });
 
   it('includes methodology tooltips and honesty footer', () => {
-    expect(html).toContain('口径');
-    expect(html).toContain('不编数');
+    expect(html).toContain('method');
+    expect(html).toContain('never a fabricated zero');
   });
 
   it('renders headline from the worst findings', () => {
-    expect(html).toContain('张冠李戴到其他行业');
-    expect(html).toContain('空壳');
+    expect(html).toContain('confuse')
+    expect(html).toContain('empty shell');
   });
 
   it('renders tickets with auto-acceptance count', () => {
-    expect(html).toContain('1 条机器自动验收');
+    expect(html).toContain('1 machine-verifiable');
     expect(html).toContain('T-001');
   });
 
   it('is fully self-contained (no external resources)', () => {
     expect(html).not.toMatch(/src=["']https?:/);
     expect(html).not.toMatch(/href=["']https?:/);
+  });
+});
+
+
+describe('renderHtmlReport — zh locale', () => {
+  it('renders Chinese when lang=zh', () => {
+    const html = renderHtmlReport({ ...INPUT, lang: 'zh' });
+    expect(html).toContain('品牌实体漏斗');
+    expect(html).toContain('修复前一切优化无效');
+    expect(html).toContain('未测');
+    expect(html).toContain('lang="zh-CN"');
   });
 });
