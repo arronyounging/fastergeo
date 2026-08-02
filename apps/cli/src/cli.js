@@ -20,6 +20,8 @@ import { auditSite, fetchPage } from '@fastergeo/audit';
 import { generateTickets, verifyTickets } from '@fastergeo/tickets';
 import { buildOutline, draftPrompt, lintFabrication, bootstrapProject } from '@fastergeo/content';
 import { renderHtmlReport } from '@fastergeo/report';
+import { computeTrends } from '@fastergeo/trends';
+import { readdirSync, mkdirSync } from 'node:fs';
 import { writeFileSync } from 'node:fs';
 
 const [, , command, ...rest] = process.argv;
@@ -43,6 +45,7 @@ const { values: flags } = parseArgs({
     file: { type: 'string' },
     questions: { type: 'string' },
     engines: { type: 'string' },
+    history: { type: 'string' },
     json: { type: 'boolean', default: false },
   },
   allowPositionals: true,
@@ -129,6 +132,7 @@ async function cmdMetrics() {
     judge,
     brandDescription: brand.description,
   });
+  savePeriod({ metrics: report });
   if (flags.json) {
     console.log(JSON.stringify(report, null, 2));
     return;
@@ -159,6 +163,7 @@ async function cmdAudit() {
     ? flags.urls.split(',').map(u => (u.startsWith('http') ? u : new URL(u, root).href))
     : [root];
   const report = await auditSite(root, urls);
+  savePeriod({ audit: report });
   if (flags.json) {
     console.log(JSON.stringify(report, null, 2));
     return;
@@ -312,6 +317,7 @@ async function cmdReport() {
     process.exit(1);
   }
   const ctx = await buildContext();
+  savePeriod(ctx);
   let tickets;
   if (flags.tickets) tickets = JSON.parse(readFileSync(flags.tickets, 'utf8'));
   else tickets = generateTickets(ctx.audit, ctx.metrics);
@@ -363,8 +369,59 @@ const commands = {
   plan: cmdPlan, verify: cmdVerify,
   outline: cmdOutline, draft: cmdDraft, fabcheck: cmdFabcheck,
   report: cmdReport, bootstrap: cmdBootstrap,
-  sheet: cmdSheet, import: cmdImport,
+  sheet: cmdSheet, import: cmdImport, trends: cmdTrends,
 };
+
+/** 把本次测量存为一期（--history 目录，YYYY-MM-DD 命名，覆盖同日）。 */
+function savePeriod(ctx) {
+  if (!flags.history) return;
+  mkdirSync(flags.history, { recursive: true });
+  const date = new Date().toISOString().slice(0, 10);
+  if (ctx.metrics) writeFileSync(`${flags.history}/${date}-metrics.json`, JSON.stringify(ctx.metrics, null, 2));
+  if (ctx.audit) writeFileSync(`${flags.history}/${date}-audit.json`, JSON.stringify(ctx.audit, null, 2));
+  console.log(`本期已存入 ${flags.history}/（${date}）`);
+}
+
+function loadPeriods(dir) {
+  const byDate = new Map();
+  for (const f of readdirSync(dir)) {
+    const m = /^(\d{4}-\d{2}-\d{2})-(metrics|audit)\.json$/.exec(f);
+    if (!m) continue;
+    const rec = byDate.get(m[1]) ?? { date: m[1] };
+    rec[m[2]] = JSON.parse(readFileSync(`${dir}/${f}`, 'utf8'));
+    byDate.set(m[1], rec);
+  }
+  return [...byDate.values()];
+}
+
+async function cmdTrends() {
+  if (!flags.history) {
+    console.error('用法: fastergeo trends --history <目录>（先用 report/metrics/audit 带 --history 存期）');
+    process.exit(1);
+  }
+  const periods = loadPeriods(flags.history);
+  if (periods.length === 0) {
+    console.error('历史目录为空——先跑一期带 --history 的测量。');
+    process.exit(1);
+  }
+  const r = computeTrends(periods);
+  console.log(`期数: ${r.periods.length}（${r.periods.join(' → ')}）\n`);
+  for (const a of r.alerts) {
+    console.log(`${a.level === 'P0' ? '🔴 P0' : '⚠ 观察'} ${a.message}`);
+  }
+  if (r.alerts.length) console.log();
+  const fmt = v => (v === null ? '未测' : `${(v * 100).toFixed(0)}%`);
+  for (const d of r.deltas) {
+    const arrow = d.direction === 'up' ? '↑' : d.direction === 'down' ? '↓' : '→';
+    const verdict = d.verdict.kind === 'trend'
+      ? `📈 趋势(${d.verdict.direction === 'up' ? '连续上升' : '连续下降'})`
+      : d.verdict.kind === 'observation' ? '观察（单期波动，不定性）'
+      : '数据不足';
+    const isScore = d.key === 'site.avgScore';
+    const show = v => (isScore ? (v === null ? '未测' : v) : fmt(v));
+    console.log(`${d.key.padEnd(28)} ${show(d.prev)} ${arrow} ${show(d.curr)}  ${verdict}`);
+  }
+}
 
 async function cmdSheet() {
   if (!flags.questions) {
