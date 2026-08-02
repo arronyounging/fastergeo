@@ -174,3 +174,10 @@ export type {
 export type { ContentAdapter } from './adapters/types.js';
 export { createAdapter } from './adapters/types.js';
 export { loadContentItems } from './adapters/mdx.js';
+
+// Text-metric utilities (CJK-aware) — shared with @fastergeo/audit
+export { countWords, countSentences, stripMarkdown, getWordStats } from './utils/word-counter.js';
+export {
+  countCjkChars, isCjkDominant, cjkCharsToWords, segmentCjkWords,
+  CJK_CHAR_PATTERN, SENTENCE_SPLIT_PATTERN,
+} from './utils/cjk.js';

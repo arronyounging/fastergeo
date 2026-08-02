@@ -13,6 +13,7 @@ import {
   PROVIDERS, resolveProvider, configuredProviders, ask, checkProvider,
 } from '@fastergeo/providers';
 import { computeMetrics, parseGeoLookSamples, makeLlmJudge } from '@fastergeo/metrics';
+import { auditSite } from '@fastergeo/audit';
 
 const [, , command, ...rest] = process.argv;
 
@@ -26,6 +27,8 @@ const { values: flags } = parseArgs({
     brand: { type: 'string' },
     format: { type: 'string' },
     judge: { type: 'string' },
+    root: { type: 'string' },
+    urls: { type: 'string' },
     json: { type: 'boolean', default: false },
   },
   allowPositionals: true,
@@ -132,7 +135,35 @@ async function cmdMetrics() {
   }
 }
 
-const commands = { check: cmdCheck, sample: cmdSample, metrics: cmdMetrics };
+async function cmdAudit() {
+  if (!flags.root) {
+    console.error('用法: fastergeo audit --root https://site.com [--urls /a,/b] [--json]');
+    process.exit(1);
+  }
+  const root = flags.root;
+  const urls = flags.urls
+    ? flags.urls.split(',').map(u => (u.startsWith('http') ? u : new URL(u, root).href))
+    : [root];
+  const report = await auditSite(root, urls);
+  if (flags.json) {
+    console.log(JSON.stringify(report, null, 2));
+    return;
+  }
+  const s = report.site;
+  console.log(`site: robots ${s.robotsTxtFound ? '✓' : '✗'} · sitemap ${s.sitemapFound ? '✓' : '✗'} · llms.txt ${s.llmsTxtFound ? '✓' : '✗'}` +
+    (s.blockedAiCrawlers.length ? ` · 🔴 屏蔽AI爬虫: ${s.blockedAiCrawlers.join(',')}` : ''));
+  console.log(`均分 ${report.avgScore ?? '未测'} · A${report.gradeDistribution.A} B${report.gradeDistribution.B} C${report.gradeDistribution.C} D${report.gradeDistribution.D}\n`);
+  for (const b of report.blockers) console.log(`🔴 BLOCKER: ${b}`);
+  for (const p of report.pages) {
+    const dims = p.dimensions
+      .map(d => `${d.key}:${d.score === null ? '未测' : d.score}/${d.max}`).join(' ');
+    console.log(`${p.grade} ${String(p.score).padStart(5)} ${p.url} · ${p.wordCount}词`);
+    console.log(`         ${dims}`);
+    for (const b of p.blockers) console.log(`         🔴 ${b}`);
+  }
+}
+
+const commands = { check: cmdCheck, sample: cmdSample, metrics: cmdMetrics, audit: cmdAudit };
 const run = commands[command];
 if (!run) {
   console.log('fastergeo <check|sample|metrics> — 用法见各命令 --help 或源码头部注释');

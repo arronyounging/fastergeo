@@ -13,7 +13,8 @@
   },
   "dependencies": {
     "@fastergeo/providers": "workspace:*",
-    "@fastergeo/metrics": "workspace:*"
+    "@fastergeo/metrics": "workspace:*",
+    "@fastergeo/audit": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.6.0",
