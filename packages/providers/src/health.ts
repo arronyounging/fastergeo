@@ -33,6 +33,7 @@ function hintFor(providerId: string, status: HealthReport['status']): string | u
       'auth-failed': '密钥被拒绝：检查 Key 是否有效、是否过期、账户是否有余额。',
       'model-unavailable': '鉴权通过但模型不可用：检查模型 ID 是否正确、账号是否已开通该模型。',
       'network-error': '网络不可达：检查代理设置（部分海外端点可能需要 HTTPS_PROXY）。',
+      'http-error': '服务端错误（5xx 等）：通常是引擎侧临时故障，稍后重试。',
     }[status as string]
   );
 }
@@ -56,7 +57,9 @@ export async function checkProvider(p: ResolvedProvider): Promise<HealthReport> 
 
   const t0 = Date.now();
   try {
-    await ask(p, { question: 'hi', maxTokens: 1, timeoutMs: 20_000 });
+    // 45s probe: reasoning-tier models (deepseek-v4, o-series) can exceed 20s
+    // even on 1-token replies — observed in production onboarding.
+    await ask(p, { question: 'hi', maxTokens: 1, timeoutMs: 45_000 });
     return {
       providerId: p.id, configured: true, authOk: true, modelOk: true,
       status: 'ok', latencyMs: Date.now() - t0,
@@ -67,7 +70,7 @@ export async function checkProvider(p: ResolvedProvider): Promise<HealthReport> 
       e.kind === 'auth' ? 'auth-failed'
       : e.kind === 'model' ? 'model-unavailable'
       : e.kind === 'network' ? 'network-error'
-      : 'auth-failed';
+      : 'http-error'; // 5xx / unclassified — NOT an auth problem
     return {
       providerId: p.id,
       configured: true,

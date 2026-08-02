@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { countCjkChars, isCjkDominant, cjkCharsToWords, segmentCjkWords } from '../../../src/utils/cjk.js';
+import { countCjkChars, isCjkDominant, cjkCharsToWords, segmentCjkWords, SENTENCE_SPLIT_PATTERN } from '../../../src/utils/cjk.js';
 import { countWords, countSentences } from '../../../src/utils/word-counter.js';
 
 const ZH_PARAGRAPH =
@@ -93,5 +93,17 @@ describe('segmentCjkWords', () => {
   it('keeps embedded Latin terms of 3+ chars', () => {
     const words = segmentCjkWords('深度解析 GEO 优化方法');
     expect(words).toContain('geo');
+  });
+});
+
+describe('SENTENCE_SPLIT_PATTERN (shared splitter)', () => {
+  it('splits Chinese sentences without trailing whitespace', () => {
+    const parts = '第一句。第二句！第三句？'.split(SENTENCE_SPLIT_PATTERN).filter(s => s.trim());
+    expect(parts).toHaveLength(3);
+  });
+
+  it('splits mixed Latin and CJK', () => {
+    const parts = 'First one. 第二句。Third one?'.split(SENTENCE_SPLIT_PATTERN).filter(s => s.trim());
+    expect(parts).toHaveLength(3);
   });
 });

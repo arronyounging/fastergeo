@@ -86,12 +86,9 @@ export interface HealthReport {
   authOk?: boolean;
   /** The configured model is actually callable. */
   modelOk?: boolean;
-  status: 'ok' | 'no-key' | 'auth-failed' | 'model-unavailable' | 'network-error' | 'manual-driver';
+  status: 'ok' | 'no-key' | 'auth-failed' | 'model-unavailable' | 'network-error' | 'http-error' | 'manual-driver';
   /** Actionable, operator-facing hint (e.g. "开通模型" console steps). */
   hint?: string;
   latencyMs?: number;
 }
 
-export interface Driver {
-  ask(provider: ResolvedProvider, req: SampleRequest): Promise<SampleResult>;
-}

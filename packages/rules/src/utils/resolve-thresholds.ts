@@ -78,6 +78,11 @@ export const CJK_DESCRIPTION_THRESHOLDS: LengthThresholds = {
 /**
  * Swap in the CJK length profile when the measured field is CJK-dominant.
  * Called by title/description rules after regular threshold resolution.
+ *
+ * TODO(config): the CJK profile currently overrides user-configured
+ * thresholds unconditionally. Add a `thresholds.cjk` config block so
+ * operators can tune CJK limits, and honor item.locale (frontmatter) over
+ * auto-detection when present. Tracked for the config-schema pass.
  */
 export function cjkAwareLengths(
   resolved: LengthThresholds,

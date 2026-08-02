@@ -7,6 +7,7 @@
 import { stripMarkdown, countWords } from './word-counter.js';
 import { analyzeWordComplexity } from './word-complexity.js';
 import { extractSentences } from './geo-advanced-analyzer.js';
+import { SENTENCE_SPLIT_PATTERN } from './cjk.js';
 
 // ─── Jargon / Word Complexity Detection ─────────────────────────────────────
 
@@ -162,9 +163,9 @@ export interface SentenceLengthAnalysis {
 export function analyzeSentenceLength(body: string): SentenceLengthAnalysis {
   const plain = stripMarkdown(body);
 
-  // Split into sentences on .!? followed by whitespace or end of string
+  // Shared CJK-aware splitter (Latin .!? + full-width 。！？)
   const sentences = plain
-    .split(/(?<=[.!?])\s+/)
+    .split(SENTENCE_SPLIT_PATTERN)
     .map(s => s.trim())
     .filter(s => s.length > 0);
 
@@ -177,7 +178,8 @@ export function analyzeSentenceLength(body: string): SentenceLengthAnalysis {
   let over60 = 0;
 
   for (const sentence of sentences) {
-    const wordCount = sentence.split(/\s+/).filter(w => w.length > 0).length;
+    // CJK-aware word-equivalent count keeps per-sentence thresholds meaningful
+    const wordCount = countWords(sentence);
     totalWordCount += wordCount;
     if (wordCount > maxWords) maxWords = wordCount;
     if (wordCount > 60) over60++;

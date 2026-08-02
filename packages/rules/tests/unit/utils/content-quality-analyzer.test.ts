@@ -203,3 +203,15 @@ describe('analyzeCitationQuality', () => {
     expect(result.totalStats).toBe(0);
   });
 });
+
+describe('analyzeSentenceLength (CJK-aware)', () => {
+  it('counts Chinese sentences split by full-width terminators', async () => {
+    const { analyzeSentenceLength } = await import('../../../src/utils/content-quality-analyzer.js');
+    const zh = '这是第一句话，包含了一些内容。这是第二句话，也有内容。这是第三句话。';
+    const r = analyzeSentenceLength(zh);
+    expect(r.totalSentences).toBe(3);
+    // per-sentence word-equivalents are reasonable (not 1 giant token)
+    expect(r.avgWordsPerSentence).toBeGreaterThan(3);
+    expect(r.avgWordsPerSentence).toBeLessThan(30);
+  });
+});

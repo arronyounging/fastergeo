@@ -51,13 +51,16 @@ async function post(
 ): Promise<{ status: number; json: any }> {
   let res: Response;
   try {
+    const dispatcher = getDispatcher();
     res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...headers },
       body: JSON.stringify(body),
       signal: AbortSignal.timeout(timeoutMs),
-      // undici extension: route through HTTP(S)_PROXY when configured
-      ...(getDispatcher() ? { dispatcher: getDispatcher() } : {}),
+      // undici extension: route through HTTP(S)_PROXY when configured.
+      // Domestic endpoints that must stay direct can be excluded via NO_PROXY
+      // (honored by EnvHttpProxyAgent), e.g. NO_PROXY=ark.cn-beijing.volces.com
+      ...(dispatcher ? { dispatcher } : {}),
     } as RequestInit);
   } catch (err) {
     throw new ProviderError(
@@ -109,9 +112,13 @@ function buildResult(
   };
 }
 
-async function askOpenAICompatible(p: ResolvedProvider, req: SampleRequest): Promise<SampleResult> {
+async function askOpenAICompatible(
+  p: ResolvedProvider,
+  req: SampleRequest,
+  startedAt?: number,
+): Promise<SampleResult> {
   const { key, model, base } = requireKeyAndModel(p);
-  const t0 = Date.now();
+  const t0 = startedAt ?? Date.now();
   const { status, json } = await post(
     `${base}/chat/completions`,
     { Authorization: `Bearer ${key}` },
@@ -184,8 +191,9 @@ async function askArk(p: ResolvedProvider, req: SampleRequest): Promise<SampleRe
       .filter(Boolean);
     if (answer) return buildResult(p, req, model, answer, citations, t0);
   }
-  // Degrade to plain chat (parameterized-knowledge sampling) — never abort a cycle
-  return askOpenAICompatible(p, req);
+  // Degrade to plain chat (parameterized-knowledge sampling) — never abort a
+  // cycle. Pass t0 so latencyMs includes the failed grounded attempt.
+  return askOpenAICompatible(p, req, t0);
 }
 
 /** Ask one question through the provider's protocol. */

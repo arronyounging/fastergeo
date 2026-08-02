@@ -14,12 +14,19 @@
  * without maintaining a parallel threshold set.
  */
 
-/** Han ideographs + Japanese kana + Hangul syllables. */
-const CJK_CHAR_PATTERN =
+/** Han ideographs + Japanese kana + Hangul syllables (single source of truth). */
+export const CJK_CHAR_PATTERN =
   /[一-鿿㐀-䶿豈-﫿぀-ゟ゠-ヿ가-힯]/g;
 
 /** CJK full-width sentence terminators. */
 export const CJK_SENTENCE_ENDINGS = /[。！？]/g; // 。 ！ ？
+
+/**
+ * Shared sentence splitter: Latin enders need trailing whitespace,
+ * CJK full-width enders end a sentence with no space after them.
+ * All sentence-level analysis must use this instead of ad-hoc [.!?] splits.
+ */
+export const SENTENCE_SPLIT_PATTERN = /(?<=[.!?])\s+|(?<=[。！？])\s*/;
 
 /** Average CJK characters per word (Mandarin segmentation corpora ≈ 1.6). */
 export const CJK_CHARS_PER_WORD = 1.6;

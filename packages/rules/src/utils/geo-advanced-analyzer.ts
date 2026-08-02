@@ -5,6 +5,7 @@
 
 import { countWords, stripMarkdown } from './word-counter.js';
 import { extractHeadings } from './heading-extractor.js';
+import { SENTENCE_SPLIT_PATTERN } from './cjk.js';
 
 /** FAQ quality analysis result */
 export interface FaqQualityResult {
@@ -229,13 +230,14 @@ function isGermanPassiveSentence(sentence: string): boolean {
  */
 export function extractSentences(body: string): Array<{ text: string; wordCount: number }> {
   const stripped = stripMarkdown(body);
-  const rawSentences = stripped.split(/(?<=[.!?])\s+/);
+  const rawSentences = stripped.split(SENTENCE_SPLIT_PATTERN);
   const sentences: Array<{ text: string; wordCount: number }> = [];
 
   for (const raw of rawSentences) {
-    const text = raw.trim().replace(/[.!?]+$/, '').trim();
+    const text = raw.trim().replace(/[.!?。！？]+$/, '').trim();
     if (!text) continue;
-    const wordCount = text.split(/\s+/).filter(w => w.length > 0 && /\w/.test(w)).length;
+    // CJK-aware count so Chinese sentences carry word-equivalent weight
+    const wordCount = countWords(text);
     if (wordCount > 0) {
       sentences.push({ text, wordCount });
     }

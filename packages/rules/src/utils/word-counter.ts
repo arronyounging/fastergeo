@@ -3,10 +3,7 @@
  * Counts words in MDX content, stripping markdown syntax
  */
 
-import { countCjkChars, cjkCharsToWords } from './cjk.js';
-
-/** Han ideographs + kana + hangul, for stripping before Latin tokenization. */
-const CJK_STRIP_PATTERN = /[一-鿿㐀-䶿豈-﫿぀-ゟ゠-ヿ가-힯]/g;
+import { countCjkChars, cjkCharsToWords, CJK_CHAR_PATTERN } from './cjk.js';
 
 /**
  * Strip markdown syntax to get plain text
@@ -73,7 +70,7 @@ export function countWords(text: string): number {
   const cjkChars = countCjkChars(stripped);
   // Remove CJK chars before whitespace tokenization so mixed-language text
   // is not double-counted.
-  const latinOnly = cjkChars > 0 ? stripped.replace(CJK_STRIP_PATTERN, ' ') : stripped;
+  const latinOnly = cjkChars > 0 ? stripped.replace(CJK_CHAR_PATTERN, ' ') : stripped;
 
   // Split on whitespace and filter empty strings
   const words = latinOnly

@@ -124,15 +124,16 @@ export function resolveProvider(
   if (!spec) {
     throw new Error(`Unknown provider: ${id}. Known: ${Object.keys(PROVIDERS).join(', ')}`);
   }
-  const baseOverride = env[envName(id, 'BASE_URL')];
+  const baseOverride = env[envName(id, 'BASE_URL')]?.trim() || undefined;
   // Legacy aliases kept for GeoLook .env compatibility
   const legacyModel = id === 'doubao' ? env.ARK_MODEL : id === 'glm' ? env.GLM_MODEL : undefined;
+  const norm = (u?: string) => u?.replace(/\/+$/, '');
   return {
     ...spec,
-    resolvedBaseUrl: baseOverride ?? spec.baseUrl,
+    resolvedBaseUrl: norm(baseOverride ?? spec.baseUrl),
     resolvedModel: env[envName(id, 'MODEL')] ?? legacyModel ?? spec.model,
     apiKey: spec.keyEnv ? env[spec.keyEnv] : undefined,
-    gatewayRouted: Boolean(baseOverride && baseOverride !== spec.baseUrl),
+    gatewayRouted: Boolean(baseOverride && norm(baseOverride) !== norm(spec.baseUrl)),
   };
 }
 

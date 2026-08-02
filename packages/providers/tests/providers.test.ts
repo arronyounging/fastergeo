@@ -32,6 +32,14 @@ describe('registry', () => {
     expect(p.gatewayRouted).toBe(true);
   });
 
+  it('is not gateway-routed when override equals default modulo trailing slash', () => {
+    const p = resolveProvider('deepseek', {
+      DEEPSEEK_API_KEY: 'k',
+      DEEPSEEK_BASE_URL: 'https://api.deepseek.com/v1/',
+    });
+    expect(p.gatewayRouted).toBe(false);
+  });
+
   it('is not gateway-routed on default base URL', () => {
     const p = resolveProvider('openai', { OPENAI_API_KEY: 'k' });
     expect(p.gatewayRouted).toBe(false);
