@@ -12,7 +12,10 @@ import { readFileSync } from 'node:fs';
 import {
   PROVIDERS, resolveProvider, configuredProviders, ask, checkProvider,
 } from '@fastergeo/providers';
-import { computeMetrics, parseGeoLookSamples, makeLlmJudge } from '@fastergeo/metrics';
+import {
+  computeMetrics, parseGeoLookSamples, makeLlmJudge,
+  renderSampleSheet, parseSampleSheet, enrichWithQuestionBank,
+} from '@fastergeo/metrics';
 import { auditSite, fetchPage } from '@fastergeo/audit';
 import { generateTickets, verifyTickets } from '@fastergeo/tickets';
 import { buildOutline, draftPrompt, lintFabrication, bootstrapProject } from '@fastergeo/content';
@@ -38,6 +41,8 @@ const { values: flags } = parseArgs({
     facts: { type: 'string' },
     llm: { type: 'string' },
     file: { type: 'string' },
+    questions: { type: 'string' },
+    engines: { type: 'string' },
     json: { type: 'boolean', default: false },
   },
   allowPositionals: true,
@@ -358,7 +363,50 @@ const commands = {
   plan: cmdPlan, verify: cmdVerify,
   outline: cmdOutline, draft: cmdDraft, fabcheck: cmdFabcheck,
   report: cmdReport, bootstrap: cmdBootstrap,
+  sheet: cmdSheet, import: cmdImport,
 };
+
+async function cmdSheet() {
+  if (!flags.questions) {
+    console.error('用法: fastergeo sheet --questions questions.json [--engines nano,baidu-ai] [--brand brand.json] [--out sheet.md]');
+    process.exit(1);
+  }
+  const questions = JSON.parse(readFileSync(flags.questions, 'utf8'));
+  const engineIds = flags.engines
+    ? flags.engines.split(',')
+    : Object.keys(PROVIDERS).filter(id => PROVIDERS[id].driver === 'manual');
+  const engines = engineIds.map(id => ({
+    id, name: PROVIDERS[id]?.name ?? id, market: PROVIDERS[id]?.market ?? 'cn',
+  }));
+  const brandName = flags.brand ? JSON.parse(readFileSync(flags.brand, 'utf8')).name : 'Brand';
+  const sheet = renderSampleSheet(questions, engines, brandName);
+  const out = flags.out ?? 'sample-sheet.md';
+  writeFileSync(out, sheet);
+  const perEngine = engines.map(e =>
+    `${e.id}(${questions.filter(q => q.market === e.market || q.market === 'both').length}题)`).join(' ');
+  console.log(`采样表已导出 → ${out}\n引擎: ${perEngine}\n人工/浏览器采样后用 fastergeo import 回灌。`);
+}
+
+async function cmdImport() {
+  if (!flags.file) {
+    console.error('用法: fastergeo import --file sheet.md [--questions questions.json] [--out samples.jsonl]');
+    process.exit(1);
+  }
+  let imported = parseSampleSheet(readFileSync(flags.file, 'utf8'));
+  if (flags.questions) {
+    imported = enrichWithQuestionBank(imported, JSON.parse(readFileSync(flags.questions, 'utf8')));
+  } else {
+    console.log('⚠ 未提供 --questions，探测题标记无法恢复——建议带上问题库文件。');
+  }
+  const out = flags.out ?? 'samples-manual.jsonl';
+  writeFileSync(out, imported.samples.map(s => JSON.stringify(s)).join('\n') + '\n');
+  console.log(`回灌 ${imported.samples.length} 条样本 → ${out}（channel=manual）`);
+  if (imported.skipped.length) {
+    console.log(`跳过 ${imported.skipped.length} 条：`);
+    for (const s of imported.skipped) console.log(`  · ${s.engine}/${s.questionId}: ${s.reason}`);
+  }
+  console.log('\n下一步: fastergeo metrics --samples ' + out + ' --brand brand.json');
+}
 const run = commands[command];
 if (!run) {
   console.log('fastergeo <check|sample|metrics> — 用法见各命令 --help 或源码头部注释');
