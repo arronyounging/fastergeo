@@ -13,9 +13,9 @@ import {
   PROVIDERS, resolveProvider, configuredProviders, ask, checkProvider,
 } from '@fastergeo/providers';
 import { computeMetrics, parseGeoLookSamples, makeLlmJudge } from '@fastergeo/metrics';
-import { auditSite } from '@fastergeo/audit';
+import { auditSite, fetchPage } from '@fastergeo/audit';
 import { generateTickets, verifyTickets } from '@fastergeo/tickets';
-import { buildOutline, draftPrompt, lintFabrication } from '@fastergeo/content';
+import { buildOutline, draftPrompt, lintFabrication, bootstrapProject } from '@fastergeo/content';
 import { renderHtmlReport } from '@fastergeo/report';
 import { writeFileSync } from 'node:fs';
 
@@ -319,11 +319,45 @@ async function cmdReport() {
   console.log(`报告已生成 → ${out}（${Math.round(html.length / 1024)}KB，自包含单文件）`);
 }
 
+async function cmdBootstrap() {
+  if (!flags.root || !flags.llm) {
+    console.error('用法: fastergeo bootstrap --root https://site.com --llm glm [--urls /about,/faq] [--out 目录]');
+    process.exit(1);
+  }
+  const extra = flags.urls ? flags.urls.split(',') : ['/about', '/faq', '/pricing'];
+  const urls = [flags.root, ...extra.map(u => (u.startsWith('http') ? u : new URL(u, flags.root).href))];
+  console.log(`抓取 ${urls.length} 页…`);
+  const pages = (await Promise.all(urls.map(u => fetchPage(u))))
+    .filter(p => p && p.status === 200 && p.wordCount > 20)
+    .map(p => ({ url: p.url, title: p.title, text: p.text }));
+  console.log(`有效 ${pages.length} 页，LLM 推导中（${flags.llm}）…`);
+  const provider = resolveProvider(flags.llm);
+  const result = await bootstrapProject(flags.root, pages, async prompt =>
+    (await ask(provider, { question: prompt, maxTokens: 4000, timeoutMs: 300_000 })).answer);
+
+  const dir = flags.out ?? '.';
+  writeFileSync(`${dir}/brand.json`, JSON.stringify({ ...result.brand }, null, 2));
+  writeFileSync(`${dir}/facts.json`, JSON.stringify(result.facts, null, 2));
+  writeFileSync(`${dir}/questions.json`, JSON.stringify(result.questions, null, 2));
+  console.log(`\n已写入 ${dir}/brand.json · facts.json · questions.json`);
+  console.log(`品牌: ${result.brand.name} · ${result.brand.description}`);
+  console.log(`事实: ${result.facts.facts.filter(f => f.status === 'confirmed').length} 条已确认（A级，带来源）`);
+  if (result.unresolved.length) {
+    console.log(`⚠ 官网未提供、需人工补齐: ${result.unresolved.join('、')}`);
+  }
+  console.log(`\n竞品候选（全部需人工确认；仅 high 置信进入追踪清单）:`);
+  for (const c of result.competitorCandidates) {
+    console.log(`  [${c.confidence}] ${c.name} — ${c.why.slice(0, 40)}`);
+  }
+  console.log(`\n问题库 ${result.questions.length} 题（cn ${result.questions.filter(q => q.market === 'cn').length} / global ${result.questions.filter(q => q.market === 'global').length} / 探测 ${result.questions.filter(q => q.brandInQuestion).length}）`);
+  console.log('\n下一步：人工核对 brand.json 竞品与 facts.json 待确认项，然后 fastergeo sample / audit / plan。');
+}
+
 const commands = {
   check: cmdCheck, sample: cmdSample, metrics: cmdMetrics, audit: cmdAudit,
   plan: cmdPlan, verify: cmdVerify,
   outline: cmdOutline, draft: cmdDraft, fabcheck: cmdFabcheck,
-  report: cmdReport,
+  report: cmdReport, bootstrap: cmdBootstrap,
 };
 const run = commands[command];
 if (!run) {

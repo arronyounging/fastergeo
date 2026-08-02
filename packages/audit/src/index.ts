@@ -5,4 +5,4 @@ export type {
 export { AI_CRAWLERS } from './types.js';
 export { extractFeatures, detectBlocks } from './extract.js';
 export { scorePage } from './score.js';
-export { checkSite, auditPage, auditSite, blockedAiCrawlersFromRobots } from './site.js';
+export { checkSite, auditPage, auditSite, blockedAiCrawlersFromRobots, fetchPage } from './site.js';

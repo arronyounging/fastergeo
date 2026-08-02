@@ -99,3 +99,77 @@ describe('lintFabrication — enumerator handling (regression)', () => {
     expect(issues[0].quote).toContain('50000');
   });
 });
+
+// ── Bootstrap ───────────────────────────────────────────────────────────────
+import { bootstrapProject, validateCompetitor, bootstrapPrompt } from '../src/bootstrap.js';
+
+describe('validateCompetitor (F3 噪音防线)', () => {
+  it('rejects generic terms, channels, and AI engines', () => {
+    for (const bad of ['小程序定制商品', '云印定制平台', 'ChatGPT', '豆包', 'Etsy', 'x']) {
+      expect(validateCompetitor(bad)).toBe(false);
+    }
+  });
+  it('accepts real company names', () => {
+    for (const ok of ['Printful', 'Zazzle', 'Redbubble', 'UTme']) {
+      expect(validateCompetitor(ok)).toBe(true);
+    }
+  });
+});
+
+describe('bootstrapProject', () => {
+  const LLM_OUT = JSON.stringify({
+    name: 'Custyle',
+    aliases: ['CUSTYLE'],
+    description: 'AI 定制商品平台，用 AI 把创意变成个性化商品。',
+    industry: 'POD 电商',
+    facts: [{ claim: '商品价格区间为 $29.00 - $54.99', source: 'https://custyle.ai' }],
+    unresolved: ['成立时间', '工商主体'],
+    competitors: [
+      { name: 'Printful', confidence: 'high', why: '同为 POD' },
+      { name: '小程序定制商品', confidence: 'high', why: '噪音' },
+      { name: 'ChatGPT', confidence: 'medium', why: '噪音' },
+      { name: 'Zazzle', confidence: 'medium', why: '同类' },
+    ],
+    questions: {
+      cn: [{ group: '推荐', text: '国内做个性化定制的平台有哪些好用的？' }],
+      global: [{ group: '推荐', text: 'What are the best custom merch platforms?' }],
+    },
+  });
+  const ask = async () => LLM_OUT;
+
+  it('filters competitor noise deterministically and gates tracking by confidence', async () => {
+    const r = await bootstrapProject('https://custyle.ai', [], ask);
+    const names = r.competitorCandidates.map(c => c.name);
+    expect(names).toContain('Printful');
+    expect(names).toContain('Zazzle');
+    expect(names).not.toContain('小程序定制商品');
+    expect(names).not.toContain('ChatGPT');
+    // 只有 high 进追踪清单，全部候选待人审
+    expect(r.brand.competitors.map(c => c.name)).toEqual(['Printful']);
+    expect(r.competitorCandidates.every(c => c.needsReview)).toBe(true);
+  });
+
+  it('turns unresolved items into unconfirmed grade-E facts (never invented)', async () => {
+    const r = await bootstrapProject('https://custyle.ai', [], ask);
+    const unconfirmed = r.facts.facts.filter(f => f.status === 'unconfirmed');
+    expect(unconfirmed.map(f => f.claim)).toEqual(['成立时间', '工商主体']);
+    expect(unconfirmed.every(f => f.grade === 'E')).toBe(true);
+    expect(r.facts.facts.find(f => f.id === 'F-001')?.grade).toBe('A');
+  });
+
+  it('generates probe questions flagged brandInQuestion', async () => {
+    const r = await bootstrapProject('https://custyle.ai', [], ask);
+    const probes = r.questions.filter(q => q.brandInQuestion);
+    expect(probes.length).toBe(3);
+    expect(probes.every(q => q.group === '品牌验证')).toBe(true);
+    const normal = r.questions.filter(q => !q.brandInQuestion);
+    expect(normal.some(q => q.market === 'cn')).toBe(true);
+    expect(normal.some(q => q.market === 'global')).toBe(true);
+  });
+
+  it('prompt forbids world knowledge and requires sourced facts', () => {
+    const p = bootstrapPrompt('https://custyle.ai', [{ url: 'https://custyle.ai', title: 'T', text: '正文' }]);
+    expect(p).toContain('不得使用你的世界知识');
+    expect(p).toContain('禁止编造');
+  });
+});

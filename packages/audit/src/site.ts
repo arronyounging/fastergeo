@@ -9,6 +9,16 @@ import { AI_CRAWLERS, type AuditOptions, type PageAudit, type SiteAudit, type Si
 
 const DEFAULT_TIMEOUT_MS = 20_000;
 
+/** Fetch a page and extract features (exported for bootstrap and tooling). */
+export async function fetchPage(
+  url: string,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+): Promise<import('./types.js').PageFeatures | null> {
+  const res = await fetchText(url, timeoutMs);
+  if (!res) return null;
+  return extractFeatures(url, res.status, res.body);
+}
+
 async function fetchText(url: string, timeoutMs: number): Promise<{ status: number; body: string } | null> {
   try {
     const res = await fetch(url, {
