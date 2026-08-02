@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { countCjkChars, isCjkDominant, cjkCharsToWords } from '../../../src/utils/cjk.js';
+import { countCjkChars, isCjkDominant, cjkCharsToWords, segmentCjkWords } from '../../../src/utils/cjk.js';
 import { countWords, countSentences } from '../../../src/utils/word-counter.js';
 
 const ZH_PARAGRAPH =
@@ -75,5 +75,23 @@ describe('countSentences (CJK-aware)', () => {
 
   it('keeps pure-English behavior unchanged', () => {
     expect(countSentences('One. Two! Three?')).toBe(3);
+  });
+});
+
+describe('segmentCjkWords', () => {
+  it('segments a Chinese title into significant keywords', () => {
+    const words = segmentCjkWords('什么是生成式引擎优化：品牌被AI引用的完整指南');
+    expect(words).toContain('品牌');
+    expect(words).toContain('引用');
+    expect(words).toContain('指南');
+    // stopwords and single chars filtered
+    expect(words).not.toContain('什么');
+    expect(words).not.toContain('的');
+    expect(words).not.toContain('是');
+  });
+
+  it('keeps embedded Latin terms of 3+ chars', () => {
+    const words = segmentCjkWords('深度解析 GEO 优化方法');
+    expect(words).toContain('geo');
   });
 });

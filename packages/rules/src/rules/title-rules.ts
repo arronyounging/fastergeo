@@ -5,7 +5,7 @@
 
 import type { Rule, ContentItem, RuleContext, LintResult } from '../types.js';
 import { getDisplayPath } from '../utils/display-path.js';
-import { resolveThresholds } from '../utils/resolve-thresholds.js';
+import { resolveThresholds, cjkAwareLengths, CJK_TITLE_THRESHOLDS } from '../utils/resolve-thresholds.js';
 
 /** Default title length thresholds (used when context has no thresholds) */
 const TITLE_DEFAULTS = { minLength: 30, maxLength: 60, warnLength: 55 };
@@ -44,9 +44,13 @@ export const titleTooShort: Rule = {
   run: (item: ContentItem, context: RuleContext): LintResult[] => {
     if (!item.title) return [];
 
-    const t = context.thresholds
-      ? resolveThresholds(context.thresholds, item.contentType).title
-      : TITLE_DEFAULTS;
+    const t = cjkAwareLengths(
+      context.thresholds
+        ? resolveThresholds(context.thresholds, item.contentType).title
+        : TITLE_DEFAULTS,
+      item.title,
+      CJK_TITLE_THRESHOLDS,
+    );
     const length = item.title.length;
     if (length > 0 && length < t.minLength) {
       return [{
@@ -73,9 +77,13 @@ export const titleTooLong: Rule = {
   run: (item: ContentItem, context: RuleContext): LintResult[] => {
     if (!item.title) return [];
 
-    const t = context.thresholds
-      ? resolveThresholds(context.thresholds, item.contentType).title
-      : TITLE_DEFAULTS;
+    const t = cjkAwareLengths(
+      context.thresholds
+        ? resolveThresholds(context.thresholds, item.contentType).title
+        : TITLE_DEFAULTS,
+      item.title,
+      CJK_TITLE_THRESHOLDS,
+    );
     const length = item.title.length;
     if (length > t.maxLength) {
       return [{
@@ -102,9 +110,13 @@ export const titleApproachingLimit: Rule = {
   run: (item: ContentItem, context: RuleContext): LintResult[] => {
     if (!item.title) return [];
 
-    const t = context.thresholds
-      ? resolveThresholds(context.thresholds, item.contentType).title
-      : TITLE_DEFAULTS;
+    const t = cjkAwareLengths(
+      context.thresholds
+        ? resolveThresholds(context.thresholds, item.contentType).title
+        : TITLE_DEFAULTS,
+      item.title,
+      CJK_TITLE_THRESHOLDS,
+    );
     const length = item.title.length;
     if (length > t.warnLength && length <= t.maxLength) {
       return [{

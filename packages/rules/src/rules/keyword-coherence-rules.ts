@@ -7,6 +7,7 @@ import type { Rule, ContentItem, LintResult } from '../types.js';
 import { getDisplayPath } from '../utils/display-path.js';
 import { extractHeadings } from '../utils/heading-extractor.js';
 import { countWords } from '../utils/word-counter.js';
+import { isCjkDominant, segmentCjkWords } from '../utils/cjk.js';
 
 /** Keyword coherence thresholds */
 const MIN_SIGNIFICANT_WORDS = 2;
@@ -34,9 +35,14 @@ const STOPWORDS = new Set([
 
 /**
  * Extract significant words from text
- * Filters out stopwords and short words, normalizes to lowercase
+ * Filters out stopwords and short words, normalizes to lowercase.
+ * CJK-dominant text is segmented with Intl.Segmenter — whitespace splitting
+ * would treat an entire Chinese title as one giant "keyword".
  */
 function extractSignificantWords(text: string): string[] {
+  if (isCjkDominant(text)) {
+    return segmentCjkWords(text);
+  }
   return text
     .toLowerCase()
     .replace(/[^\p{L}\p{N}\s-]/gu, ' ')

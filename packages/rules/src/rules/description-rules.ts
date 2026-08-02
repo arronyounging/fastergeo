@@ -5,7 +5,7 @@
 
 import type { Rule, ContentItem, RuleContext, LintResult } from '../types.js';
 import { getDisplayPath } from '../utils/display-path.js';
-import { resolveThresholds } from '../utils/resolve-thresholds.js';
+import { resolveThresholds, cjkAwareLengths, CJK_DESCRIPTION_THRESHOLDS } from '../utils/resolve-thresholds.js';
 
 /** Default description length thresholds (used when context has no thresholds) */
 const DESC_DEFAULTS = { minLength: 70, maxLength: 160, warnLength: 150 };
@@ -44,9 +44,13 @@ export const descriptionTooLong: Rule = {
   run: (item: ContentItem, context: RuleContext): LintResult[] => {
     if (!item.description) return [];
 
-    const d = context.thresholds
-      ? resolveThresholds(context.thresholds, item.contentType).description
-      : DESC_DEFAULTS;
+    const d = cjkAwareLengths(
+      context.thresholds
+        ? resolveThresholds(context.thresholds, item.contentType).description
+        : DESC_DEFAULTS,
+      item.description,
+      CJK_DESCRIPTION_THRESHOLDS,
+    );
     const length = item.description.length;
     if (length > d.maxLength) {
       return [{
@@ -73,9 +77,13 @@ export const descriptionApproachingLimit: Rule = {
   run: (item: ContentItem, context: RuleContext): LintResult[] => {
     if (!item.description) return [];
 
-    const d = context.thresholds
-      ? resolveThresholds(context.thresholds, item.contentType).description
-      : DESC_DEFAULTS;
+    const d = cjkAwareLengths(
+      context.thresholds
+        ? resolveThresholds(context.thresholds, item.contentType).description
+        : DESC_DEFAULTS,
+      item.description,
+      CJK_DESCRIPTION_THRESHOLDS,
+    );
     const length = item.description.length;
     if (length > d.warnLength && length <= d.maxLength) {
       return [{
@@ -102,9 +110,13 @@ export const descriptionTooShort: Rule = {
   run: (item: ContentItem, context: RuleContext): LintResult[] => {
     if (!item.description || item.description.trim().length === 0) return [];
 
-    const d = context.thresholds
-      ? resolveThresholds(context.thresholds, item.contentType).description
-      : DESC_DEFAULTS;
+    const d = cjkAwareLengths(
+      context.thresholds
+        ? resolveThresholds(context.thresholds, item.contentType).description
+        : DESC_DEFAULTS,
+      item.description,
+      CJK_DESCRIPTION_THRESHOLDS,
+    );
     const length = item.description.length;
     if (length < d.minLength) {
       return [{
