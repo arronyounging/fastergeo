@@ -78,8 +78,19 @@ section{padding:88px max(24px,calc(50vw - 580px));position:relative}
   animation:sweep 7s linear infinite;
   -webkit-mask:radial-gradient(circle, black 0 55%, transparent 62%);mask:radial-gradient(circle, black 0 55%, transparent 62%)}
 @keyframes sweep{to{transform:rotate(360deg)}}
+.blip{position:absolute;left:var(--x);top:var(--y);width:7px;height:7px;border-radius:50%;
+  background:var(--acc-2);opacity:0;animation:blip 7s var(--d) infinite}
+@keyframes blip{0%{opacity:0;transform:scale(.5)}4%{opacity:.95;transform:scale(1);
+  box-shadow:0 0 14px var(--acc)}18%{opacity:.25}40%{opacity:0}}
+@media (prefers-reduced-motion: reduce){.blip{animation:none;opacity:.3}}
 @media (prefers-reduced-motion: reduce){.radar::after{animation:none}}
 
+.eyebrow{position:relative;display:inline-flex;align-items:center;gap:8px;font-size:12.5px;
+  font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--acc);
+  border:1px solid rgba(139,124,246,.35);background:var(--acc-soft);
+  padding:6px 14px;border-radius:999px;margin-bottom:22px}
+.eyebrow::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--acc);
+  box-shadow:0 0 8px var(--acc)}
 .hero h1{font-size:clamp(34px,5.4vw,58px);line-height:1.12;font-weight:800;
   letter-spacing:-.035em;margin:0 0 20px;max-width:820px;position:relative}
 .hero h1 em{font-style:normal;background:linear-gradient(120deg,var(--acc),var(--acc-2));
@@ -152,12 +163,23 @@ h2{font-size:clamp(26px,3.2vw,36px);font-weight:800;letter-spacing:-.025em;margi
 .card:hover{transform:translateY(-3px);border-color:var(--line-strong)}
 .card.finding{border-color:rgba(244,83,110,.25);
   background:linear-gradient(150deg,var(--red-soft),var(--surface) 55%)}
-.card h3{font-size:16px;margin:0 0 8px;font-weight:700}
+.card h3{font-size:16px;margin:0 0 8px;font-weight:700;display:flex;align-items:center;gap:9px}
+.cards .card:not(.finding) h3::before{content:"";width:8px;height:8px;border-radius:2px;
+  background:linear-gradient(135deg,var(--acc),var(--acc-2));flex-shrink:0}
 .card p{margin:0;color:var(--dim);font-size:14.5px}
 .card .big{font-size:32px;font-weight:800;letter-spacing:-.02em;margin-bottom:6px}
 .card.finding .big{color:var(--red)}
 .quote{margin-top:12px;padding:11px 14px;background:var(--well);border-radius:10px;
   font-size:13px;color:var(--dim);border-left:2px solid var(--red)}
+
+/* ── Exhibit pull-quote ── */
+.exhibit{padding-top:24px;padding-bottom:24px}
+.pull{margin:0;max-width:860px}
+.pull p{font-size:clamp(24px,3.4vw,38px);line-height:1.35;font-weight:700;
+  letter-spacing:-.02em;margin:0 0 18px;color:var(--tx)}
+.pull mark{background:var(--red-soft);color:var(--red);padding:0 6px;border-radius:6px}
+.pull footer{color:var(--dim);font-size:15px;border-left:2px solid var(--red);padding-left:14px}
+.pull footer b{color:var(--tx)}
 
 /* ── Funnel ──────────────────────────────────────────────────────── */
 .funnel{display:flex;gap:0;align-items:stretch;flex-wrap:wrap;margin:38px 0 18px}
@@ -248,7 +270,6 @@ footer .links{margin-left:auto;display:flex;gap:18px}
 <header>
   <div class="logo">Faster<b>GEO</b></div>
   <nav>
-    <a href="#story">Why</a>
     <a href="#funnel">Entity Funnel</a>
     <a href="#loop">The Loop</a>
     <a href="#faq">FAQ</a>
@@ -258,20 +279,25 @@ footer .links{margin-left:auto;display:flex;gap:18px}
 </header>
 
 <section class="hero" id="top">
-  <div class="radar" aria-hidden="true"></div>
-  <h1>See what AI <em>actually says</em> about your brand. Then fix it.</h1>
-  <p class="sub">FasterGEO is the open-source GEO platform that measures whether AI engines know you,
-  confuse you, mention you, and cite you — across <b>China and global engines</b> — and turns every
-  finding into a ticket that a machine verifies when you fix it.</p>
+  <div class="radar" aria-hidden="true">
+    <i class="blip" style="--x:62%;--y:38%;--d:0s"></i>
+    <i class="blip" style="--x:41%;--y:55%;--d:2.3s"></i>
+    <i class="blip" style="--x:55%;--y:63%;--d:4.1s"></i>
+    <i class="blip" style="--x:35%;--y:41%;--d:5.6s"></i>
+  </div>
+  <div class="eyebrow">Your brand already has an AI reputation</div>
+  <h1>See what AI <em>actually says</em> about you. Then fix it.</h1>
+  <p class="sub">Open-source GEO across <b>18 Chinese and global AI engines</b>.
+  Findings become tickets. Tickets are verified by machines — not by anyone's word.</p>
   <form class="scanbox" id="scanForm">
     <input id="scanUrl" type="text" inputmode="url" placeholder="yoursite.com — see what AI crawlers see" autocomplete="off" spellcheck="false">
     <button type="submit" id="scanBtn">Scan</button>
   </form>
   <div id="scanResult"></div>
-  <p class="note">Free scan, no sign-up · Same engine as the CLI — the scan <i>is</i> the product · Apache-2.0 · Self-hosted · Your data stays on your disk</p>
+  <p class="note">Free, no sign-up · The scan <i>is</i> the product, not a teaser · Your data stays on your disk</p>
   <div class="stats-strip">
     <div class="stat"><div class="n num"><em>18</em> engines</div><div class="l">China + global</div></div>
-    <div class="stat"><div class="n num"><em>100%</em> open</div><div class="l">reproducible metrics</div></div>
+    <div class="stat"><div class="n num"><em>595</em> tests</div><div class="l">open &amp; reproducible</div></div>
     <div class="stat"><div class="n num">A <em>87.8</em></div><div class="l" title="Run it yourself: npx fastergeo audit --root https://fastergeo.co">this site, self-audited</div></div>
     <div class="stat"><div class="n num"><em>$0</em></div><div class="l">bring your own keys — or none</div></div>
   </div>
@@ -301,7 +327,6 @@ footer .links{margin-left:auto;display:flex;gap:18px}
       <h3>Confused the brand with other companies</h3>
       <p>One engine described the brand as an auto-parts maker. Another confidently fabricated user
       reviews for a same-named menswear tailor. The LLM judge caught both — with quoted evidence.</p>
-      <div class="quote">"…mainly known for aftermarket car exterior parts (bumpers, grilles, interior trim)…" — an actual AI answer about a custom-merch platform</div>
     </div>
     <div class="card finding reveal">
       <div class="big num">0%</div>
@@ -310,6 +335,14 @@ footer .links{margin-left:auto;display:flex;gap:18px}
       the race — it wasn't in it.</p>
     </div>
   </div>
+</section>
+
+<section class="exhibit">
+  <div class="label reveal">Exhibit A</div>
+  <blockquote class="pull reveal">
+    <p>“…mainly known for aftermarket <mark>car exterior parts</mark> — bumpers, grilles, interior trim…”</p>
+    <footer>— a real AI answer about a <b>custom-merch platform</b>, caught by the recognition judge. Evidence is always quoted verbatim.</footer>
+  </blockquote>
 </section>
 
 <section id="funnel">
@@ -341,24 +374,20 @@ footer .links{margin-left:auto;display:flex;gap:18px}
 
 <section>
   <div class="label reveal">What you get</div>
-  <h2 class="reveal">Every claim above is a feature below.</h2>
+  <h2 class="reveal">The loop, piece by piece.</h2>
   <div class="cards" style="margin-top:36px">
-    <div class="card reveal"><h3>⚙️ Machine-verified tickets</h3><p>Findings become tickets with acceptance
-    criteria a program can check. Done means a re-crawl proved it — and it flips back to
-    <i>regressed</i> if the fix rots. No verbal confirmations.</p></div>
-    <div class="card reveal"><h3>🔍 Recognition judging</h3><p>knows / unknown / <b>confused</b> — every
-    confusion verdict carries a quote from the actual AI answer. Brand-entity risk you can act on.</p></div>
-    <div class="card reveal"><h3>🚧 Fabrication-gated content</h3><p>Drafts are generated only from your
-    sourced fact store. Every number that can't be traced to a confirmed fact is flagged. AI that
-    can't invent things about you.</p></div>
-    <div class="card reveal"><h3>🀄 CJK-first metrics</h3><p>Word-equivalent counting, full-width sentence
-    handling, Chinese segmentation. Latin-only text metrics silently break on Chinese content — ours
-    don't.</p></div>
-    <div class="card reveal"><h3>🔑 Zero-key mode</h3><p>No API keys? Export manual sampling sheets, fill
-    them from any AI's web UI, import back into the exact same metrics pipeline.</p></div>
-    <div class="card reveal"><h3>📏 Reproducible numbers</h3><p>Unmeasured renders as <i>unmeasured</i> —
-    never a fabricated zero. Single-period changes are observations; only two consecutive
-    same-direction changes count as a trend.</p></div>
+    <div class="card reveal"><h3>Verified tickets</h3><p>Acceptance criteria a program can check.
+    Done means a re-crawl proved it — and it flips back to <i>regressed</i> if the fix rots.</p></div>
+    <div class="card reveal"><h3>Recognition judging</h3><p>knows / unknown / <b>confused</b> — and a
+    confusion verdict must quote the answer it came from. Brand-entity risk you can act on.</p></div>
+    <div class="card reveal"><h3>Fabrication gate</h3><p>Drafts come only from your sourced fact store.
+    A number that can't be traced gets flagged. AI that can't invent things about you.</p></div>
+    <div class="card reveal"><h3>CJK-first metrics</h3><p>Word-equivalent counting, full-width sentences,
+    Chinese segmentation. Latin-only text metrics silently break on Chinese — ours don't.</p></div>
+    <div class="card reveal"><h3>Zero-key mode</h3><p>No API keys? Export sampling sheets, fill them from
+    any AI's web UI, import back into the exact same pipeline.</p></div>
+    <div class="card reveal"><h3>Honest numbers</h3><p>Unmeasured stays <i>unmeasured</i> — never a
+    fabricated zero. One period is an observation; two in the same direction make a trend.</p></div>
   </div>
 </section>
 
@@ -393,7 +422,7 @@ footer .links{margin-left:auto;display:flex;gap:18px}
 
 <section id="faq" class="faq">
   <div class="label reveal">FAQ</div>
-  <h2 class="reveal">Questions, answered directly.</h2>
+  <h2 class="reveal">Straight answers.</h2>
   <details open>
     <summary>What is GEO (Generative Engine Optimization)?</summary>
     <p>GEO is a practice of making AI engines — ChatGPT, Claude, Perplexity, Doubao, DeepSeek —
@@ -431,7 +460,7 @@ footer .links{margin-left:auto;display:flex;gap:18px}
 
 <div class="cta-final">
   <div class="label reveal">Get started</div>
-  <h2 class="reveal">Your brand has an AI reputation.<br>Go look at it.</h2>
+  <h2 class="reveal">Every day you don't look,<br>AI is answering without you.</h2>
   <div class="cmd-big reveal" onclick="navigator.clipboard.writeText('npx fastergeo bootstrap --root https://yoursite.com')" title="Click to copy">
     <span style="color:var(--faint)">$</span> npx fastergeo bootstrap --root https://yoursite.com
     <span class="copy">copy</span>
