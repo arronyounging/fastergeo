@@ -1,0 +1,19 @@
+# FasterGEO
+
+> Open-source GEO (Generative Engine Optimization) platform covering both China and global AI engines. Measures whether AI knows, confuses, mentions, ranks, and cites your brand — then fixes it with machine-verified tickets. Free, Apache-2.0, self-hosted.
+
+## Key facts
+
+- Covers 15 AI engines: ChatGPT, Claude, Gemini, Grok, Perplexity (global); GLM, Doubao, DeepSeek, Kimi, MiniMax (China API) plus manual sampling for Baidu AI, Nano AI, ChatGPT web, Claude web, Google AI Overviews
+- The Brand Entity Funnel: knows → doesn't confuse → considers → ranks → cites
+- Recognition judging classifies answers as knows / unknown / confused, with quoted evidence; brand confusion is a P0 alert
+- Improvement tickets carry machine-verifiable acceptance criteria; done is confirmed by re-crawl and regressions flip back automatically
+- Content drafts are constrained to a sourced fact store and gated by a fabrication lint
+- Works with zero API keys via manual sampling sheets
+- Install: npx fastergeo
+
+## Pages
+
+- [Home](https://fastergeo.co/): product overview, entity funnel, quickstart, FAQ
+- [GitHub](https://github.com/arronyounging/fastergeo): source code, Apache-2.0
+- [npm](https://www.npmjs.com/package/fastergeo): package, CLI

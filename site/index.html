@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FasterGEO — See what AI actually says about your brand</title>
+<meta name="description" content="FasterGEO is an open-source GEO (Generative Engine Optimization) platform covering both China and global AI engines. It measures whether AI knows, confuses, mentions, ranks, and cites your brand — then fixes it with machine-verified tickets.">
+<link rel="canonical" href="https://fastergeo.co/">
+<meta property="og:title" content="FasterGEO — Open-source GEO platform">
+<meta property="og:description" content="See what ChatGPT, Claude, Doubao and DeepSeek actually say about your brand. Fix it with machine-verified tickets. Free, self-hosted, your data stays on your disk.">
+<meta property="og:url" content="https://fastergeo.co/">
+<meta property="og:type" content="website">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Organization","@id":"https://fastergeo.co/#org","name":"FasterGEO","url":"https://fastergeo.co","sameAs":["https://github.com/arronyounging/fastergeo","https://www.npmjs.com/package/fastergeo"]},
+{"@type":"SoftwareApplication","datePublished":"2026-08-02","author":{"@id":"https://fastergeo.co/#org"},"name":"FasterGEO","applicationCategory":"DeveloperApplication","operatingSystem":"macOS, Linux","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Open-source GEO platform: brand entity funnel measurement across 15 AI engines (China + global), machine-verified improvement tickets, fabrication-gated content generation.","url":"https://fastergeo.co","publisher":{"@id":"https://fastergeo.co/#org"}},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is GEO (Generative Engine Optimization)?","acceptedAnswer":{"@type":"Answer","text":"GEO is a practice of making AI engines — ChatGPT, Claude, Perplexity, Doubao, DeepSeek — mention and cite your brand when users ask them for recommendations. Unlike SEO, which optimizes for ranked links, GEO optimizes for being part of the answer itself."}},
+{"@type":"Question","name":"Is FasterGEO free?","acceptedAnswer":{"@type":"Answer","text":"Yes. FasterGEO is Apache-2.0 open source and self-hosted. You bring your own AI engine API keys, or use manual sampling sheets with zero keys. Your data never leaves your machine."}},
+{"@type":"Question","name":"Which AI engines does FasterGEO cover?","acceptedAnswer":{"@type":"Answer","text":"15 engines across two markets: ChatGPT, Claude, Gemini, Grok and Perplexity globally; GLM, Doubao, DeepSeek, Kimi and MiniMax in China via API — plus manual sampling sheets for engines without public APIs, such as Baidu AI, Nano AI, and Google AI Overviews."}},
+{"@type":"Question","name":"Do I need API keys to use FasterGEO?","acceptedAnswer":{"@type":"Answer","text":"No. Site auditing needs no keys at all. Answer sampling works with any keys you have, and engines without keys fall back to manual sampling sheets that import into the same metrics pipeline."}},
+{"@type":"Question","name":"How is FasterGEO different from AI visibility monitoring tools?","acceptedAnswer":{"@type":"Answer","text":"Three ways. It measures the head of the funnel — whether AI even knows your brand or confuses it with another company — with quoted evidence, not just mention counts. It closes the loop: findings become tickets with machine-verifiable acceptance criteria, re-checked automatically. And it is the only tool covering both China and global engines."}}
+]}]}
+</script>
+<style>
+/* FasterGEO design language: precision instrument */
+:root{
+  --bg:#0B0E14; --surface:#121826; --well:#0D1420;
+  --line:rgba(148,163,184,.10); --line-strong:rgba(148,163,184,.2);
+  --tx:#E8EDF5; --dim:#8A96A8; --faint:#5B6675;
+  --acc:#8B7CF6; --acc-soft:rgba(139,124,246,.12);
+  --red:#F4536E; --red-soft:rgba(244,83,110,.10);
+  --green:#2FD08C; --green-soft:rgba(47,208,140,.10);
+  --amber:#F0B24A; --r:16px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--tx);-webkit-font-smoothing:antialiased;
+  font:16px/1.7 -apple-system,"SF Pro Text",Inter,"Segoe UI",sans-serif}
+.num{font-variant-numeric:tabular-nums}
+.mono{font-family:ui-monospace,"SF Mono",Menlo,monospace}
+a{color:var(--acc);text-decoration:none}
+a:hover{text-decoration:underline}
+
+header{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:24px;
+  padding:0 max(24px,calc(50vw - 560px));height:64px;
+  background:rgba(11,14,20,.8);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+.logo{font-size:17px;font-weight:800;letter-spacing:-.02em}
+.logo b{color:var(--acc)}
+header nav{margin-left:auto;display:flex;gap:22px;align-items:center;font-size:14px}
+header nav a{color:var(--dim)}
+header nav a:hover{color:var(--tx);text-decoration:none}
+.btn{display:inline-flex;align-items:center;gap:8px;background:var(--acc);color:#fff;
+  font-weight:600;font-size:14px;padding:9px 18px;border-radius:10px}
+.btn:hover{text-decoration:none;filter:brightness(1.1)}
+
+section{padding:72px max(24px,calc(50vw - 560px))}
+.hero{padding-top:96px;padding-bottom:80px;position:relative;overflow:hidden}
+.hero::before{content:"";position:absolute;top:-40%;left:50%;transform:translateX(-50%);
+  width:900px;height:600px;background:radial-gradient(closest-side,rgba(139,124,246,.14),transparent);
+  pointer-events:none}
+.hero h1{font-size:clamp(32px,5vw,52px);line-height:1.15;font-weight:800;
+  letter-spacing:-.03em;margin:0 0 20px;max-width:760px}
+.hero h1 em{font-style:normal;color:var(--acc)}
+.hero .sub{font-size:19px;color:var(--dim);max-width:640px;margin:0 0 32px}
+.cmd{display:inline-flex;align-items:center;gap:14px;background:var(--well);
+  border:1px solid var(--line-strong);border-radius:12px;padding:14px 20px;
+  font-family:ui-monospace,Menlo,monospace;font-size:15px;cursor:pointer}
+.cmd .p{color:var(--faint)}
+.cmd .copy{color:var(--faint);font-size:12px;border-left:1px solid var(--line);padding-left:14px}
+.cmd:hover .copy{color:var(--acc)}
+.hero .note{margin-top:16px;font-size:13.5px;color:var(--faint)}
+.engines-strip{margin-top:44px;display:flex;flex-wrap:wrap;gap:8px}
+.chip{font-size:12.5px;color:var(--dim);background:var(--surface);
+  border:1px solid var(--line);padding:5px 12px;border-radius:999px}
+.chip.cn{border-color:rgba(244,83,110,.25)}
+
+.label{font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--acc);margin-bottom:14px}
+h2{font-size:clamp(24px,3vw,32px);font-weight:800;letter-spacing:-.02em;margin:0 0 14px}
+.lead{color:var(--dim);font-size:16.5px;max-width:640px;margin-bottom:36px}
+
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:26px}
+.card.finding{border-color:rgba(244,83,110,.25);
+  background:linear-gradient(150deg,var(--red-soft),var(--surface) 55%)}
+.card h3{font-size:16px;margin:0 0 8px;font-weight:700}
+.card p{margin:0;color:var(--dim);font-size:14.5px}
+.card .big{font-size:30px;font-weight:800;letter-spacing:-.02em;margin-bottom:6px}
+.card.finding .big{color:var(--red)}
+.quote{margin-top:12px;padding:10px 14px;background:var(--well);border-radius:10px;
+  font-size:13px;color:var(--dim);border-left:2px solid var(--red)}
+
+.funnel{display:flex;gap:0;align-items:stretch;flex-wrap:wrap;margin:36px 0 20px}
+.stage{flex:1;min-width:150px;position:relative;background:var(--surface);
+  border:1px solid var(--line);border-top:2px solid var(--green);
+  border-radius:14px;padding:22px 18px;margin-right:28px;margin-bottom:12px}
+.stage:last-child{margin-right:0}
+.stage:not(:last-child)::after{content:"→";position:absolute;right:-23px;top:50%;
+  transform:translateY(-50%);color:var(--faint);font-size:17px}
+.stage.broken{border-top-color:var(--red);
+  background:linear-gradient(180deg,var(--red-soft),var(--surface) 65%)}
+.stage b{display:block;font-size:16px;margin-bottom:4px}
+.stage span{font-size:13px;color:var(--dim)}
+.funnel-note{color:var(--faint);font-size:14px}
+
+.grid6{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+
+table{width:100%;border-collapse:collapse;font-size:14.5px;margin-top:8px}
+th{text-align:left;color:var(--faint);font-weight:600;font-size:12.5px;
+  letter-spacing:.05em;text-transform:uppercase;padding:12px;border-bottom:1px solid var(--line-strong)}
+td{padding:13px 12px;border-bottom:1px solid var(--line);vertical-align:top;color:var(--dim)}
+td:first-child{color:var(--tx);font-weight:500}
+td .y{color:var(--green)}td .n{color:var(--faint)}
+tr:last-child td{border-bottom:none}
+
+.steps{counter-reset:s;display:grid;gap:10px;max-width:760px}
+.step{display:flex;gap:18px;align-items:baseline;background:var(--surface);
+  border:1px solid var(--line);border-radius:12px;padding:16px 20px}
+.step::before{counter-increment:s;content:counter(s);flex-shrink:0;width:26px;height:26px;
+  display:inline-flex;align-items:center;justify-content:center;background:var(--acc-soft);
+  color:var(--acc);font-weight:700;font-size:13px;border-radius:8px;transform:translateY(4px)}
+.stepname{display:block;font-size:12px;color:var(--faint);letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px}
+.step code{display:block;font-family:ui-monospace,Menlo,monospace;font-size:13.5px;color:var(--tx)}
+.step span{font-size:13px;color:var(--faint)}
+
+.faq details{border-bottom:1px solid var(--line);padding:18px 4px}
+.faq summary{font-weight:600;font-size:16px;cursor:pointer;list-style:none}
+.faq summary::after{content:"+";float:right;color:var(--faint)}
+.faq details[open] summary::after{content:"–"}
+.faq p{color:var(--dim);margin:12px 0 4px;font-size:15px;max-width:720px}
+
+footer{padding:48px max(24px,calc(50vw - 560px));border-top:1px solid var(--line);
+  color:var(--faint);font-size:13.5px;display:flex;flex-wrap:wrap;gap:20px;align-items:center}
+footer .links{margin-left:auto;display:flex;gap:18px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Faster<b>GEO</b></div>
+  <nav>
+    <a href="#story">Why</a>
+    <a href="#funnel">Entity Funnel</a>
+    <a href="#quickstart">Quickstart</a>
+    <a href="#faq">FAQ</a>
+    <a href="https://github.com/arronyounging/fastergeo">GitHub</a>
+    <a class="btn" href="#quickstart">Get started</a>
+  </nav>
+</header>
+
+<section class="hero">
+  <h1>See what AI <em>actually says</em> about your brand. Then fix it.</h1>
+  <p class="sub">FasterGEO is the open-source GEO platform that measures whether AI engines know you,
+  confuse you, mention you, and cite you — across <b>China and global engines</b> — and turns every
+  finding into a ticket that a machine verifies when you fix it.</p>
+  <div class="cmd" onclick="navigator.clipboard.writeText('npx fastergeo bootstrap --root https://yoursite.com')" title="Click to copy">
+    <span class="p">$</span> npx fastergeo bootstrap --root https://yoursite.com
+    <span class="copy">copy</span>
+  </div>
+  <p class="note">Free · Apache-2.0 · Self-hosted · Zero API keys required · Your data stays on your disk</p>
+  <div class="engines-strip">
+    <span class="chip">ChatGPT</span><span class="chip">Claude</span><span class="chip">Gemini</span>
+    <span class="chip">Perplexity</span><span class="chip">Grok</span><span class="chip">Google AI Overviews</span>
+    <span class="chip cn">Doubao 豆包</span><span class="chip cn">DeepSeek</span><span class="chip cn">GLM 智谱</span>
+    <span class="chip cn">Kimi</span><span class="chip cn">MiniMax</span><span class="chip cn">Baidu AI 百度</span>
+    <span class="chip">+3 more</span>
+  </div>
+</section>
+
+<section id="story">
+  <div class="label">Why this exists</div>
+  <h2>We ran the first scan on our own site.<br>The machine found what humans had missed.</h2>
+  <p class="lead">Twenty minutes, three findings — every number below is from that real, first diagnosis.</p>
+  <div class="cards">
+    <div class="card finding">
+      <div class="big num">23 words</div>
+      <h3>Product pages were empty shells</h3>
+      <p>429KB of HTML, 23 visible words. AI crawlers don't execute JavaScript — every product page
+      was literally telling AI <i>"No products for this category."</i></p>
+    </div>
+    <div class="card finding">
+      <div class="big">2 engines</div>
+      <h3>Confused the brand with other companies</h3>
+      <p>One engine described the brand as an auto-parts maker. Another confidently fabricated user
+      reviews for a same-named menswear tailor. The LLM judge caught both — with quoted evidence.</p>
+      <div class="quote">"…mainly known for aftermarket car exterior parts (bumpers, grilles, interior trim)…" — an actual AI answer about a custom-merch platform</div>
+    </div>
+    <div class="card finding">
+      <div class="big num">0%</div>
+      <h3>Unprompted mention rate</h3>
+      <p>Across four engines, competitors owned every recommendation question. The brand wasn't losing
+      the race — it wasn't in it.</p>
+    </div>
+  </div>
+</section>
+
+<section id="funnel">
+  <div class="label">The Brand Entity Funnel</div>
+  <h2>Dashboards measure the tail.<br>Most brands break at the head.</h2>
+  <p class="lead">Monitoring tools count mentions and citations. But for most brands the problem starts
+  far earlier: the AI has never heard of you — or worse, thinks you're someone else. FasterGEO measures
+  every stage, with an LLM judge that must quote its evidence.</p>
+  <div class="funnel">
+    <div class="stage broken"><b>Knows you</b><span>Probe questions, judged — not name-echo counting</span></div>
+    <div class="stage broken"><b>Doesn't confuse you</b><span>Confusion = P0 alert with quoted evidence</span></div>
+    <div class="stage"><b>Considers you</b><span>Unprompted mention rate</span></div>
+    <div class="stage"><b>Ranks you</b><span>Position among competitors</span></div>
+    <div class="stage"><b>Cites you</b><span>Your domain in the sources</span></div>
+  </div>
+  <p class="funnel-note">Red = where our own first scan broke. Where does yours?</p>
+</section>
+
+<section>
+  <div class="label">What you get</div>
+  <h2>Not a dashboard. A closed loop.</h2>
+  <div class="grid6">
+    <div class="card"><h3>⚙️ Machine-verified tickets</h3><p>Findings become tickets with acceptance
+    criteria a program can check. Done means a re-crawl proved it — and it flips back to
+    <i>regressed</i> if the fix rots. No verbal confirmations.</p></div>
+    <div class="card"><h3>🔍 Recognition judging</h3><p>knows / unknown / <b>confused</b> — every
+    confusion verdict carries a quote from the actual AI answer. Brand-entity risk you can act on.</p></div>
+    <div class="card"><h3>🚧 Fabrication-gated content</h3><p>Drafts are generated only from your
+    sourced fact store. Every number that can't be traced to a confirmed fact is flagged. AI that
+    can't invent things about you.</p></div>
+    <div class="card"><h3>🀄 CJK-first metrics</h3><p>Word-equivalent counting, full-width sentence
+    handling, Chinese segmentation. Latin-only text metrics silently break on Chinese content — ours
+    don't.</p></div>
+    <div class="card"><h3>🔑 Zero-key mode</h3><p>No API keys? Export manual sampling sheets, fill
+    them from any AI's web UI, import back into the exact same metrics pipeline.</p></div>
+    <div class="card"><h3>📏 Reproducible numbers</h3><p>Unmeasured renders as <i>unmeasured</i> —
+    never a fabricated zero. Single-period changes are observations; only two consecutive
+    same-direction changes count as a trend.</p></div>
+  </div>
+</section>
+
+<section>
+  <div class="label">Comparison</div>
+  <h2>FasterGEO vs. monitoring SaaS</h2>
+  <table>
+    <thead><tr><th></th><th>Monitoring SaaS</th><th>FasterGEO</th></tr></thead>
+    <tbody>
+      <tr><td>China engines (Doubao, GLM, Kimi…)</td><td><span class="n">✗</span></td><td><span class="y">✓</span> API + manual sheets</td></tr>
+      <tr><td>Recognition quality</td><td>name-echo counting</td><td><span class="y">knows / unknown / confused</span> with evidence</td></tr>
+      <tr><td>Action loop</td><td>suggestions</td><td><span class="y">tickets → re-crawl → auto-verified</span></td></tr>
+      <tr><td>Metric methodology</td><td>black box</td><td><span class="y">open source, reproducible</span></td></tr>
+      <tr><td>Your data</td><td>vendor cloud</td><td><span class="y">your disk</span></td></tr>
+      <tr><td>Price</td><td>$99–5,000/mo</td><td><span class="y">free</span></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="quickstart">
+  <div class="label">Quickstart</div>
+  <h2>Six commands, full loop.</h2>
+  <div class="steps">
+    <div class="step"><div><b class="stepname">Step 1 · Bootstrap</b><code>npx fastergeo bootstrap --root https://yoursite.com --llm glm</code><span>Derive brand facts, competitors and a question bank from your site — nothing invented</span></div></div>
+    <div class="step"><div><b class="stepname">Step 2 · Audit</b><code>npx fastergeo audit --root https://yoursite.com --urls /,/about,/pricing</code><span>See exactly what AI crawlers see — no API key needed</span></div></div>
+    <div class="step"><div><b class="stepname">Step 3 · Cycle</b><code>npx fastergeo cycle --dir ./my-brand</code><span>Sample engines, compute funnel metrics, generate tickets, render the report — one command</span></div></div>
+    <div class="step"><div><b class="stepname">Step 4 · Verify</b><code>npx fastergeo verify --tickets tickets.json --root https://yoursite.com</code><span>Fixed something? The machine confirms it — or flips it back when it regresses</span></div></div>
+    <div class="step"><div><b class="stepname">Step 5 · Dashboard</b><code>npx fastergeo ui --dir ./my-brand</code><span>Local dashboard: funnel, tickets, trends — bound to 127.0.0.1</span></div></div>
+    <div class="step"><div><b class="stepname">Step 6 · Schedule</b><code>npx fastergeo schedule --dir ./my-brand --every 14d</code><span>Periodic re-runs for long-term operations</span></div></div>
+  </div>
+</section>
+
+<section id="faq" class="faq">
+  <div class="label">FAQ</div>
+  <h2>Questions, answered directly.</h2>
+  <details open>
+    <summary>What is GEO (Generative Engine Optimization)?</summary>
+    <p>GEO is a practice of making AI engines — ChatGPT, Claude, Perplexity, Doubao, DeepSeek —
+    mention and cite your brand when users ask for recommendations. Unlike SEO, which optimizes for
+    ranked links, GEO optimizes for being part of the answer itself.</p>
+  </details>
+  <details>
+    <summary>Is it really free?</summary>
+    <p>Yes. Apache-2.0, self-hosted. You bring your own engine API keys — or none, using manual
+    sampling sheets. There is nothing to subscribe to and your data never leaves your machine.</p>
+  </details>
+  <details>
+    <summary>Which engines are covered?</summary>
+    <p>15 engines across two markets: ChatGPT, Claude, Gemini, Grok and Perplexity globally; GLM,
+    Doubao, DeepSeek, Kimi and MiniMax in China via API — plus manual sheets for Baidu AI, Nano AI,
+    ChatGPT/Claude web and Google AI Overviews.</p>
+  </details>
+  <details>
+    <summary>Do I need API keys?</summary>
+    <p>No. Auditing needs zero keys. Sampling uses whatever keys you have; engines without keys fall
+    back to manual sheets that import into the same pipeline.</p>
+  </details>
+  <details>
+    <summary>How is this different from AI visibility monitors?</summary>
+    <p>Three ways: it measures the head of the funnel (does AI even know you — or confuse you with
+    someone else) with quoted evidence; it closes the loop with machine-verified tickets instead of
+    suggestions; and it is the only tool covering both China and global engines.</p>
+  </details>
+  <details>
+    <summary>Migrating from GeoLook?</summary>
+    <p><span class="mono">fastergeo metrics --format geolook</span> re-scores your existing GeoLook
+    samples directly — zero migration needed.</p>
+  </details>
+</section>
+
+<footer>
+  <span>© 2026 FasterGEO · Apache-2.0 · <time datetime="2026-08-02">Updated Aug 2, 2026</time></span>
+  <span>Built on the shoulders of the GEO research community.</span>
+  <div class="links">
+    <a href="https://github.com/arronyounging/fastergeo">GitHub</a>
+    <a href="https://www.npmjs.com/package/fastergeo">npm</a>
+  </div>
+</footer>
+
+</body>
+</html>
