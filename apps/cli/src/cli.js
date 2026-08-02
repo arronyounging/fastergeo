@@ -12,7 +12,7 @@ import { readFileSync } from 'node:fs';
 import {
   PROVIDERS, resolveProvider, configuredProviders, ask, checkProvider,
 } from '@fastergeo/providers';
-import { computeMetrics, parseGeoLookSamples } from '@fastergeo/metrics';
+import { computeMetrics, parseGeoLookSamples, makeLlmJudge } from '@fastergeo/metrics';
 
 const [, , command, ...rest] = process.argv;
 
@@ -25,6 +25,7 @@ const { values: flags } = parseArgs({
     samples: { type: 'string' },
     brand: { type: 'string' },
     format: { type: 'string' },
+    judge: { type: 'string' },
     json: { type: 'boolean', default: false },
   },
   allowPositionals: true,
@@ -91,7 +92,7 @@ async function cmdSample() {
 
 async function cmdMetrics() {
   if (!flags.samples || !flags.brand) {
-    console.error('用法: fastergeo metrics --samples f.jsonl --brand brand.json [--format geolook] [--json]');
+    console.error('用法: fastergeo metrics --samples f.jsonl --brand brand.json [--format geolook] [--judge glm] [--json]');
     process.exit(1);
   }
   const brand = JSON.parse(readFileSync(flags.brand, 'utf8'));
@@ -99,7 +100,18 @@ async function cmdMetrics() {
   const samples = flags.format === 'geolook'
     ? parseGeoLookSamples(raw)
     : raw.split('\n').filter(Boolean).map(l => JSON.parse(l));
-  const report = await computeMetrics(samples, brand);
+  // --judge <providerId>: LLM 裁判判定点名题的认知质量（knows/confused），
+  // 不配则启发式判不了的保持 unverified，绝不猜测。
+  let judge;
+  if (flags.judge) {
+    const jp = resolveProvider(flags.judge);
+    judge = makeLlmJudge(async prompt =>
+      (await ask(jp, { question: prompt, maxTokens: 500 })).answer);
+  }
+  const report = await computeMetrics(samples, brand, {
+    judge,
+    brandDescription: brand.description,
+  });
   if (flags.json) {
     console.log(JSON.stringify(report, null, 2));
     return;
