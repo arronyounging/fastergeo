@@ -23,12 +23,16 @@
 ]}]}
 </script>
 <style>
-/* FasterGEO design language: precision instrument */
+/* ════════════════════════════════════════════════════════════════════
+   FasterGEO design language: precision instrument, v2
+   deep ink · single violet accent · tabular numbers · radar motif
+   zero build · zero external resources · respects reduced motion
+   ════════════════════════════════════════════════════════════════════ */
 :root{
-  --bg:#0B0E14; --surface:#121826; --well:#0D1420;
-  --line:rgba(148,163,184,.10); --line-strong:rgba(148,163,184,.2);
-  --tx:#E8EDF5; --dim:#8A96A8; --faint:#5B6675;
-  --acc:#8B7CF6; --acc-soft:rgba(139,124,246,.12);
+  --bg:#07090E; --bg2:#0B0E14; --surface:#10151F; --well:#0C111B;
+  --line:rgba(148,163,184,.09); --line-strong:rgba(148,163,184,.2);
+  --tx:#EDF1F7; --dim:#8A96A8; --faint:#5B6675;
+  --acc:#8B7CF6; --acc-2:#B7AAFF; --acc-soft:rgba(139,124,246,.12);
   --red:#F4536E; --red-soft:rgba(244,83,110,.10);
   --green:#2FD08C; --green-soft:rgba(47,208,140,.10);
   --amber:#F0B24A; --r:16px;
@@ -36,129 +40,205 @@
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
 body{margin:0;background:var(--bg);color:var(--tx);-webkit-font-smoothing:antialiased;
-  font:16px/1.7 -apple-system,"SF Pro Text",Inter,"Segoe UI",sans-serif}
+  font:16px/1.7 -apple-system,"SF Pro Text",Inter,"Segoe UI",sans-serif;overflow-x:hidden}
 .num{font-variant-numeric:tabular-nums}
 .mono{font-family:ui-monospace,"SF Mono",Menlo,monospace}
 a{color:var(--acc);text-decoration:none}
 a:hover{text-decoration:underline}
+::selection{background:rgba(139,124,246,.35)}
 
+/* ── Nav ─────────────────────────────────────────────────────────── */
 header{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:24px;
-  padding:0 max(24px,calc(50vw - 560px));height:64px;
-  background:rgba(11,14,20,.8);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+  padding:0 max(24px,calc(50vw - 580px));height:64px;
+  background:rgba(7,9,14,.72);backdrop-filter:blur(16px) saturate(1.4);
+  border-bottom:1px solid var(--line)}
 .logo{font-size:17px;font-weight:800;letter-spacing:-.02em}
-.logo b{color:var(--acc)}
+.logo b{background:linear-gradient(120deg,var(--acc),var(--acc-2));
+  -webkit-background-clip:text;background-clip:text;color:transparent}
 header nav{margin-left:auto;display:flex;gap:22px;align-items:center;font-size:14px}
 header nav a{color:var(--dim)}
 header nav a:hover{color:var(--tx);text-decoration:none}
 .btn{display:inline-flex;align-items:center;gap:8px;background:var(--acc);color:#fff;
-  font-weight:600;font-size:14px;padding:9px 18px;border-radius:10px}
-.btn:hover{text-decoration:none;filter:brightness(1.1)}
+  font-weight:600;font-size:14px;padding:9px 18px;border-radius:10px;
+  box-shadow:0 0 24px rgba(139,124,246,.35);transition:transform .15s}
+.btn:hover{text-decoration:none;transform:translateY(-1px)}
 
-section{padding:72px max(24px,calc(50vw - 560px))}
-.hero{padding-top:96px;padding-bottom:80px;position:relative;overflow:hidden}
-.hero::before{content:"";position:absolute;top:-40%;left:50%;transform:translateX(-50%);
-  width:900px;height:600px;background:radial-gradient(closest-side,rgba(139,124,246,.14),transparent);
-  pointer-events:none}
-.hero h1{font-size:clamp(32px,5vw,52px);line-height:1.15;font-weight:800;
-  letter-spacing:-.03em;margin:0 0 20px;max-width:760px}
-.hero h1 em{font-style:normal;color:var(--acc)}
-.hero .sub{font-size:19px;color:var(--dim);max-width:640px;margin:0 0 32px}
-.cmd{display:inline-flex;align-items:center;gap:14px;background:var(--well);
-  border:1px solid var(--line-strong);border-radius:12px;padding:14px 20px;
-  font-family:ui-monospace,Menlo,monospace;font-size:15px;cursor:pointer}
-.cmd .p{color:var(--faint)}
-.cmd .copy{color:var(--faint);font-size:12px;border-left:1px solid var(--line);padding-left:14px}
-.cmd:hover .copy{color:var(--acc)}
-.hero .note{margin-top:16px;font-size:13.5px;color:var(--faint)}
-.engines-strip{margin-top:44px;display:flex;flex-wrap:wrap;gap:8px}
+section{padding:88px max(24px,calc(50vw - 580px));position:relative}
+
+/* ── Hero with radar motif ───────────────────────────────────────── */
+.hero{padding-top:100px;padding-bottom:72px;overflow:hidden}
+.radar{position:absolute;top:-260px;left:50%;transform:translateX(-50%);
+  width:1100px;height:1100px;pointer-events:none;opacity:.5}
+.radar::before{content:"";position:absolute;inset:0;border-radius:50%;
+  background:
+    repeating-radial-gradient(circle at 50% 50%, transparent 0 79px, rgba(139,124,246,.07) 80px 81px),
+    radial-gradient(circle at 50% 50%, rgba(139,124,246,.10), transparent 62%)}
+.radar::after{content:"";position:absolute;inset:0;border-radius:50%;
+  background:conic-gradient(from 0deg, rgba(139,124,246,.28), transparent 46deg, transparent 360deg);
+  animation:sweep 7s linear infinite;
+  -webkit-mask:radial-gradient(circle, black 0 55%, transparent 62%);mask:radial-gradient(circle, black 0 55%, transparent 62%)}
+@keyframes sweep{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion: reduce){.radar::after{animation:none}}
+
+.hero h1{font-size:clamp(34px,5.4vw,58px);line-height:1.12;font-weight:800;
+  letter-spacing:-.035em;margin:0 0 20px;max-width:820px;position:relative}
+.hero h1 em{font-style:normal;background:linear-gradient(120deg,var(--acc),var(--acc-2));
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+.hero .sub{font-size:19px;color:var(--dim);max-width:660px;margin:0 0 34px;position:relative}
+.hero .sub b{color:var(--tx);font-weight:600}
+
+.scanbox{display:flex;gap:10px;max-width:580px;position:relative}
+.scanbox input{flex:1;background:var(--well);border:1px solid var(--line-strong);border-radius:13px;
+  padding:15px 18px;font-size:15px;color:var(--tx);outline:none;
+  font-family:ui-monospace,Menlo,monospace;transition:border-color .2s, box-shadow .2s}
+.scanbox input:focus{border-color:var(--acc);box-shadow:0 0 0 4px rgba(139,124,246,.15)}
+.scanbox input::placeholder{color:var(--faint)}
+.scanbox button{background:linear-gradient(120deg,var(--acc),#7A6AE8);color:#fff;border:none;
+  border-radius:13px;padding:0 28px;font-size:15px;font-weight:700;cursor:pointer;
+  box-shadow:0 0 28px rgba(139,124,246,.35);transition:transform .15s}
+.scanbox button:hover{transform:translateY(-1px)}
+.scanbox button:disabled{opacity:.65;cursor:wait;transform:none}
+#scanResult{max-width:640px;position:relative}
+.scan-steps{margin-top:14px;font-family:ui-monospace,Menlo,monospace;font-size:12.5px;color:var(--faint)}
+.scan-steps div{opacity:0;animation:rise .3s forwards}
+@keyframes rise{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.scan-card{margin-top:16px;background:var(--surface);border:1px solid var(--line);
+  border-radius:14px;padding:22px 24px;text-align:left;animation:rise .4s}
+.scan-head{display:flex;align-items:center;gap:14px;margin-bottom:14px}
+.scan-grade{width:48px;height:48px;border-radius:13px;display:flex;align-items:center;
+  justify-content:center;font-weight:800;font-size:22px}
+.scan-grade.A,.scan-grade.B{background:var(--green-soft);color:var(--green)}
+.scan-grade.C{background:rgba(240,178,74,.12);color:var(--amber)}
+.scan-grade.D{background:var(--red-soft);color:var(--red)}
+.scan-score{font-size:24px;font-weight:800}.scan-score small{font-size:13px;color:var(--faint);font-weight:400}
+.scan-dims{display:grid;gap:9px;margin:14px 0}
+.sdim{display:grid;grid-template-columns:120px 1fr 54px;gap:10px;align-items:center;font-size:12.5px;color:var(--dim)}
+.sdim .bar{height:6px;background:var(--well);border-radius:3px;overflow:hidden}
+.sdim .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--acc),var(--acc-2));
+  border-radius:3px;transition:width .8s cubic-bezier(.2,.8,.2,1)}
+.sdim.low .bar i{background:var(--red)}
+.sdim .v{text-align:right;font-variant-numeric:tabular-nums}
+.scan-blocker{margin-top:10px;padding:11px 14px;background:var(--red-soft);
+  border:1px solid rgba(244,83,110,.25);border-radius:10px;font-size:13px}
+.scan-checks{margin-top:10px;font-size:12.5px;color:var(--dim)}
+.scan-cta{margin-top:14px;padding-top:12px;border-top:1px solid var(--line);font-size:13px;color:var(--dim)}
+.scan-cta .mono{color:var(--acc);cursor:pointer}
+.scan-err{margin-top:14px;color:var(--red);font-size:14px}
+
+.hero .note{margin-top:16px;font-size:13.5px;color:var(--faint);position:relative}
+.stats-strip{margin-top:40px;display:flex;flex-wrap:wrap;gap:12px 36px;position:relative}
+.stat .n{font-size:22px;font-weight:800;letter-spacing:-.02em}
+.stat .n em{font-style:normal;color:var(--acc)}
+.stat .l{font-size:12px;color:var(--faint);letter-spacing:.06em;text-transform:uppercase}
+.engines-strip{margin-top:34px;display:flex;flex-wrap:wrap;gap:8px;position:relative}
 .chip{font-size:12.5px;color:var(--dim);background:var(--surface);
-  border:1px solid var(--line);padding:5px 12px;border-radius:999px}
-.chip.cn{border-color:rgba(244,83,110,.25)}
+  border:1px solid var(--line);padding:5px 12px;border-radius:999px;transition:all .2s}
+.chip:hover{color:var(--tx);border-color:var(--line-strong)}
+.chip.cn{border-color:rgba(244,83,110,.28)}
 
+/* ── Sections ────────────────────────────────────────────────────── */
 .label{font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;
   color:var(--acc);margin-bottom:14px}
-h2{font-size:clamp(24px,3vw,32px);font-weight:800;letter-spacing:-.02em;margin:0 0 14px}
-.lead{color:var(--dim);font-size:16.5px;max-width:640px;margin-bottom:36px}
+h2{font-size:clamp(26px,3.2vw,36px);font-weight:800;letter-spacing:-.025em;margin:0 0 14px}
+.lead{color:var(--dim);font-size:16.5px;max-width:660px;margin-bottom:38px}
+
+.reveal{opacity:0;transform:translateY(18px);transition:opacity .6s,transform .6s}
+.reveal.in{opacity:1;transform:none}
+@media (prefers-reduced-motion: reduce){.reveal{opacity:1;transform:none;transition:none}}
 
 .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
-.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:26px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
+  padding:26px;transition:transform .2s,border-color .2s}
+.card:hover{transform:translateY(-3px);border-color:var(--line-strong)}
 .card.finding{border-color:rgba(244,83,110,.25);
   background:linear-gradient(150deg,var(--red-soft),var(--surface) 55%)}
 .card h3{font-size:16px;margin:0 0 8px;font-weight:700}
 .card p{margin:0;color:var(--dim);font-size:14.5px}
-.card .big{font-size:30px;font-weight:800;letter-spacing:-.02em;margin-bottom:6px}
+.card .big{font-size:32px;font-weight:800;letter-spacing:-.02em;margin-bottom:6px}
 .card.finding .big{color:var(--red)}
-.quote{margin-top:12px;padding:10px 14px;background:var(--well);border-radius:10px;
+.quote{margin-top:12px;padding:11px 14px;background:var(--well);border-radius:10px;
   font-size:13px;color:var(--dim);border-left:2px solid var(--red)}
 
-.funnel{display:flex;gap:0;align-items:stretch;flex-wrap:wrap;margin:36px 0 20px}
+/* ── Funnel ──────────────────────────────────────────────────────── */
+.funnel{display:flex;gap:0;align-items:stretch;flex-wrap:wrap;margin:38px 0 18px}
 .stage{flex:1;min-width:150px;position:relative;background:var(--surface);
   border:1px solid var(--line);border-top:2px solid var(--green);
-  border-radius:14px;padding:22px 18px;margin-right:28px;margin-bottom:12px}
+  border-radius:14px;padding:22px 18px;margin-right:28px;margin-bottom:12px;
+  transition:transform .2s}
+.stage:hover{transform:translateY(-3px)}
 .stage:last-child{margin-right:0}
 .stage:not(:last-child)::after{content:"→";position:absolute;right:-23px;top:50%;
   transform:translateY(-50%);color:var(--faint);font-size:17px}
 .stage.broken{border-top-color:var(--red);
   background:linear-gradient(180deg,var(--red-soft),var(--surface) 65%)}
+.stage.broken::before{content:"";position:absolute;inset:-1px;border-radius:14px;
+  border:1px solid rgba(244,83,110,0);animation:pulse 2.4s ease-in-out infinite}
+@keyframes pulse{50%{border-color:rgba(244,83,110,.45)}}
+@media (prefers-reduced-motion: reduce){.stage.broken::before{animation:none}}
 .stage b{display:block;font-size:16px;margin-bottom:4px}
 .stage span{font-size:13px;color:var(--dim)}
 .funnel-note{color:var(--faint);font-size:14px}
 
-.grid6{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+/* ── Terminal demo ───────────────────────────────────────────────── */
+.term{background:#0A0D14;border:1px solid var(--line-strong);border-radius:14px;
+  overflow:hidden;max-width:760px;box-shadow:0 24px 60px rgba(0,0,0,.4)}
+.term-bar{display:flex;gap:7px;padding:12px 16px;border-bottom:1px solid var(--line)}
+.term-bar i{width:11px;height:11px;border-radius:50%;background:#2A3140}
+.term-bar i:first-child{background:#F4536E88}.term-bar i:nth-child(2){background:#F0B24A88}.term-bar i:nth-child(3){background:#2FD08C88}
+.term-body{padding:18px 20px;font-family:ui-monospace,"SF Mono",Menlo,monospace;
+  font-size:13px;line-height:1.85;min-height:270px}
+.term-body .p{color:var(--faint)}
+.term-body .c{color:var(--acc-2)}
+.term-body .ok{color:var(--green)}
+.term-body .bad{color:var(--red)}
+.term-body .dim{color:var(--dim)}
+.term-body > div{opacity:0}
+.term-body > div.show{opacity:1;transition:opacity .15s}
+.cursor{display:inline-block;width:8px;height:15px;background:var(--acc);
+  vertical-align:-2px;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
 
+/* ── Comparison ──────────────────────────────────────────────────── */
 table{width:100%;border-collapse:collapse;font-size:14.5px;margin-top:8px}
 th{text-align:left;color:var(--faint);font-weight:600;font-size:12.5px;
   letter-spacing:.05em;text-transform:uppercase;padding:12px;border-bottom:1px solid var(--line-strong)}
-td{padding:13px 12px;border-bottom:1px solid var(--line);vertical-align:top;color:var(--dim)}
+td{padding:14px 12px;border-bottom:1px solid var(--line);vertical-align:top;color:var(--dim)}
 td:first-child{color:var(--tx);font-weight:500}
-td .y{color:var(--green)}td .n{color:var(--faint)}
+tbody tr{transition:background .15s}
+tbody tr:hover{background:var(--surface)}
+td .y{color:var(--green);font-weight:600}td .n{color:var(--faint)}
 tr:last-child td{border-bottom:none}
 
-.steps{counter-reset:s;display:grid;gap:10px;max-width:760px}
+/* ── Steps ───────────────────────────────────────────────────────── */
+.steps{counter-reset:s;display:grid;gap:10px;max-width:780px}
 .step{display:flex;gap:18px;align-items:baseline;background:var(--surface);
-  border:1px solid var(--line);border-radius:12px;padding:16px 20px}
+  border:1px solid var(--line);border-radius:12px;padding:16px 20px;transition:border-color .2s}
+.step:hover{border-color:var(--line-strong)}
 .step::before{counter-increment:s;content:counter(s);flex-shrink:0;width:26px;height:26px;
   display:inline-flex;align-items:center;justify-content:center;background:var(--acc-soft);
   color:var(--acc);font-weight:700;font-size:13px;border-radius:8px;transform:translateY(4px)}
-.stepname{display:block;font-size:12px;color:var(--faint);letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px}
+.stepname{display:block;font-size:12px;color:var(--faint);letter-spacing:.06em;
+  text-transform:uppercase;margin-bottom:4px}
 .step code{display:block;font-family:ui-monospace,Menlo,monospace;font-size:13.5px;color:var(--tx)}
 .step span{font-size:13px;color:var(--faint)}
 
+/* ── FAQ / CTA / footer ──────────────────────────────────────────── */
 .faq details{border-bottom:1px solid var(--line);padding:18px 4px}
 .faq summary{font-weight:600;font-size:16px;cursor:pointer;list-style:none}
 .faq summary::after{content:"+";float:right;color:var(--faint)}
 .faq details[open] summary::after{content:"–"}
 .faq p{color:var(--dim);margin:12px 0 4px;font-size:15px;max-width:720px}
-
-.scanbox{display:flex;gap:10px;max-width:560px}
-.scanbox input{flex:1;background:var(--well);border:1px solid var(--line-strong);border-radius:12px;
-  padding:14px 18px;font-size:15px;color:var(--tx);outline:none;font-family:ui-monospace,Menlo,monospace}
-.scanbox input:focus{border-color:var(--acc)}
-.scanbox button{background:var(--acc);color:#fff;border:none;border-radius:12px;padding:0 26px;
-  font-size:15px;font-weight:700;cursor:pointer}
-.scanbox button:disabled{opacity:.6;cursor:wait}
-#scanResult{max-width:640px}
-.scan-card{margin-top:16px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px 22px;text-align:left}
-.scan-head{display:flex;align-items:center;gap:14px;margin-bottom:12px}
-.scan-grade{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;
-  font-weight:800;font-size:20px}
-.scan-grade.A,.scan-grade.B{background:var(--green-soft);color:var(--green)}
-.scan-grade.C{background:rgba(240,178,74,.12);color:var(--amber)}
-.scan-grade.D{background:var(--red-soft);color:var(--red)}
-.scan-score{font-size:22px;font-weight:800}.scan-score small{font-size:13px;color:var(--faint);font-weight:400}
-.scan-dims{display:grid;gap:8px;margin:12px 0}
-.sdim{display:grid;grid-template-columns:110px 1fr 52px;gap:10px;align-items:center;font-size:12.5px;color:var(--dim)}
-.sdim .bar{height:6px;background:var(--well);border-radius:3px;overflow:hidden}
-.sdim .bar i{display:block;height:100%;background:var(--acc);border-radius:3px}
-.sdim.low .bar i{background:var(--red)}
-.sdim .v{text-align:right;font-variant-numeric:tabular-nums}
-.scan-blocker{margin-top:10px;padding:10px 14px;background:var(--red-soft);border:1px solid rgba(244,83,110,.25);
-  border-radius:10px;font-size:13px}
-.scan-checks{margin-top:10px;font-size:12.5px;color:var(--dim)}
-.scan-cta{margin-top:14px;padding-top:12px;border-top:1px solid var(--line);font-size:13px;color:var(--dim)}
-.scan-cta .mono{color:var(--acc);cursor:pointer}
-.scan-err{margin-top:14px;color:var(--red);font-size:14px}
-footer{padding:48px max(24px,calc(50vw - 560px));border-top:1px solid var(--line);
+.cta-final{text-align:center;padding:96px max(24px,calc(50vw - 580px));position:relative;overflow:hidden}
+.cta-final::before{content:"";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  width:700px;height:400px;background:radial-gradient(closest-side,rgba(139,124,246,.16),transparent);pointer-events:none}
+.cta-final h2{position:relative}
+.cta-final .cmd-big{display:inline-flex;align-items:center;gap:14px;background:var(--well);
+  border:1px solid var(--line-strong);border-radius:13px;padding:16px 24px;margin-top:22px;
+  font-family:ui-monospace,Menlo,monospace;font-size:16px;cursor:pointer;position:relative;
+  transition:border-color .2s}
+.cta-final .cmd-big:hover{border-color:var(--acc)}
+.cta-final .cmd-big .copy{color:var(--faint);font-size:12px;border-left:1px solid var(--line);padding-left:14px}
+footer{padding:44px max(24px,calc(50vw - 580px));border-top:1px solid var(--line);
   color:var(--faint);font-size:13.5px;display:flex;flex-wrap:wrap;gap:20px;align-items:center}
 footer .links{margin-left:auto;display:flex;gap:18px}
 </style>
@@ -170,54 +250,60 @@ footer .links{margin-left:auto;display:flex;gap:18px}
   <nav>
     <a href="#story">Why</a>
     <a href="#funnel">Entity Funnel</a>
-    <a href="#quickstart">Quickstart</a>
+    <a href="#loop">The Loop</a>
     <a href="#faq">FAQ</a>
     <a href="https://github.com/arronyounging/fastergeo">GitHub</a>
-    <a class="btn" href="#quickstart">Get started</a>
+    <a class="btn" href="#top">Scan free</a>
   </nav>
 </header>
 
-<section class="hero">
+<section class="hero" id="top">
+  <div class="radar" aria-hidden="true"></div>
   <h1>See what AI <em>actually says</em> about your brand. Then fix it.</h1>
   <p class="sub">FasterGEO is the open-source GEO platform that measures whether AI engines know you,
   confuse you, mention you, and cite you — across <b>China and global engines</b> — and turns every
   finding into a ticket that a machine verifies when you fix it.</p>
   <form class="scanbox" id="scanForm">
-    <input id="scanUrl" type="text" inputmode="url" placeholder="yoursite.com — see what AI crawlers see, free" autocomplete="off" spellcheck="false">
+    <input id="scanUrl" type="text" inputmode="url" placeholder="yoursite.com — see what AI crawlers see" autocomplete="off" spellcheck="false">
     <button type="submit" id="scanBtn">Scan</button>
   </form>
   <div id="scanResult"></div>
-  <p class="note">Free scan, no sign-up · Same engine as the CLI · Full loop:
-    <span class="mono" style="cursor:pointer" onclick="navigator.clipboard.writeText('npx fastergeo bootstrap --root https://yoursite.com')" title="Click to copy">npx fastergeo</span>
-    · Apache-2.0 · Self-hosted · Your data stays on your disk</p>
+  <p class="note">Free scan, no sign-up · Same engine as the CLI — the scan <i>is</i> the product · Apache-2.0 · Self-hosted · Your data stays on your disk</p>
+  <div class="stats-strip">
+    <div class="stat"><div class="n num"><em>18</em> engines</div><div class="l">China + global</div></div>
+    <div class="stat"><div class="n num"><em>100%</em> open</div><div class="l">reproducible metrics</div></div>
+    <div class="stat"><div class="n num">A <em>87.8</em></div><div class="l" title="Run it yourself: npx fastergeo audit --root https://fastergeo.co">this site, self-audited</div></div>
+    <div class="stat"><div class="n num"><em>$0</em></div><div class="l">bring your own keys — or none</div></div>
+  </div>
   <div class="engines-strip">
     <span class="chip">ChatGPT</span><span class="chip">Claude</span><span class="chip">Gemini</span>
     <span class="chip">Perplexity</span><span class="chip">Grok</span><span class="chip">Google AI Overviews</span>
     <span class="chip cn">Doubao 豆包</span><span class="chip cn">DeepSeek</span><span class="chip cn">GLM 智谱</span>
-    <span class="chip cn">Kimi</span><span class="chip cn">MiniMax</span><span class="chip cn">Qwen 通义</span><span class="chip cn">ERNIE 文心</span><span class="chip cn">Spark 星火</span>
-    <span class="chip cn">Baidu AI 百度</span><span class="chip">+3 more</span>
+    <span class="chip cn">Kimi</span><span class="chip cn">MiniMax</span><span class="chip cn">Qwen 通义</span>
+    <span class="chip cn">ERNIE 文心</span><span class="chip cn">Spark 星火</span><span class="chip cn">Baidu AI 百度</span>
+    <span class="chip">+3 more</span>
   </div>
 </section>
 
 <section id="story">
-  <div class="label">Why this exists</div>
-  <h2>We ran the first scan on our own site.<br>The machine found what humans had missed.</h2>
-  <p class="lead">Twenty minutes, three findings — every number below is from that real, first diagnosis.</p>
+  <div class="label reveal">Why this exists</div>
+  <h2 class="reveal">We ran the first scan on our own site.<br>The machine found what humans had missed.</h2>
+  <p class="lead reveal">Twenty minutes, three findings — every number below is from that real, first diagnosis.</p>
   <div class="cards">
-    <div class="card finding">
+    <div class="card finding reveal">
       <div class="big num">23 words</div>
       <h3>Product pages were empty shells</h3>
       <p>429KB of HTML, 23 visible words. AI crawlers don't execute JavaScript — every product page
       was literally telling AI <i>"No products for this category."</i></p>
     </div>
-    <div class="card finding">
+    <div class="card finding reveal">
       <div class="big">2 engines</div>
       <h3>Confused the brand with other companies</h3>
       <p>One engine described the brand as an auto-parts maker. Another confidently fabricated user
       reviews for a same-named menswear tailor. The LLM judge caught both — with quoted evidence.</p>
       <div class="quote">"…mainly known for aftermarket car exterior parts (bumpers, grilles, interior trim)…" — an actual AI answer about a custom-merch platform</div>
     </div>
-    <div class="card finding">
+    <div class="card finding reveal">
       <div class="big num">0%</div>
       <h3>Unprompted mention rate</h3>
       <p>Across four engines, competitors owned every recommendation question. The brand wasn't losing
@@ -227,51 +313,62 @@ footer .links{margin-left:auto;display:flex;gap:18px}
 </section>
 
 <section id="funnel">
-  <div class="label">The Brand Entity Funnel</div>
-  <h2>Dashboards measure the tail.<br>Most brands break at the head.</h2>
-  <p class="lead">Monitoring tools count mentions and citations. But for most brands the problem starts
+  <div class="label reveal">The Brand Entity Funnel</div>
+  <h2 class="reveal">Dashboards measure the tail.<br>Most brands break at the head.</h2>
+  <p class="lead reveal">Monitoring tools count mentions and citations. But for most brands the problem starts
   far earlier: the AI has never heard of you — or worse, thinks you're someone else. FasterGEO measures
   every stage, with an LLM judge that must quote its evidence.</p>
-  <div class="funnel">
+  <div class="funnel reveal">
     <div class="stage broken"><b>Knows you</b><span>Probe questions, judged — not name-echo counting</span></div>
     <div class="stage broken"><b>Doesn't confuse you</b><span>Confusion = P0 alert with quoted evidence</span></div>
     <div class="stage"><b>Considers you</b><span>Unprompted mention rate</span></div>
     <div class="stage"><b>Ranks you</b><span>Position among competitors</span></div>
     <div class="stage"><b>Cites you</b><span>Your domain in the sources</span></div>
   </div>
-  <p class="funnel-note">Red = where our own first scan broke. Where does yours?</p>
+  <p class="funnel-note reveal">Red = where our own first scan broke. Where does yours?</p>
+</section>
+
+<section id="loop">
+  <div class="label reveal">The Loop</div>
+  <h2 class="reveal">Not a dashboard. A closed loop —<br>watch it run.</h2>
+  <p class="lead reveal">Real output from the real first project. Diagnosis becomes tickets; tickets are
+  verified by re-crawls, not verbal confirmations.</p>
+  <div class="term reveal" id="terminal">
+    <div class="term-bar"><i></i><i></i><i></i></div>
+    <div class="term-body" id="termBody"></div>
+  </div>
 </section>
 
 <section>
-  <div class="label">What you get</div>
-  <h2>Not a dashboard. A closed loop.</h2>
-  <div class="grid6">
-    <div class="card"><h3>⚙️ Machine-verified tickets</h3><p>Findings become tickets with acceptance
+  <div class="label reveal">What you get</div>
+  <h2 class="reveal">Every claim above is a feature below.</h2>
+  <div class="cards" style="margin-top:36px">
+    <div class="card reveal"><h3>⚙️ Machine-verified tickets</h3><p>Findings become tickets with acceptance
     criteria a program can check. Done means a re-crawl proved it — and it flips back to
     <i>regressed</i> if the fix rots. No verbal confirmations.</p></div>
-    <div class="card"><h3>🔍 Recognition judging</h3><p>knows / unknown / <b>confused</b> — every
+    <div class="card reveal"><h3>🔍 Recognition judging</h3><p>knows / unknown / <b>confused</b> — every
     confusion verdict carries a quote from the actual AI answer. Brand-entity risk you can act on.</p></div>
-    <div class="card"><h3>🚧 Fabrication-gated content</h3><p>Drafts are generated only from your
+    <div class="card reveal"><h3>🚧 Fabrication-gated content</h3><p>Drafts are generated only from your
     sourced fact store. Every number that can't be traced to a confirmed fact is flagged. AI that
     can't invent things about you.</p></div>
-    <div class="card"><h3>🀄 CJK-first metrics</h3><p>Word-equivalent counting, full-width sentence
+    <div class="card reveal"><h3>🀄 CJK-first metrics</h3><p>Word-equivalent counting, full-width sentence
     handling, Chinese segmentation. Latin-only text metrics silently break on Chinese content — ours
     don't.</p></div>
-    <div class="card"><h3>🔑 Zero-key mode</h3><p>No API keys? Export manual sampling sheets, fill
+    <div class="card reveal"><h3>🔑 Zero-key mode</h3><p>No API keys? Export manual sampling sheets, fill
     them from any AI's web UI, import back into the exact same metrics pipeline.</p></div>
-    <div class="card"><h3>📏 Reproducible numbers</h3><p>Unmeasured renders as <i>unmeasured</i> —
+    <div class="card reveal"><h3>📏 Reproducible numbers</h3><p>Unmeasured renders as <i>unmeasured</i> —
     never a fabricated zero. Single-period changes are observations; only two consecutive
     same-direction changes count as a trend.</p></div>
   </div>
 </section>
 
 <section>
-  <div class="label">Comparison</div>
-  <h2>FasterGEO vs. monitoring SaaS</h2>
-  <table>
+  <div class="label reveal">Comparison</div>
+  <h2 class="reveal">FasterGEO vs. monitoring SaaS</h2>
+  <table class="reveal">
     <thead><tr><th></th><th>Monitoring SaaS</th><th>FasterGEO</th></tr></thead>
     <tbody>
-      <tr><td>China engines (Doubao, GLM, Kimi…)</td><td><span class="n">✗</span></td><td><span class="y">✓</span> API + manual sheets</td></tr>
+      <tr><td>China engines (Doubao, GLM, Qwen, ERNIE…)</td><td><span class="n">✗</span></td><td><span class="y">✓</span> API + manual sheets</td></tr>
       <tr><td>Recognition quality</td><td>name-echo counting</td><td><span class="y">knows / unknown / confused</span> with evidence</td></tr>
       <tr><td>Action loop</td><td>suggestions</td><td><span class="y">tickets → re-crawl → auto-verified</span></td></tr>
       <tr><td>Metric methodology</td><td>black box</td><td><span class="y">open source, reproducible</span></td></tr>
@@ -282,21 +379,21 @@ footer .links{margin-left:auto;display:flex;gap:18px}
 </section>
 
 <section id="quickstart">
-  <div class="label">Quickstart</div>
-  <h2>Six commands, full loop.</h2>
-  <div class="steps">
-    <div class="step"><div><b class="stepname">Step 1 · Bootstrap</b><code>npx fastergeo bootstrap --root https://yoursite.com --llm glm</code><span>Derive brand facts, competitors and a question bank from your site — nothing invented</span></div></div>
-    <div class="step"><div><b class="stepname">Step 2 · Audit</b><code>npx fastergeo audit --root https://yoursite.com --urls /,/about,/pricing</code><span>See exactly what AI crawlers see — no API key needed</span></div></div>
-    <div class="step"><div><b class="stepname">Step 3 · Cycle</b><code>npx fastergeo cycle --dir ./my-brand</code><span>Sample engines, compute funnel metrics, generate tickets, render the report — one command</span></div></div>
-    <div class="step"><div><b class="stepname">Step 4 · Verify</b><code>npx fastergeo verify --tickets tickets.json --root https://yoursite.com</code><span>Fixed something? The machine confirms it — or flips it back when it regresses</span></div></div>
-    <div class="step"><div><b class="stepname">Step 5 · Dashboard</b><code>npx fastergeo ui --dir ./my-brand</code><span>Local dashboard: funnel, tickets, trends — bound to 127.0.0.1</span></div></div>
-    <div class="step"><div><b class="stepname">Step 6 · Schedule</b><code>npx fastergeo schedule --dir ./my-brand --every 14d</code><span>Periodic re-runs for long-term operations</span></div></div>
+  <div class="label reveal">Quickstart</div>
+  <h2 class="reveal">Six commands, full loop.</h2>
+  <div class="steps" style="margin-top:36px">
+    <div class="step reveal"><div><b class="stepname">Step 1 · Bootstrap</b><code>npx fastergeo bootstrap --root https://yoursite.com --llm glm</code><span>Derive brand facts, competitors and a question bank from your site — nothing invented</span></div></div>
+    <div class="step reveal"><div><b class="stepname">Step 2 · Audit</b><code>npx fastergeo audit --root https://yoursite.com --urls /,/about,/pricing</code><span>See exactly what AI crawlers see — no API key needed</span></div></div>
+    <div class="step reveal"><div><b class="stepname">Step 3 · Cycle</b><code>npx fastergeo cycle --dir ./my-brand</code><span>Sample engines, compute funnel metrics, generate tickets, render the report — one command</span></div></div>
+    <div class="step reveal"><div><b class="stepname">Step 4 · Verify</b><code>npx fastergeo verify --tickets tickets.json --root https://yoursite.com</code><span>Fixed something? The machine confirms it — or flips it back when it regresses</span></div></div>
+    <div class="step reveal"><div><b class="stepname">Step 5 · Dashboard</b><code>npx fastergeo ui --dir ./my-brand</code><span>Local dashboard: funnel, tickets, trends — bound to 127.0.0.1</span></div></div>
+    <div class="step reveal"><div><b class="stepname">Step 6 · Schedule</b><code>npx fastergeo schedule --dir ./my-brand --every 14d</code><span>Periodic re-runs for long-term operations</span></div></div>
   </div>
 </section>
 
 <section id="faq" class="faq">
-  <div class="label">FAQ</div>
-  <h2>Questions, answered directly.</h2>
+  <div class="label reveal">FAQ</div>
+  <h2 class="reveal">Questions, answered directly.</h2>
   <details open>
     <summary>What is GEO (Generative Engine Optimization)?</summary>
     <p>GEO is a practice of making AI engines — ChatGPT, Claude, Perplexity, Doubao, DeepSeek —
@@ -310,9 +407,9 @@ footer .links{margin-left:auto;display:flex;gap:18px}
   </details>
   <details>
     <summary>Which engines are covered?</summary>
-    <p>15 engines across two markets: ChatGPT, Claude, Gemini, Grok and Perplexity globally; GLM,
-    Doubao, DeepSeek, Kimi and MiniMax in China via API — plus manual sheets for Baidu AI, Nano AI,
-    ChatGPT/Claude web and Google AI Overviews.</p>
+    <p>18 engines across two markets: ChatGPT, Claude, Gemini, Grok and Perplexity globally; GLM,
+    Doubao, DeepSeek, Kimi, MiniMax, Qwen, ERNIE and Spark in China via API — plus manual sheets for
+    Baidu AI, Nano AI, ChatGPT/Claude web and Google AI Overviews.</p>
   </details>
   <details>
     <summary>Do I need API keys?</summary>
@@ -332,6 +429,15 @@ footer .links{margin-left:auto;display:flex;gap:18px}
   </details>
 </section>
 
+<div class="cta-final">
+  <div class="label reveal">Get started</div>
+  <h2 class="reveal">Your brand has an AI reputation.<br>Go look at it.</h2>
+  <div class="cmd-big reveal" onclick="navigator.clipboard.writeText('npx fastergeo bootstrap --root https://yoursite.com')" title="Click to copy">
+    <span style="color:var(--faint)">$</span> npx fastergeo bootstrap --root https://yoursite.com
+    <span class="copy">copy</span>
+  </div>
+</div>
+
 <footer>
   <span>© 2026 FasterGEO · Apache-2.0 · <time datetime="2026-08-02">Updated Aug 2, 2026</time></span>
   <span>Built on the shoulders of the GEO research community.</span>
@@ -342,38 +448,118 @@ footer .links{margin-left:auto;display:flex;gap:18px}
 </footer>
 
 <script>
+/* ── Scroll reveal ── */
+const io = new IntersectionObserver(es => es.forEach(e => {
+  if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+}), { threshold: .12 });
+document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+/* ── Terminal demo: real dogfood output, typed ── */
+const TERM_LINES = [
+  ['p', '$ ', 0], ['c', 'npx fastergeo cycle --dir ./custyle', 38],
+  ['dim', '[1/5] sampling glm,doubao,deepseek,openai × 64 questions…', 0],
+  ['dim', '[2/5] metrics… recognition judge: glm', 0],
+  ['bad', '  ⚠ confusion evidence: "…aftermarket car exterior parts…" (doubao · cn)', 0],
+  ['dim', '[3/5] auditing 7 pages…', 0],
+  ['bad', '  🔴 BLOCKER spa-shell: 419KB of HTML but only 23 visible word-equivalents', 0],
+  ['dim', '[4/5] first period: 14 tickets → tickets.json  (14/14 machine-verifiable)', 0],
+  ['dim', '[5/5] report → report-2026-08-02.html', 0],
+  ['p', ' ', 0],
+  ['p', '$ ', 0], ['c', 'npx fastergeo verify --tickets tickets.json', 38], ['dim', '   # …after you ship the fix', 0],
+  ['ok', '  ✓ T-001 spa-shell: 0 pages (target ≤0)', 0],
+  ['ok', '  ↻ T-001: todo → done — verified by re-crawl, not by anyone’s word', 0],
+];
+const termBody = document.getElementById('termBody');
+let termStarted = false;
+const tio = new IntersectionObserver(es => {
+  if (es.some(e => e.isIntersecting) && !termStarted) { termStarted = true; runTerm(); }
+}, { threshold: .3 });
+tio.observe(document.getElementById('terminal'));
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+async function runTerm() {
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let row = null;
+  for (const [cls, text, typeMs] of TERM_LINES) {
+    if (cls === 'p' || !row) { row = document.createElement('div'); termBody.appendChild(row); }
+    else if (!typeMs && row.dataset.done) { row = document.createElement('div'); termBody.appendChild(row); }
+    row.classList.add('show');
+    const span = document.createElement('span');
+    span.className = cls;
+    row.appendChild(span);
+    if (typeMs && !reduced) {
+      const cur = document.createElement('i'); cur.className = 'cursor'; row.appendChild(cur);
+      for (const ch of text) { span.textContent += ch; await sleep(typeMs); }
+      cur.remove();
+      row.dataset.done = '1';
+    } else {
+      span.textContent = text;
+      row.dataset.done = '1';
+      if (!reduced) await sleep(230);
+    }
+  }
+}
+
+/* ── Scan ── */
 const form = document.getElementById('scanForm');
 const out = document.getElementById('scanResult');
 const btn = document.getElementById('scanBtn');
 const DIMS = { crawlability: 'Crawlability', length: 'Length', structure: 'Structure', blocks: 'Extractable blocks', authority: 'Authority', relevance: 'Relevance' };
+const STEPS = [
+  'fetching raw HTML — exactly what AI crawlers receive…',
+  'extracting visible text, headings, JSON-LD…',
+  'detecting citation blocks: definitions · statistics · comparisons · steps · FAQ…',
+  'scoring six dimensions against published citation research…',
+];
 form.addEventListener('submit', async e => {
   e.preventDefault();
   const url = document.getElementById('scanUrl').value.trim();
   if (!url) return;
   btn.disabled = true; btn.textContent = 'Scanning…';
-  out.innerHTML = '';
+  out.innerHTML = '<div class="scan-steps" id="scanSteps"></div>';
+  const stepsEl = document.getElementById('scanSteps');
+  let si = 0;
+  const stepTimer = setInterval(() => {
+    if (si < STEPS.length) {
+      const d = document.createElement('div');
+      d.textContent = '▸ ' + STEPS[si++];
+      stepsEl.appendChild(d);
+    }
+  }, 650);
   try {
     const r = await fetch('/api/scan?url=' + encodeURIComponent(url));
     const d = await r.json();
+    clearInterval(stepTimer);
     if (!r.ok) throw new Error(d.error || 'scan failed');
     const p = d.page;
     const dims = p.dimensions.map(x => {
       const ratio = x.score === null ? 0 : x.score / x.max;
       const low = x.score !== null && ratio < 0.4 ? 'low' : '';
       const val = x.score === null ? 'n/a' : `${x.score}/${x.max}`;
-      return `<div class="sdim ${low}"><span>${DIMS[x.key] ?? x.key}</span><span class="bar"><i style="width:${Math.round(ratio*100)}%"></i></span><span class="v">${val}</span></div>`;
+      return `<div class="sdim ${low}"><span>${DIMS[x.key] ?? x.key}</span><span class="bar"><i data-w="${Math.round(ratio*100)}"></i></span><span class="v">${val}</span></div>`;
     }).join('');
     const blockers = p.blockers.map(b => `<div class="scan-blocker">🔴 ${esc(b)}</div>`).join('');
     const site = d.site ? `<div class="scan-checks">${chk(d.site.robotsTxtFound)} robots.txt · ${chk(!d.site.blockedAiCrawlers?.length)} AI crawlers allowed · ${chk(d.site.sitemapFound)} sitemap · ${chk(d.site.llmsTxtFound)} llms.txt</div>` : '';
     out.innerHTML = `<div class="scan-card">
       <div class="scan-head"><div class="scan-grade ${p.grade}">${p.grade}</div>
-        <div><div class="scan-score">${p.score}<small> /100 · ${p.wordCount} visible word-equivalents</small></div>
+        <div><div class="scan-score"><span id="scoreNum" class="num">0</span><small> /100 · ${p.wordCount} visible word-equivalents</small></div>
         <div style="font-size:12px;color:var(--faint)">${esc(p.url)}</div></div></div>
       <div class="scan-dims">${dims}</div>${blockers}${site}
       <div class="scan-cta">This is one page, no API keys. The full loop — engine sampling, entity funnel, machine-verified tickets — is one command:
         <span class="mono" onclick="navigator.clipboard.writeText('npx fastergeo bootstrap --root ${esc(p.url)}')">npx fastergeo</span> (free, self-hosted)</div>
     </div>`;
+    requestAnimationFrame(() => {
+      out.querySelectorAll('.bar i').forEach(i => { i.style.width = i.dataset.w + '%'; });
+      const target = p.score, el = document.getElementById('scoreNum');
+      const t0 = performance.now();
+      const tick = now => {
+        const k = Math.min(1, (now - t0) / 700);
+        el.textContent = (target * (1 - Math.pow(1 - k, 3))).toFixed(1);
+        if (k < 1) requestAnimationFrame(tick); else el.textContent = target;
+      };
+      requestAnimationFrame(tick);
+    });
   } catch (err) {
+    clearInterval(stepTimer);
     out.innerHTML = `<div class="scan-err">${esc(err.message)}</div>`;
   } finally {
     btn.disabled = false; btn.textContent = 'Scan';
