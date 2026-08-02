@@ -1,6 +1,6 @@
 {
   "name": "@fastergeo/content",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "FasterGEO content factory \u2014 brand fact store (single source of truth with evidence grades), fabrication-risk lint, and outline/draft generation gated by the rules engine. Facts you can't source stay 'unconfirmed', never invented.",
   "license": "Apache-2.0",
   "type": "module",
@@ -35,5 +35,6 @@
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
-  }
+  },
+  "homepage": "https://fastergeo.co"
 }

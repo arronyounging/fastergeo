@@ -1,6 +1,6 @@
 {
   "name": "@fastergeo/audit",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "FasterGEO site audit \u2014 six-dimension page scoring (crawlability, length, structure, extractable blocks, authority, relevance) anchored to published empirical citation data, plus site-level AI-crawler checks.",
   "license": "Apache-2.0",
   "type": "module",
@@ -34,5 +34,6 @@
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
-  }
+  },
+  "homepage": "https://fastergeo.co"
 }

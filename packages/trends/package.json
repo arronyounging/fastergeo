@@ -1,6 +1,6 @@
 {
   "name": "@fastergeo/trends",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "FasterGEO period history and trend discipline \u2014 single-period changes are observations; only two consecutive same-direction changes constitute a trend. Sampling is noisy; attribution stays humble.",
   "license": "Apache-2.0",
   "type": "module",
@@ -35,5 +35,6 @@
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
-  }
+  },
+  "homepage": "https://fastergeo.co"
 }

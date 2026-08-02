@@ -1,6 +1,6 @@
 {
   "name": "@fastergeo/tickets",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "FasterGEO ticket system \u2014 diagnosis to actionable tickets with machine-verifiable acceptance criteria. Done means re-crawled and confirmed; regressions flip back automatically.",
   "license": "Apache-2.0",
   "type": "module",
@@ -35,5 +35,6 @@
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
-  }
+  },
+  "homepage": "https://fastergeo.co"
 }

@@ -23,7 +23,7 @@ async function fetchText(url: string, timeoutMs: number): Promise<{ status: numb
   try {
     const res = await fetch(url, {
       signal: AbortSignal.timeout(timeoutMs),
-      headers: { 'User-Agent': 'FasterGEO-Audit/0.1 (+https://fastergeo.io)' },
+      headers: { 'User-Agent': 'FasterGEO-Audit/0.1 (+https://fastergeo.co)' },
       redirect: 'follow',
     });
     return { status: res.status, body: await res.text() };

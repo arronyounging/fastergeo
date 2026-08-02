@@ -22,6 +22,7 @@ import { buildOutline, draftPrompt, lintFabrication, bootstrapProject } from '@f
 import { renderHtmlReport } from '@fastergeo/report';
 import { computeTrends } from '@fastergeo/trends';
 import { readdirSync, mkdirSync } from 'node:fs';
+import { resolve as resolvePath, basename } from 'node:path';
 import { writeFileSync } from 'node:fs';
 
 const [, , command, ...rest] = process.argv;
@@ -46,6 +47,8 @@ const { values: flags } = parseArgs({
     questions: { type: 'string' },
     engines: { type: 'string' },
     history: { type: 'string' },
+    dir: { type: 'string' },
+    every: { type: 'string' },
     json: { type: 'boolean', default: false },
   },
   allowPositionals: true,
@@ -370,7 +373,136 @@ const commands = {
   outline: cmdOutline, draft: cmdDraft, fabcheck: cmdFabcheck,
   report: cmdReport, bootstrap: cmdBootstrap,
   sheet: cmdSheet, import: cmdImport, trends: cmdTrends,
+  cycle: cmdCycle, schedule: cmdSchedule,
 };
+
+/** 并发池：limit 个一组跑完再补位。 */
+async function pool(items, limit, fn) {
+  const results = [];
+  let i = 0;
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (i < items.length) {
+      const idx = i++;
+      results[idx] = await fn(items[idx], idx).catch(err => ({ error: String(err?.message ?? err) }));
+    }
+  });
+  await Promise.all(workers);
+  return results;
+}
+
+/**
+ * cycle：对一个项目目录跑完整一期
+ * 目录约定: brand.json(含 domains/auditUrls) · questions.json · [tickets.json] · history/
+ */
+async function cmdCycle() {
+  const dir = flags.dir ?? '.';
+  const date = new Date().toISOString().slice(0, 10);
+  const brand = JSON.parse(readFileSync(`${dir}/brand.json`, 'utf8'));
+  const questions = JSON.parse(readFileSync(`${dir}/questions.json`, 'utf8'));
+  const root = flags.root ?? `https://${brand.domains[0]}`;
+  const urls = (flags.urls ? flags.urls.split(',') : (brand.auditUrls ?? ['/']))
+    .map(u => (u.startsWith('http') ? u : new URL(u, root).href));
+
+  // 1. 采样：已配 Key 的 API 引擎 × 市场匹配的问题
+  let providers = configuredProviders();
+  if (flags.providers) providers = providers.filter(p => flags.providers.split(',').includes(p.id));
+  const jobs = [];
+  for (const p of providers) {
+    for (const q of questions.filter(q => q.market === p.market || q.market === 'both')) {
+      jobs.push({ p, q });
+    }
+  }
+  console.log(`[1/5] 采样 ${providers.map(p => p.id).join(',') || '(无 Key，跳过)'} × ${jobs.length} 题…`);
+  const sampled = await pool(jobs, 4, async ({ p, q }) => {
+    const r = await ask(p, { question: q.text, questionId: q.id });
+    return {
+      providerId: p.id, market: p.market, questionId: q.id, question: q.text,
+      brandInQuestion: Boolean(q.brandInQuestion), answer: r.answer,
+      citations: r.citations, channel: r.channel, model: r.model,
+    };
+  });
+  const samples = sampled.filter(s => !s.error);
+  const failed = sampled.filter(s => s.error);
+  if (failed.length) console.log(`  ${failed.length} 条采样失败（已跳过）`);
+  writeFileSync(`${dir}/samples-${date}.jsonl`, samples.map(s => JSON.stringify(s)).join('\n') + '\n');
+
+  // 2. 指标（可选 judge）
+  console.log('[2/5] 指标…');
+  let judge;
+  if (flags.judge) {
+    const jp = resolveProvider(flags.judge);
+    judge = makeLlmJudge(async prompt =>
+      (await ask(jp, { question: prompt, maxTokens: 500 })).answer);
+  }
+  const metricsReport = samples.length
+    ? await computeMetrics(samples, brand, { judge, brandDescription: brand.description })
+    : undefined;
+
+  // 3. 体检
+  console.log(`[3/5] 体检 ${urls.length} 页…`);
+  const auditReport = await auditSite(root, urls);
+
+  // 4. 存期 + 验收
+  mkdirSync(`${dir}/history`, { recursive: true });
+  if (metricsReport) writeFileSync(`${dir}/history/${date}-metrics.json`, JSON.stringify(metricsReport, null, 2));
+  writeFileSync(`${dir}/history/${date}-audit.json`, JSON.stringify(auditReport, null, 2));
+  let tickets;
+  try { tickets = JSON.parse(readFileSync(`${dir}/tickets.json`, 'utf8')); } catch { /* 首期 */ }
+  if (tickets) {
+    const summary = verifyTickets(tickets, { audit: auditReport, metrics: metricsReport });
+    writeFileSync(`${dir}/tickets.json`, JSON.stringify(tickets, null, 2));
+    console.log(`[4/5] 验收: 通过 ${summary.counts.pass} · 未达标 ${summary.counts.fail} · 未测 ${summary.counts.unmeasurable}`);
+    for (const tr of summary.transitions) console.log(`  ↻ ${tr.ticketId}: ${tr.from} → ${tr.to}`);
+  } else {
+    tickets = generateTickets(auditReport, metricsReport);
+    writeFileSync(`${dir}/tickets.json`, JSON.stringify(tickets, null, 2));
+    console.log(`[4/5] 首期：生成 ${tickets.length} 条工单 → tickets.json`);
+  }
+
+  // 5. 报告 + 趋势
+  const html = renderHtmlReport({ brandName: brand.name, audit: auditReport, metrics: metricsReport, tickets });
+  writeFileSync(`${dir}/report-${date}.html`, html);
+  const periods = loadPeriods(`${dir}/history`);
+  console.log(`[5/5] 报告 → ${dir}/report-${date}.html · 历史 ${periods.length} 期`);
+  if (periods.length >= 2) {
+    const t = computeTrends(periods);
+    for (const a of t.alerts) console.log(`  ${a.level === 'P0' ? '🔴' : '⚠'} ${a.message}`);
+  }
+  console.log('本期完成。');
+}
+
+/** schedule：生成周期复跑的定时任务配置（不自动安装）。 */
+async function cmdSchedule() {
+  const dir = flags.dir ?? '.';
+  const every = flags.every ?? '7d';
+  const days = parseInt(every, 10) || 7;
+  const abs = resolvePath(dir);
+  const node = process.execPath;
+  const cli = new URL(import.meta.url).pathname;
+  const label = `co.fastergeo.cycle.${basename(abs)}`;
+  const plist = `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>Label</key><string>${label}</string>
+  <key>ProgramArguments</key><array>
+    <string>${node}</string><string>${cli}</string>
+    <string>cycle</string><string>--dir</string><string>${abs}</string>
+  </array>
+  <key>StartCalendarInterval</key><dict><key>Hour</key><integer>9</integer><key>Minute</key><integer>0</integer></dict>
+  <key>StandardOutPath</key><string>${abs}/cycle.log</string>
+  <key>StandardErrorPath</key><string>${abs}/cycle.log</string>
+</dict></plist>`;
+  writeFileSync(`${dir}/${label}.plist`, plist);
+  console.log(`已生成定时配置（每天 09:00 检查，建议采样节奏 ${days} 天由 cycle 自身控制）:
+
+macOS (launchd):
+  cp ${dir}/${label}.plist ~/Library/LaunchAgents/ && launchctl load ~/Library/LaunchAgents/${label}.plist
+
+Linux (crontab -e 添加一行, 每 ${days} 天):
+  0 9 */${days} * * ${node} ${cli} cycle --dir ${abs} >> ${abs}/cycle.log 2>&1
+
+注意 macOS 权限: launchd 直接跑 node 可避免 TCC 弹窗问题。`);
+}
 
 /** 把本次测量存为一期（--history 目录，YYYY-MM-DD 命名，覆盖同日）。 */
 function savePeriod(ctx) {

@@ -1,6 +1,6 @@
 {
   "name": "@fastergeo/rules",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "FasterGEO rule engine \u2014 deterministic GEO/SEO/content lint with agent-fixable suggestions. Forked from @ijonis/geo-lint (MIT).",
   "license": "MIT",
   "keywords": [
@@ -73,5 +73,6 @@
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
-  }
+  },
+  "homepage": "https://fastergeo.co"
 }
