@@ -1,0 +1,14 @@
+{
+  "name": "fastergeo",
+  "private": true,
+  "version": "0.0.1",
+  "description": "FasterGEO — open-source GEO platform: monitor, diagnose, implement, verify. CN + global AI engines.",
+  "license": "Apache-2.0",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "packageManager": "pnpm@10.30.3"
+}

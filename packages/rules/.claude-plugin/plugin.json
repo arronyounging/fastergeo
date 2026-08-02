@@ -1,0 +1,28 @@
+{
+  "name": "geo-lint",
+  "version": "0.2.0",
+  "description": "SEO & GEO content toolkit: /geo-lint validates content with 92 deterministic rules, /content-creator builds a self-configuring content pipeline with auto-discovery, brand voice, keyword research, and lint-fix validation until zero violations.",
+  "author": {
+    "name": "IJONIS",
+    "email": "hello@ijonis.com",
+    "url": "https://ijonis.com"
+  },
+  "homepage": "https://github.com/IJONIS/geo-lint",
+  "repository": "https://github.com/IJONIS/geo-lint",
+  "license": "MIT",
+  "keywords": [
+    "seo",
+    "geo",
+    "generative-engine-optimization",
+    "linter",
+    "claude-code",
+    "agent-skill",
+    "ai-search",
+    "content-linting",
+    "content-creation",
+    "brand-voice",
+    "seo-content",
+    "markdown",
+    "mdx"
+  ]
+}

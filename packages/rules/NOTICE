@@ -1,0 +1,4 @@
+This package is derived from @ijonis/geo-lint v0.2.1 (https://github.com/IJONIS/geo-lint),
+Copyright (c) 2026 IJONIS, licensed under the MIT License (see LICENSE in this directory).
+Modifications by the FasterGEO project: Chinese-language rule parameterization,
+additional GEO rules, and integration with the FasterGEO platform.
