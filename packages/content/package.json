@@ -1,0 +1,24 @@
+{
+  "name": "@fastergeo/content",
+  "version": "0.1.0",
+  "description": "FasterGEO content factory \u2014 brand fact store (single source of truth with evidence grades), fabrication-risk lint, and outline/draft generation gated by the rules engine. Facts you can't source stay 'unconfirmed', never invented.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@fastergeo/rules": "workspace:*",
+    "@fastergeo/providers": "workspace:*"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.0",
+    "typescript": "^5.6.0",
+    "vitest": "^3.0.0",
+    "@types/node": "^20.0.0"
+  }
+}

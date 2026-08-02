@@ -15,6 +15,7 @@ import {
 import { computeMetrics, parseGeoLookSamples, makeLlmJudge } from '@fastergeo/metrics';
 import { auditSite } from '@fastergeo/audit';
 import { generateTickets, verifyTickets } from '@fastergeo/tickets';
+import { buildOutline, draftPrompt, lintFabrication } from '@fastergeo/content';
 import { writeFileSync } from 'node:fs';
 
 const [, , command, ...rest] = process.argv;
@@ -33,6 +34,9 @@ const { values: flags } = parseArgs({
     urls: { type: 'string' },
     tickets: { type: 'string' },
     out: { type: 'string' },
+    facts: { type: 'string' },
+    llm: { type: 'string' },
+    file: { type: 'string' },
     json: { type: 'boolean', default: false },
   },
   allowPositionals: true,
@@ -236,7 +240,71 @@ async function cmdVerify() {
   }
 }
 
-const commands = { check: cmdCheck, sample: cmdSample, metrics: cmdMetrics, audit: cmdAudit, plan: cmdPlan, verify: cmdVerify };
+function printFabIssues(issues) {
+  if (issues.length === 0) {
+    console.log('✓ 编造风险检查通过（0 项）');
+    return;
+  }
+  console.log(`🔴 编造风险 ${issues.length} 项 — 逐项解决前不得发布：`);
+  for (const i of issues) {
+    console.log(`  [${i.kind}] L${i.line} 「${i.quote}」`);
+    console.log(`     ${i.suggestion}`);
+  }
+}
+
+async function cmdOutline() {
+  if (!flags.question || !flags.facts) {
+    console.error('用法: fastergeo outline --question "..." --facts facts.json [--json]');
+    process.exit(1);
+  }
+  const store = JSON.parse(readFileSync(flags.facts, 'utf8'));
+  const outline = buildOutline(flags.question, store);
+  if (flags.json) console.log(JSON.stringify(outline, null, 2));
+  else {
+    console.log(`题: ${outline.question} [${outline.market}] 目标 ${outline.targetWordCount} 词等效`);
+    console.log(`标题候选:\n  - ${outline.titleCandidates.join('\n  - ')}\n`);
+    for (const s of outline.sections) {
+      console.log(`## ${s.heading}  (必含: ${s.requiredBlocks.join('/')})`);
+      if (s.factIds.length) console.log(`   事实: ${s.factIds.join(', ')}`);
+      if (s.notes) console.log(`   ${s.notes}`);
+    }
+  }
+}
+
+async function cmdDraft() {
+  if (!flags.question || !flags.facts || !flags.llm) {
+    console.error('用法: fastergeo draft --question "..." --facts facts.json --llm glm [--out draft.md]');
+    process.exit(1);
+  }
+  const store = JSON.parse(readFileSync(flags.facts, 'utf8'));
+  const outline = buildOutline(flags.question, store);
+  const provider = resolveProvider(flags.llm);
+  console.log(`生成初稿（${provider.id} / ${provider.resolvedModel}）…`);
+  const result = await ask(provider, { question: draftPrompt(outline, store), maxTokens: 4000, timeoutMs: 300_000 });
+  const draft = result.answer;
+  if (flags.out) writeFileSync(flags.out, draft);
+  console.log(`初稿 ${draft.length} 字符${flags.out ? ` → ${flags.out}` : ''} · 耗时 ${result.latencyMs}ms\n`);
+  // 强制门禁：初稿必须过编造检查才算产出
+  printFabIssues(lintFabrication(draft, store));
+  if (!flags.out) console.log(`\n${draft.slice(0, 1200)}\n…`);
+}
+
+async function cmdFabcheck() {
+  if (!flags.file || !flags.facts) {
+    console.error('用法: fastergeo fabcheck --file draft.md --facts facts.json');
+    process.exit(1);
+  }
+  const store = JSON.parse(readFileSync(flags.facts, 'utf8'));
+  const issues = lintFabrication(readFileSync(flags.file, 'utf8'), store);
+  printFabIssues(issues);
+  process.exit(issues.length > 0 ? 1 : 0);
+}
+
+const commands = {
+  check: cmdCheck, sample: cmdSample, metrics: cmdMetrics, audit: cmdAudit,
+  plan: cmdPlan, verify: cmdVerify,
+  outline: cmdOutline, draft: cmdDraft, fabcheck: cmdFabcheck,
+};
 const run = commands[command];
 if (!run) {
   console.log('fastergeo <check|sample|metrics> — 用法见各命令 --help 或源码头部注释');

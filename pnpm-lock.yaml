@@ -13,6 +13,9 @@ importers:
       '@fastergeo/audit':
         specifier: workspace:*
         version: link:../../packages/audit
+      '@fastergeo/content':
+        specifier: workspace:*
+        version: link:../../packages/content
       '@fastergeo/metrics':
         specifier: workspace:*
         version: link:../../packages/metrics
@@ -32,6 +35,28 @@ importers:
 
   packages/audit:
     dependencies:
+      '@fastergeo/rules':
+        specifier: workspace:*
+        version: link:../rules
+    devDependencies:
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.43
+      tsup:
+        specifier: ^8.0.0
+        version: 8.5.1(jiti@2.7.0)(postcss@8.5.25)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.6.0
+        version: 5.9.3
+      vitest:
+        specifier: ^3.0.0
+        version: 3.2.7(@types/node@20.19.43)(jiti@2.7.0)
+
+  packages/content:
+    dependencies:
+      '@fastergeo/providers':
+        specifier: workspace:*
+        version: link:../providers
       '@fastergeo/rules':
         specifier: workspace:*
         version: link:../rules
