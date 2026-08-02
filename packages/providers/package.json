@@ -19,5 +19,19 @@
   },
   "dependencies": {
     "undici": "^6.19.0"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/arronyounging/fastergeo",
+    "directory": "packages/providers"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

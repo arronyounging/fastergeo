@@ -466,7 +466,20 @@ async function cmdImport() {
 }
 const run = commands[command];
 if (!run) {
-  console.log('fastergeo <check|sample|metrics> — 用法见各命令 --help 或源码头部注释');
+  console.log(`fastergeo — 开源 GEO 平台（中国 + 海外 AI 引擎）
+
+  起步     bootstrap  从官网一键推导品牌/事实/问题库
+  诊断     check      引擎 Key 健康检查
+           audit      六维体检（AI 爬虫视角，无需 Key）
+  采样     sample     API 采样 · sheet/import 人工采样表（零 Key）
+  指标     metrics    漏斗指标 + LLM 认知裁判（--judge）
+           trends     期对比与趋势判定（--history）
+  闭环     plan       诊断 → 带验收标准的工单
+           verify     重抓自动验收，回归自动打回
+  内容     outline/draft/fabcheck  事实约束生成 + 编造门禁
+  交付     report     单文件 HTML 诊断报告
+
+  各命令直接运行可查看用法。数据全在本机。`);
   process.exit(command ? 1 : 0);
 }
 run().catch(err => {

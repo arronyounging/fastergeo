@@ -19,5 +19,19 @@
     "typescript": "^5.6.0",
     "vitest": "^3.0.0",
     "@types/node": "^20.0.0"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/arronyounging/fastergeo",
+    "directory": "packages/audit"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

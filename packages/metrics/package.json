@@ -1,7 +1,7 @@
 {
   "name": "@fastergeo/metrics",
   "version": "0.1.0",
-  "description": "FasterGEO metrics engine — visibility, share of voice, citation share, position, and recognition-quality classification. Reproducible by design: every number is computable from raw samples.",
+  "description": "FasterGEO metrics engine \u2014 visibility, share of voice, citation share, position, and recognition-quality classification. Reproducible by design: every number is computable from raw samples.",
   "license": "Apache-2.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -16,5 +16,19 @@
     "typescript": "^5.6.0",
     "vitest": "^3.0.0",
     "@types/node": "^20.0.0"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/arronyounging/fastergeo",
+    "directory": "packages/metrics"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

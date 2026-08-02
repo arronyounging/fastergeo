@@ -39,9 +39,8 @@
   },
   "files": [
     "dist",
-    "LICENSE",
-    "README.md",
-    "CHANGELOG.md"
+    "NOTICE",
+    "LICENSE"
   ],
   "scripts": {
     "build": "tsup",
@@ -64,6 +63,14 @@
     "vitest": "^3.0.0"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/arronyounging/fastergeo",
+    "directory": "packages/rules"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
