@@ -83,14 +83,25 @@ function funnel(metrics?: MetricsReport): string {
     const t3 = top3.length ? top3.reduce((a, b) => a + b, 0) / top3.length : null;
     const cite = ps.filter(p => p.ownDomainCiteRate !== null).map(p => p.ownDomainCiteRate as number);
     const c = cite.length ? cite.reduce((a, b) => a + b, 0) / cite.length : null;
-    const stage = (label: string, value: string, bad: boolean, note: string) =>
-      `<div class="stage ${bad ? 'bad' : ''}"><div class="stage-v">${value}</div><div class="stage-l">${label}</div><div class="stage-n">${note}</div></div>`;
+    const judged = probeTotal - unverified;
+    const stage = (label: string, value: string, tone: 'ok' | 'bad' | 'na', note: string) =>
+      `<div class="stage ${tone}"><div class="stage-v">${value}</div><div class="stage-l">${label}</div><div class="stage-n">${note}</div></div>`;
+    // 未判定的不给红绿结论 — 漏斗也遵守「未测不编数」
     return `<h3>${market === 'cn' ? '国内市场' : '海外市场'}</h3><div class="funnel">
-      ${stage('真认识', probeTotal ? `${knows}/${probeTotal - unverified || '?'}` : '未测', knows === 0 && probeTotal > 0, '点名探测 · LLM judge 判定')}
-      ${stage('不认错', probeTotal ? `${confused === 0 ? '✓' : `${confused} 起混淆`}` : '未测', confused > 0, confused > 0 ? 'P0 实体消歧' : '')}
-      ${stage('进候选集', pct(mention), mention === 0, '无提示提及率')}
-      ${stage('前三位次', pct(t3), false, 'Top3 率')}
-      ${stage('引用官网', pct(c), c === 0, '官网引用率')}
+      ${stage('真认识',
+        judged > 0 ? `${knows}/${judged}` : '未测',
+        judged > 0 ? (knows === 0 ? 'bad' : 'ok') : 'na',
+        judged > 0 ? '点名探测 · LLM judge 判定' : '加 --judge 后判定')}
+      ${stage('不认错',
+        judged > 0 ? (confused === 0 ? '✓' : `${confused} 起混淆`) : '未测',
+        judged > 0 ? (confused > 0 ? 'bad' : 'ok') : 'na',
+        confused > 0 ? 'P0 实体消歧' : judged > 0 ? '' : '加 --judge 后判定')}
+      ${stage('进候选集', pct(mention), mention === null ? 'na' : mention === 0 ? 'bad' : 'ok', '无提示提及率')}
+      ${stage('前三位次',
+        mention === 0 ? '—' : pct(t3),
+        mention === 0 || t3 === null ? 'na' : t3 > 0 ? 'ok' : 'bad',
+        mention === 0 ? '未进候选集，无位次可言' : 'Top3 率')}
+      ${stage('引用官网', pct(c), c === null ? 'na' : c === 0 ? 'bad' : 'ok', '官网引用率')}
     </div>`;
   });
   return `<section><h2>品牌实体漏斗 <span class="m" title="漏斗从左到右：AI 是否真的认识品牌（探测题+LLM裁判判定，非名字回声）→ 是否张冠李戴 → 无提示问题中是否被提及 → 提及时的位次 → 是否引用官网。多数品牌断在头部。">ⓘ 口径</span></h2>${rows.join('')}</section>`;
@@ -118,11 +129,14 @@ function auditSection(audit?: SiteAudit): string {
   const s = audit.site;
   const chk = (ok: boolean, label: string) => `<span class="${ok ? 'ok' : 'bad-t'}">${ok ? '✓' : '✗'} ${label}</span>`;
   const pageRow = (p: SiteAudit['pages'][0]): string => {
-    const dims = p.dimensions.map(d =>
-      `<span class="dim" title="${d.key}: ${d.score === null ? '未测' : `${d.score}/${d.max}`}${d.issues.length ? ' · ' + d.issues.join(',') : ''}">` +
-      `${d.score === null ? '·' : Math.round(((d.score ?? 0) / d.max) * 9)}</span>`).join('');
-    return `<tr class="g-${p.grade}"><td class="grade">${p.grade}</td><td>${p.score}</td>
-      <td class="url">${esc(p.url)}</td><td>${p.wordCount}</td><td class="dims">${dims}</td></tr>`;
+    const dims = p.dimensions.map(d => {
+      const ratio = d.score === null ? 0 : (d.score ?? 0) / d.max;
+      const cls = d.score === null ? 'na' : ratio < 0.4 ? 'low' : '';
+      const tip = `${d.key}: ${d.score === null ? '未测' : `${d.score}/${d.max}`}${d.issues.length ? ' · ' + d.issues.join(',') : ''}`;
+      return `<span class="dim ${cls}" title="${tip}"><i style="width:${Math.round(ratio * 100)}%"></i></span>`;
+    }).join('');
+    return `<tr class="g-${p.grade}"><td><span class="grade">${p.grade}</span></td><td class="num">${p.score}</td>
+      <td class="url">${esc(p.url)}</td><td class="num">${p.wordCount}</td><td class="dims">${dims}</td></tr>`;
   };
   return `<section><h2>六维体检 <span class="m" title="可抓取性15/长度15/结构20/可抽取块25/权威信号15/对题性10。阈值锚定公开实证数据（高影响力页均1943词、含数字+61.6%引用概率等）。抓取不执行 JS——测的就是 AI 爬虫看到的东西。">ⓘ 口径</span></h2>
     <p>${chk(s.robotsTxtFound, 'robots.txt')} ${chk(!s.blockedAiCrawlers.length, 'AI 爬虫未被屏蔽')} ${chk(s.sitemapFound, 'sitemap')} ${chk(s.llmsTxtFound, 'llms.txt')}
@@ -144,22 +158,69 @@ function ticketSection(tickets?: Ticket[]): string {
 }
 
 const CSS = `
-:root{--bg:#0e1116;--card:#161b24;--tx:#dbe2ec;--dim:#8b97a8;--red:#ff5566;--ok:#39d98a;--acc:#8f7ff0}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.65 -apple-system,'PingFang SC','Microsoft YaHei',sans-serif;padding:32px}
-main{max-width:960px;margin:0 auto}h1{font-size:22px;margin:0 0 4px}h2{font-size:17px;margin:0 0 12px;color:var(--acc)}h3{font-size:14px;color:var(--dim);margin:16px 0 8px}
-.meta{color:var(--dim);font-size:13px;margin-bottom:20px}.headline{font-size:17px;background:var(--card);border-left:3px solid var(--acc);padding:14px 18px;border-radius:6px;margin-bottom:24px}
-section{background:var(--card);border-radius:10px;padding:20px 22px;margin-bottom:20px}
-.blockers{border:1px solid var(--red)}.blockers h2{color:var(--red)}.blockers li{margin:6px 0}
-.ev-url{color:var(--dim);font-size:12px}
-.funnel{display:flex;gap:8px;flex-wrap:wrap}.stage{flex:1;min-width:120px;background:#0e1320;border-radius:8px;padding:12px;text-align:center;border-top:2px solid var(--ok)}
-.stage.bad{border-top-color:var(--red)}.stage-v{font-size:20px;font-weight:700}.stage-l{font-size:13px;margin-top:2px}.stage-n{font-size:11px;color:var(--dim);margin-top:4px}
-table{width:100%;border-collapse:collapse;font-size:13px}th{text-align:left;color:var(--dim);font-weight:500;padding:6px 8px;border-bottom:1px solid #2a3140}
-td{padding:7px 8px;border-bottom:1px solid #1e2430;vertical-align:top}.na{color:var(--dim)}
-.ok{color:var(--ok)}.bad-t{color:var(--red)}.grade{font-weight:700}.g-D .grade{color:var(--red)}.g-B .grade,.g-A .grade{color:var(--ok)}
-.url{word-break:break-all}.dims .dim{display:inline-block;width:14px;text-align:center;background:#0e1320;margin-right:2px;border-radius:3px;font-size:11px}
-.pr-P0 td:first-child b{color:var(--red)}.rationale{color:var(--dim);font-size:12px}.comps{color:var(--dim)}
-.m{font-size:11px;color:var(--dim);cursor:help;font-weight:400}
-footer{color:var(--dim);font-size:12px;text-align:center;padding:12px}`;
+/* FasterGEO 设计语言：精密仪器 — 深墨底 · 单强调色 · 等宽数字 · 8px 网格 */
+:root{--bg:#0B0E14;--card:#121826;--well:#0D1420;--line:rgba(148,163,184,.10);
+--tx:#E8EDF5;--dim:#8A96A8;--faint:#5B6675;--acc:#8B7CF6;--acc-soft:rgba(139,124,246,.12);
+--red:#F4536E;--red-soft:rgba(244,83,110,.10);--ok:#2FD08C;--ok-soft:rgba(47,208,140,.12);
+--amber:#F0B24A;--amber-soft:rgba(240,178,74,.12)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);padding:40px 32px;-webkit-font-smoothing:antialiased;
+font:14px/1.7 -apple-system,"SF Pro Text","PingFang SC","Microsoft YaHei",sans-serif}
+main{max-width:980px;margin:0 auto}
+h1{font-size:24px;font-weight:800;letter-spacing:-.02em;margin:0 0 6px}
+h2{font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin:0 0 18px}
+h3{font-size:13px;color:var(--dim);margin:20px 0 10px;font-weight:600}
+.meta{color:var(--dim);font-size:13px;margin-bottom:28px}
+.headline{font-size:17px;line-height:1.6;font-weight:500;background:linear-gradient(135deg,var(--acc-soft),transparent 60%),var(--card);
+border:1px solid var(--line);padding:20px 24px;border-radius:14px;margin-bottom:24px}
+section{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:24px 28px;margin-bottom:20px}
+.blockers{border-color:rgba(244,83,110,.35);background:linear-gradient(135deg,var(--red-soft),transparent 55%),var(--card)}
+.blockers h2{color:var(--red)}
+.blockers ul{margin:0;padding-left:18px}.blockers li{margin:8px 0;font-size:13.5px}
+.ev-url{color:var(--faint);font-size:12px;font-family:ui-monospace,Menlo,monospace}
+/* 实体漏斗 — 视觉主角 */
+.funnel{display:flex;gap:0;align-items:stretch}
+.stage{flex:1;min-width:100px;position:relative;background:var(--well);border-radius:12px;
+padding:18px 12px 14px;text-align:center;margin-right:26px}
+.stage:last-child{margin-right:0}
+.stage:not(:last-child)::after{content:"→";position:absolute;right:-21px;top:50%;
+transform:translateY(-50%);color:var(--faint);font-size:15px}
+.stage.ok{border-top:2px solid var(--ok)}
+.stage.bad{border-top:2px solid var(--red);background:linear-gradient(180deg,var(--red-soft),var(--well) 70%)}
+.stage.na{border-top:2px solid var(--line);opacity:.75}
+.stage.na .stage-v{color:var(--faint);font-size:18px}
+.stage-v{font-size:24px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.stage.bad .stage-v{color:var(--red)}
+.stage-l{font-size:13px;font-weight:600;margin-top:4px}
+.stage-n{font-size:11px;color:var(--faint);margin-top:4px;line-height:1.4}
+/* 表格 */
+table{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+th{text-align:left;color:var(--faint);font-weight:500;font-size:11.5px;letter-spacing:.04em;
+padding:8px;border-bottom:1px solid var(--line)}
+td{padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:none}
+.na{color:var(--faint)}
+.ok{color:var(--ok)}.bad-t{color:var(--red)}
+/* 体检等级徽章与维度条 */
+.grade{display:inline-flex;width:26px;height:26px;border-radius:8px;align-items:center;
+justify-content:center;font-weight:800;font-size:13px}
+.g-A .grade,.g-B .grade{background:var(--ok-soft);color:var(--ok)}
+.g-C .grade{background:var(--amber-soft);color:var(--amber)}
+.g-D .grade{background:var(--red-soft);color:var(--red)}
+.url{word-break:break-all;font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--dim)}
+.dims{white-space:nowrap}
+.dim{display:inline-block;width:34px;height:5px;background:var(--well);border-radius:3px;
+margin-right:4px;position:relative;overflow:hidden;vertical-align:middle}
+.dim i{position:absolute;left:0;top:0;bottom:0;background:var(--acc);border-radius:3px}
+.dim.low i{background:var(--red)}.dim.na{opacity:.25}
+/* 工单 */
+.pr-P0 td:first-child b{color:var(--red)}
+.pr-P1 td:first-child b{color:var(--amber)}
+.pr-P2 td:first-child b{color:var(--faint)}
+.rationale{color:var(--dim);font-size:12px;margin-top:3px}
+.comps{color:var(--dim);font-size:12px}
+.m{font-size:11px;color:var(--faint);cursor:help;font-weight:400;letter-spacing:0;text-transform:none}
+footer{color:var(--faint);font-size:12px;text-align:center;padding:16px 0 4px}`;
 
 export function renderHtmlReport(input: ReportInput): string {
   const at = input.generatedAt ?? new Date().toISOString();

@@ -5,38 +5,110 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>FasterGEO 看板</title>
 <style>
-:root{--bg:#0e1116;--card:#161b24;--tx:#dbe2ec;--dim:#8b97a8;--red:#ff5566;--ok:#39d98a;--acc:#8f7ff0;--line:#232a38}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.6 -apple-system,'PingFang SC','Microsoft YaHei',sans-serif}
-header{display:flex;align-items:center;gap:16px;padding:14px 24px;border-bottom:1px solid var(--line)}
-header h1{font-size:16px;margin:0}header h1 b{color:var(--acc)}
-.brand{color:var(--dim);font-size:13px}
-nav{display:flex;gap:4px;margin-left:auto}
-nav button{background:none;border:none;color:var(--dim);font-size:14px;padding:8px 14px;border-radius:8px;cursor:pointer}
-nav button.active{background:var(--card);color:var(--tx)}
-main{max-width:1080px;margin:0 auto;padding:20px 24px}
-.card{background:var(--card);border-radius:10px;padding:18px 20px;margin-bottom:16px}
-iframe{width:100%;height:calc(100vh - 130px);border:none;border-radius:10px;background:var(--bg)}
-table{width:100%;border-collapse:collapse;font-size:13px}
-th{text-align:left;color:var(--dim);font-weight:500;padding:6px 8px;border-bottom:1px solid var(--line)}
-td{padding:8px;border-bottom:1px solid #1e2430;vertical-align:top}
-.P0{color:var(--red);font-weight:700}.P1{color:#e8b34c}.P2{color:var(--dim)}
-.st{font-size:12px;padding:2px 8px;border-radius:10px;background:#0e1320}
-.st.done{color:var(--ok)}.st.regressed{color:var(--red)}.st.todo{color:var(--dim)}.st['pending-manual']{color:#e8b34c}
-.rationale{color:var(--dim);font-size:12px;margin-top:2px}
-.acc{font-size:12px;color:var(--dim)}
-select{background:#0e1320;color:var(--tx);border:1px solid var(--line);border-radius:6px;padding:3px 6px}
-.alert{padding:10px 14px;border-radius:8px;margin-bottom:8px;background:#1a1420}
-.alert.P0{border-left:3px solid var(--red)}.alert.warn{border-left:3px solid #e8b34c}
-.delta-table td:first-child{font-family:ui-monospace,monospace;font-size:12px}
-.trend{color:var(--ok)}.obs{color:var(--dim)}
-.empty{color:var(--dim);text-align:center;padding:40px}
-.na{color:var(--dim)}
+/* ── FasterGEO 设计语言：精密仪器 ─────────────────────────────
+   深墨底 · 单强调色 · 等宽数字 · 8px 网格 · 克制的色彩语义     */
+:root{
+  --bg:#0B0E14; --surface:#121826; --surface-2:#0D1420;
+  --line:rgba(148,163,184,.10); --line-strong:rgba(148,163,184,.18);
+  --tx:#E8EDF5; --dim:#8A96A8; --faint:#5B6675;
+  --acc:#8B7CF6; --acc-soft:rgba(139,124,246,.12);
+  --red:#F4536E; --red-soft:rgba(244,83,110,.10);
+  --green:#2FD08C; --green-soft:rgba(47,208,140,.10);
+  --amber:#F0B24A; --amber-soft:rgba(240,178,74,.10);
+  --r:14px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);
+  font:14px/1.65 -apple-system,"SF Pro Text","PingFang SC","Microsoft YaHei",sans-serif;
+  -webkit-font-smoothing:antialiased}
+.num{font-variant-numeric:tabular-nums}
+.mono{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:12px}
+
+/* Header */
+header{position:sticky;top:0;z-index:10;display:flex;align-items:center;gap:20px;
+  padding:0 28px;height:60px;background:rgba(11,14,20,.85);backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--line)}
+.logo{font-size:16px;font-weight:700;letter-spacing:-.02em}
+.logo b{color:var(--acc);font-weight:800}
+.project-chip{display:flex;align-items:center;gap:8px;padding:5px 12px;
+  background:var(--surface);border:1px solid var(--line);border-radius:999px;
+  font-size:12px;color:var(--dim)}
+.project-chip .dot{width:6px;height:6px;border-radius:50%;background:var(--green)}
+nav{display:flex;gap:2px;margin-left:auto;background:var(--surface);
+  border:1px solid var(--line);border-radius:999px;padding:3px}
+nav button{background:none;border:none;color:var(--dim);font-size:13px;font-weight:500;
+  padding:7px 18px;border-radius:999px;cursor:pointer;transition:all .15s}
+nav button:hover{color:var(--tx)}
+nav button.active{background:var(--acc);color:#fff}
+
+main{max-width:1120px;margin:0 auto;padding:28px}
+
+/* Cards */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
+  padding:24px 28px;margin-bottom:20px}
+.card-label{font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--faint);margin-bottom:16px}
+
+iframe{width:100%;height:calc(100vh - 120px);border:1px solid var(--line);
+  border-radius:var(--r);background:var(--bg)}
+
+/* Ticket rows */
+.trow{display:flex;align-items:flex-start;gap:16px;padding:16px 4px;
+  border-bottom:1px solid var(--line)}
+.trow:last-child{border-bottom:none}
+.trow:hover{background:var(--surface-2);border-radius:8px}
+.pill{display:inline-flex;align-items:center;font-size:11px;font-weight:700;
+  padding:3px 10px;border-radius:999px;letter-spacing:.02em;white-space:nowrap}
+.pill.P0{background:var(--red-soft);color:var(--red)}
+.pill.P1{background:var(--amber-soft);color:var(--amber)}
+.pill.P2{background:var(--surface-2);color:var(--dim)}
+.pill.done{background:var(--green-soft);color:var(--green)}
+.pill.todo{background:var(--surface-2);color:var(--dim)}
+.pill.regressed{background:var(--red-soft);color:var(--red)}
+.pill.pending-manual{background:var(--amber-soft);color:var(--amber)}
+.t-main{flex:1;min-width:0}
+.t-title{font-weight:600;font-size:14px}
+.t-title .tid{color:var(--faint);font-weight:400;margin-right:8px}
+.t-rationale{color:var(--dim);font-size:12.5px;margin-top:3px}
+.t-acc{margin-top:8px;display:inline-flex;align-items:center;gap:6px;
+  font-size:11.5px;color:var(--faint);background:var(--surface-2);
+  padding:3px 10px;border-radius:6px}
+.t-side{display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex-shrink:0}
+select{background:var(--surface-2);color:var(--dim);border:1px solid var(--line);
+  border-radius:8px;padding:5px 10px;font-size:12px;cursor:pointer}
+select:hover{border-color:var(--line-strong);color:var(--tx)}
+.verify-note{font-size:11px;color:var(--faint)}
+
+/* Trends */
+.alert{display:flex;gap:12px;align-items:flex-start;padding:14px 18px;
+  border-radius:12px;margin-bottom:10px;font-size:13.5px}
+.alert.P0{background:var(--red-soft);border:1px solid rgba(244,83,110,.25)}
+.alert.warn{background:var(--amber-soft);border:1px solid rgba(240,178,74,.2)}
+.period-strip{display:flex;align-items:center;gap:10px;color:var(--dim);
+  font-size:12.5px;margin-bottom:20px}
+.period-strip .p{padding:4px 12px;background:var(--surface-2);border-radius:999px}
+.period-strip .p.latest{background:var(--acc-soft);color:var(--acc);font-weight:600}
+.drow{display:grid;grid-template-columns:minmax(200px,1.2fr) 90px 30px 90px 1fr;
+  align-items:center;gap:8px;padding:12px 4px;border-bottom:1px solid var(--line)}
+.drow:last-child{border-bottom:none}
+.d-key{color:var(--dim)}
+.d-val{font-size:15px;font-weight:600;text-align:right}
+.d-arrow{text-align:center;color:var(--faint)}
+.d-arrow.up{color:var(--green)}.d-arrow.down{color:var(--red)}
+.d-verdict{font-size:12px;color:var(--faint)}
+.d-verdict.trend{color:var(--acc);font-weight:600}
+.empty{color:var(--dim);text-align:center;padding:64px 20px;font-size:14px}
+.empty .hint{color:var(--faint);font-size:12.5px;margin-top:8px}
+.na{color:var(--faint)}
+code{background:var(--surface-2);padding:1px 6px;border-radius:5px;font-size:12px}
+.footnote{color:var(--faint);font-size:12px;margin-top:16px;padding-top:14px;
+  border-top:1px solid var(--line)}
 </style>
 </head>
 <body>
 <header>
-  <h1>Faster<b>GEO</b></h1>
-  <span class="brand" id="brandName"></span>
+  <div class="logo">Faster<b>GEO</b></div>
+  <div class="project-chip"><span class="dot"></span><span id="brandName">加载中…</span></div>
   <nav>
     <button data-tab="overview" class="active">总览</button>
     <button data-tab="tickets">工单</button>
@@ -63,10 +135,12 @@ document.querySelectorAll('nav button').forEach(btn => btn.onclick = () => {
 
 async function load() {
   project = await (await fetch('/api/project')).json();
-  $('#brandName').textContent = (project.brand.name ?? '') + ' · ' + (project.periods.length ? project.periods.length + ' 期数据' : '暂无数据');
+  const n = project.periods.length;
+  $('#brandName').textContent = (project.brand.name ?? '未命名') + (n ? ` · ${n} 期数据 · 最新 ${project.periods[n-1]}` : ' · 暂无数据');
 }
 
 async function setStatus(id, status) {
+  if (!status) return;
   await fetch('/api/ticket', { method: 'POST', body: JSON.stringify({ id, status }) });
   project.tickets.find(t => t.id === id).status = status;
   renderTickets();
@@ -75,24 +149,35 @@ async function setStatus(id, status) {
 function renderTickets() {
   const el = $('#tab-tickets');
   const ts = project.tickets;
-  if (!ts.length) { el.innerHTML = '<div class="card empty">暂无工单 — 跑一期 cycle 自动生成</div>'; return; }
-  const canManual = t => t.acceptance.type === 'manual';
-  el.innerHTML = `<div class="card"><table>
-    <thead><tr><th></th><th>ID</th><th>工单</th><th>验收</th><th>状态</th><th></th></tr></thead>
-    <tbody>${ts.map(t => `
-      <tr>
-        <td class="${t.priority}">${t.priority}</td>
-        <td>${t.id}</td>
-        <td>${esc(t.title)}<div class="rationale">${esc(t.rationale.slice(0, 100))}</div></td>
-        <td class="acc">${t.acceptance.type === 'auto' ? '⚙ ' + esc(t.acceptance.check) : '👤 人工'}<br>${esc(t.acceptance.desc.slice(0, 50))}</td>
-        <td><span class="st ${t.status}">${t.status}</span></td>
-        <td>${canManual(t) ? `<select onchange="setStatus('${t.id}', this.value)">
-          <option value="">标记…</option>
-          <option value="done">done</option>
-          <option value="pending-manual">pending</option>
-        </select>` : '<span class="acc">verify 自动判定</span>'}</td>
-      </tr>`).join('')}</tbody></table>
-    <p class="acc" style="margin:10px 0 0">自动验收工单由 <code>fastergeo verify</code> / <code>cycle</code> 判定；此处只能手动标记人工验收类工单。</p>
+  if (!ts.length) {
+    el.innerHTML = '<div class="card"><div class="empty">暂无工单<div class="hint">跑一期 <code>fastergeo cycle</code> 自动生成</div></div></div>';
+    return;
+  }
+  const auto = ts.filter(t => t.acceptance.type === 'auto').length;
+  el.innerHTML = `<div class="card">
+    <div class="card-label">行动工单 · ${ts.length} 条 · ${auto} 条机器自动验收</div>
+    ${ts.map(t => `
+      <div class="trow">
+        <span class="pill ${t.priority}">${t.priority}</span>
+        <div class="t-main">
+          <div class="t-title"><span class="tid mono">${t.id}</span>${esc(t.title)}</div>
+          <div class="t-rationale">${esc(t.rationale.slice(0, 110))}</div>
+          <div class="t-acc">${t.acceptance.type === 'auto'
+            ? `⚙ <span class="mono">${esc(t.acceptance.check)}</span>`
+            : '👤 人工验收'} · ${esc(t.acceptance.desc.slice(0, 46))}</div>
+        </div>
+        <div class="t-side">
+          <span class="pill ${t.status}">${t.status}</span>
+          ${t.acceptance.type === 'manual'
+            ? `<select onchange="setStatus('${t.id}', this.value)">
+                <option value="">标记…</option>
+                <option value="done">done</option>
+                <option value="pending-manual">pending</option>
+              </select>`
+            : '<span class="verify-note">verify 判定</span>'}
+        </div>
+      </div>`).join('')}
+    <div class="footnote">自动验收工单由 <code>fastergeo verify</code> / <code>cycle</code> 重抓判定，看板不可手改——机器验收的状态不接受口头确认。</div>
   </div>`;
 }
 
@@ -100,23 +185,26 @@ async function renderTrends() {
   const el = $('#tab-trends');
   const t = await (await fetch('/api/trends')).json();
   if (t.periods.length < 2) {
-    el.innerHTML = `<div class="card empty">${t.periods.length} 期数据 — 至少两期才能对比。<br>口径：单期变化只作观察，连续两期同向才算趋势。</div>`;
+    el.innerHTML = `<div class="card"><div class="empty">${t.periods.length} 期数据，至少两期才能对比
+      <div class="hint">口径：单期变化只作观察，连续两期同向才算趋势</div></div></div>`;
     return;
   }
   const pct = v => v === null ? '<span class="na">未测</span>' : (v <= 1 ? (v * 100).toFixed(0) + '%' : v);
   el.innerHTML = `
-    ${t.alerts.map(a => `<div class="alert ${a.level}">${a.level === 'P0' ? '🔴' : '⚠'} ${esc(a.message)}</div>`).join('')}
+    ${t.alerts.map(a => `<div class="alert ${a.level}"><span>${a.level === 'P0' ? '🔴' : '⚠️'}</span><span>${esc(a.message)}</span></div>`).join('')}
     <div class="card">
-      <p class="acc">期数：${t.periods.join(' → ')}</p>
-      <table class="delta-table"><thead><tr><th>指标</th><th>上期</th><th></th><th>本期</th><th>判定</th></tr></thead>
-      <tbody>${t.deltas.map(d => `<tr>
-        <td>${esc(d.key)}</td><td>${pct(d.prev)}</td>
-        <td>${d.direction === 'up' ? '↑' : d.direction === 'down' ? '↓' : '→'}</td>
-        <td>${pct(d.curr)}</td>
-        <td class="${d.verdict.kind === 'trend' ? 'trend' : 'obs'}">${
-          d.verdict.kind === 'trend' ? '📈 趋势（连续' + (d.verdict.direction === 'up' ? '上升' : '下降') + '）'
-          : d.verdict.kind === 'observation' ? '观察（不定性）' : '数据不足'}</td>
-      </tr>`).join('')}</tbody></table>
+      <div class="card-label">期间对比</div>
+      <div class="period-strip">${t.periods.map((p, i) =>
+        `<span class="p num ${i === t.periods.length - 1 ? 'latest' : ''}">${p}</span>${i < t.periods.length - 1 ? '→' : ''}`).join('')}</div>
+      ${t.deltas.map(d => `<div class="drow">
+        <span class="d-key mono">${esc(d.key)}</span>
+        <span class="d-val num">${pct(d.prev)}</span>
+        <span class="d-arrow ${d.direction}">${d.direction === 'up' ? '↑' : d.direction === 'down' ? '↓' : '→'}</span>
+        <span class="d-val num">${pct(d.curr)}</span>
+        <span class="d-verdict ${d.verdict.kind}">${
+          d.verdict.kind === 'trend' ? '📈 趋势 · 连续' + (d.verdict.direction === 'up' ? '上升' : '下降')
+          : d.verdict.kind === 'observation' ? '观察 · 单期波动不定性' : '数据不足'}</span>
+      </div>`).join('')}
     </div>`;
 }
 
