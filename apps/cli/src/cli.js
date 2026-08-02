@@ -49,6 +49,7 @@ const { values: flags } = parseArgs({
     history: { type: 'string' },
     dir: { type: 'string' },
     every: { type: 'string' },
+    port: { type: 'string' },
     json: { type: 'boolean', default: false },
   },
   allowPositionals: true,
@@ -373,8 +374,17 @@ const commands = {
   outline: cmdOutline, draft: cmdDraft, fabcheck: cmdFabcheck,
   report: cmdReport, bootstrap: cmdBootstrap,
   sheet: cmdSheet, import: cmdImport, trends: cmdTrends,
-  cycle: cmdCycle, schedule: cmdSchedule,
+  cycle: cmdCycle, schedule: cmdSchedule, ui: cmdUi,
 };
+
+async function cmdUi() {
+  const dir = flags.dir ?? '.';
+  const port = Number(flags.port ?? 8765);
+  const { startUi } = await import('./server.js');
+  startUi(resolvePath(dir), port);
+  const { exec } = await import('node:child_process');
+  exec(`open http://127.0.0.1:${port} 2>/dev/null || xdg-open http://127.0.0.1:${port} 2>/dev/null`);
+}
 
 /** 并发池：limit 个一组跑完再补位。 */
 async function pool(items, limit, fn) {

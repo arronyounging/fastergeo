@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FasterGEO 看板</title>
+<style>
+:root{--bg:#0e1116;--card:#161b24;--tx:#dbe2ec;--dim:#8b97a8;--red:#ff5566;--ok:#39d98a;--acc:#8f7ff0;--line:#232a38}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.6 -apple-system,'PingFang SC','Microsoft YaHei',sans-serif}
+header{display:flex;align-items:center;gap:16px;padding:14px 24px;border-bottom:1px solid var(--line)}
+header h1{font-size:16px;margin:0}header h1 b{color:var(--acc)}
+.brand{color:var(--dim);font-size:13px}
+nav{display:flex;gap:4px;margin-left:auto}
+nav button{background:none;border:none;color:var(--dim);font-size:14px;padding:8px 14px;border-radius:8px;cursor:pointer}
+nav button.active{background:var(--card);color:var(--tx)}
+main{max-width:1080px;margin:0 auto;padding:20px 24px}
+.card{background:var(--card);border-radius:10px;padding:18px 20px;margin-bottom:16px}
+iframe{width:100%;height:calc(100vh - 130px);border:none;border-radius:10px;background:var(--bg)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;color:var(--dim);font-weight:500;padding:6px 8px;border-bottom:1px solid var(--line)}
+td{padding:8px;border-bottom:1px solid #1e2430;vertical-align:top}
+.P0{color:var(--red);font-weight:700}.P1{color:#e8b34c}.P2{color:var(--dim)}
+.st{font-size:12px;padding:2px 8px;border-radius:10px;background:#0e1320}
+.st.done{color:var(--ok)}.st.regressed{color:var(--red)}.st.todo{color:var(--dim)}.st['pending-manual']{color:#e8b34c}
+.rationale{color:var(--dim);font-size:12px;margin-top:2px}
+.acc{font-size:12px;color:var(--dim)}
+select{background:#0e1320;color:var(--tx);border:1px solid var(--line);border-radius:6px;padding:3px 6px}
+.alert{padding:10px 14px;border-radius:8px;margin-bottom:8px;background:#1a1420}
+.alert.P0{border-left:3px solid var(--red)}.alert.warn{border-left:3px solid #e8b34c}
+.delta-table td:first-child{font-family:ui-monospace,monospace;font-size:12px}
+.trend{color:var(--ok)}.obs{color:var(--dim)}
+.empty{color:var(--dim);text-align:center;padding:40px}
+.na{color:var(--dim)}
+</style>
+</head>
+<body>
+<header>
+  <h1>Faster<b>GEO</b></h1>
+  <span class="brand" id="brandName"></span>
+  <nav>
+    <button data-tab="overview" class="active">总览</button>
+    <button data-tab="tickets">工单</button>
+    <button data-tab="trends">趋势</button>
+  </nav>
+</header>
+<main>
+  <div id="tab-overview"><iframe src="/api/report"></iframe></div>
+  <div id="tab-tickets" style="display:none"></div>
+  <div id="tab-trends" style="display:none"></div>
+</main>
+<script>
+const $ = s => document.querySelector(s);
+let project = null;
+
+document.querySelectorAll('nav button').forEach(btn => btn.onclick = () => {
+  document.querySelectorAll('nav button').forEach(b => b.classList.toggle('active', b === btn));
+  for (const tab of ['overview', 'tickets', 'trends']) {
+    $('#tab-' + tab).style.display = tab === btn.dataset.tab ? '' : 'none';
+  }
+  if (btn.dataset.tab === 'tickets') renderTickets();
+  if (btn.dataset.tab === 'trends') renderTrends();
+});
+
+async function load() {
+  project = await (await fetch('/api/project')).json();
+  $('#brandName').textContent = (project.brand.name ?? '') + ' · ' + (project.periods.length ? project.periods.length + ' 期数据' : '暂无数据');
+}
+
+async function setStatus(id, status) {
+  await fetch('/api/ticket', { method: 'POST', body: JSON.stringify({ id, status }) });
+  project.tickets.find(t => t.id === id).status = status;
+  renderTickets();
+}
+
+function renderTickets() {
+  const el = $('#tab-tickets');
+  const ts = project.tickets;
+  if (!ts.length) { el.innerHTML = '<div class="card empty">暂无工单 — 跑一期 cycle 自动生成</div>'; return; }
+  const canManual = t => t.acceptance.type === 'manual';
+  el.innerHTML = `<div class="card"><table>
+    <thead><tr><th></th><th>ID</th><th>工单</th><th>验收</th><th>状态</th><th></th></tr></thead>
+    <tbody>${ts.map(t => `
+      <tr>
+        <td class="${t.priority}">${t.priority}</td>
+        <td>${t.id}</td>
+        <td>${esc(t.title)}<div class="rationale">${esc(t.rationale.slice(0, 100))}</div></td>
+        <td class="acc">${t.acceptance.type === 'auto' ? '⚙ ' + esc(t.acceptance.check) : '👤 人工'}<br>${esc(t.acceptance.desc.slice(0, 50))}</td>
+        <td><span class="st ${t.status}">${t.status}</span></td>
+        <td>${canManual(t) ? `<select onchange="setStatus('${t.id}', this.value)">
+          <option value="">标记…</option>
+          <option value="done">done</option>
+          <option value="pending-manual">pending</option>
+        </select>` : '<span class="acc">verify 自动判定</span>'}</td>
+      </tr>`).join('')}</tbody></table>
+    <p class="acc" style="margin:10px 0 0">自动验收工单由 <code>fastergeo verify</code> / <code>cycle</code> 判定；此处只能手动标记人工验收类工单。</p>
+  </div>`;
+}
+
+async function renderTrends() {
+  const el = $('#tab-trends');
+  const t = await (await fetch('/api/trends')).json();
+  if (t.periods.length < 2) {
+    el.innerHTML = `<div class="card empty">${t.periods.length} 期数据 — 至少两期才能对比。<br>口径：单期变化只作观察，连续两期同向才算趋势。</div>`;
+    return;
+  }
+  const pct = v => v === null ? '<span class="na">未测</span>' : (v <= 1 ? (v * 100).toFixed(0) + '%' : v);
+  el.innerHTML = `
+    ${t.alerts.map(a => `<div class="alert ${a.level}">${a.level === 'P0' ? '🔴' : '⚠'} ${esc(a.message)}</div>`).join('')}
+    <div class="card">
+      <p class="acc">期数：${t.periods.join(' → ')}</p>
+      <table class="delta-table"><thead><tr><th>指标</th><th>上期</th><th></th><th>本期</th><th>判定</th></tr></thead>
+      <tbody>${t.deltas.map(d => `<tr>
+        <td>${esc(d.key)}</td><td>${pct(d.prev)}</td>
+        <td>${d.direction === 'up' ? '↑' : d.direction === 'down' ? '↓' : '→'}</td>
+        <td>${pct(d.curr)}</td>
+        <td class="${d.verdict.kind === 'trend' ? 'trend' : 'obs'}">${
+          d.verdict.kind === 'trend' ? '📈 趋势（连续' + (d.verdict.direction === 'up' ? '上升' : '下降') + '）'
+          : d.verdict.kind === 'observation' ? '观察（不定性）' : '数据不足'}</td>
+      </tr>`).join('')}</tbody></table>
+    </div>`;
+}
+
+function esc(s) { return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+load();
+</script>
+</body>
+</html>
