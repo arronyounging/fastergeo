@@ -1,0 +1,221 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FasterGEO Docs — the handbook</title>
+<meta name="description" content="The FasterGEO handbook: all 24 commands, 18 engine key variables, the acceptance DSL, data file formats, workflows (solo weekly, agency 90-day, e-commerce, earned-media), report reading, MCP tools and troubleshooting. Open-source GEO, fully documented.">
+<link rel="canonical" href="https://fastergeo.co/docs/">
+<link rel="stylesheet" href="/tools/tools.css?v=4">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"TechArticle","name":"The FasterGEO Handbook","url":"https://fastergeo.co/docs/","about":"Generative Engine Optimization platform documentation","author":{"@type":"Organization","name":"FasterGEO","url":"https://fastergeo.co"},"dateModified":"2026-08-03"}
+</script>
+<style>
+main{max-width:900px}
+.toc{border:1px solid var(--line-strong);background:var(--surface);padding:18px 22px;margin:26px 0 8px;
+  font-family:var(--monoF);font-size:13px;line-height:2.1;column-count:2;column-gap:32px}
+.toc a{text-decoration:none;color:var(--dim)}.toc a:hover{color:var(--red)}
+.toc b{display:block;font-size:11px;letter-spacing:.18em;color:var(--red);text-transform:uppercase;margin-bottom:6px}
+table{width:100%;border-collapse:collapse;font-size:14.5px;margin:14px 0 6px}
+th{font:600 11px var(--monoF);letter-spacing:.1em;text-transform:uppercase;color:var(--faint);
+  text-align:left;padding:8px 10px;border-bottom:1px solid var(--line-strong)}
+td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top;color:var(--dim)}
+td:first-child{color:var(--tx);font-family:var(--monoF);font-size:13px;white-space:nowrap}
+td b{color:var(--tx)}
+h3{font:500 19px var(--serif);margin:30px 0 6px}
+code,.cmdline{font-family:var(--monoF);font-size:13px;background:var(--well);padding:1px 6px}
+pre{background:#16140F;color:#D8D2C4;border:1px solid var(--tx);padding:16px 18px;
+  font:12.5px/1.7 var(--monoF);overflow:auto;white-space:pre-wrap}
+.note{font-family:var(--monoF);font-size:12.5px;color:var(--faint);margin:8px 0 0}
+.disc{border-left:2px solid var(--red);padding:2px 0 2px 16px;margin:18px 0;color:var(--dim);font-size:15.5px}
+@media (max-width:700px){.toc{column-count:1}}
+</style>
+</head><body>
+<header><a class="logo" href="/">FASTER<b>GEO</b></a>
+<nav><a href="/tools/">Tools</a><a href="https://github.com/arronyounging/fastergeo/blob/main/METHODOLOGY.md">Methodology</a><a href="https://github.com/arronyounging/fastergeo">GitHub</a><a class="btn" href="/#scan">Run a scan</a></nav></header>
+<main>
+<div class="crumb"><a href="/">fastergeo.co</a> / docs</div>
+<h1>The handbook. <em>All of it.</em></h1>
+<p class="lead">Every command, every flag, every file format — condensed here, exhaustive in the repo:
+<a href="https://github.com/arronyounging/fastergeo/blob/main/docs/HANDBOOK.md">docs/HANDBOOK.md</a>.
+Where docs and code disagree, the code is the fact.</p>
+
+<div class="toc"><b>Contents</b>
+<a href="#what">What this is</a><br><a href="#start">Five-minute start</a><br><a href="#keys">Engine keys (all 18)</a><br>
+<a href="#commands">Command reference</a><br><a href="#files">Data file formats</a><br><a href="#dsl">Acceptance DSL</a><br>
+<a href="#workflows">Workflows</a><br><a href="#report">Reading the report</a><br><a href="#mcp">MCP for agents</a><br>
+<a href="#disciplines">The seven disciplines</a><br><a href="#trouble">Troubleshooting</a><br><a href="#faq">FAQ</a>
+</div>
+
+<h2 id="what">What this is</h2>
+<p class="prose">FasterGEO is an open-source GEO platform: it samples what 18 Chinese and global AI engines
+say about a brand, measures the Brand Entity Funnel — <b>does AI know you, confuse you, mention you, rank
+you, cite you</b> — and turns every gap into a ticket a machine re-verifies. Monitoring tells you a score;
+FasterGEO closes the loop: <span class="mono">detect → diagnose → ticket → fact-constrained content →
+gated publish → re-crawl verify</span>. Apache-2.0, self-hosted; a project is a directory of plain JSON —
+<span class="mono">git init</span> is your backup strategy.</p>
+
+<h2 id="start">Five-minute start</h2>
+<pre># 1. bootstrap a project from your site (unknowns marked unconfirmed, never invented)
+npx fastergeo bootstrap --root https://yoursite.com --llm glm --out myproject && cd myproject
+
+# 2. what AI crawlers see (no keys needed)
+npx fastergeo audit --root https://yoursite.com --urls /,/about,/pricing
+
+# 3. a full period in one command: sample → metrics → audit → tickets → report
+npx fastergeo cycle --dir . --judge glm --repeat 5
+
+# 4. after you fix things: let the machine flip the tickets
+npx fastergeo verify --tickets tickets.json --root https://yoursite.com
+
+# 5. local dashboard (binds 127.0.0.1 only)
+npx fastergeo ui --dir .</pre>
+<p class="note">Zero keys? <span class="mono">sheet → import --questions → metrics</span> — manual sampling
+feeds the same pipeline. <span class="mono">import</span> refuses to run without the question bank: probe
+answers must never leak into the visibility pool.</p>
+
+<h2 id="keys">Engine keys — all 18</h2>
+<p class="prose">Convention: <span class="mono">${ID}_API_KEY</span> unless named below; override with
+<span class="mono">${ID}_MODEL</span> / <span class="mono">${ID}_BASE_URL</span> (a changed base URL is
+labeled <span class="mono">channel: gateway</span> on every sample). Run <span class="mono">fastergeo
+check</span> — it distinguishes <em>no key / auth failed / authenticated-but-model-not-enabled / network</em>.</p>
+<table><thead><tr><th>id</th><th>market</th><th>key env</th><th>default model</th></tr></thead><tbody>
+<tr><td>glm</td><td>cn</td><td>ZHIPUAI_API_KEY</td><td>glm-4-flash</td></tr>
+<tr><td>doubao</td><td>cn</td><td>ARK_API_KEY</td><td>doubao-seed-1-6 (web search)</td></tr>
+<tr><td>deepseek</td><td>cn</td><td>DEEPSEEK_API_KEY</td><td>deepseek-chat</td></tr>
+<tr><td>kimi</td><td>cn</td><td>MOONSHOT_API_KEY</td><td>kimi-k2</td></tr>
+<tr><td>minimax</td><td>cn</td><td>MINIMAX_API_KEY</td><td>MiniMax-M2</td></tr>
+<tr><td>qwen</td><td>cn</td><td>DASHSCOPE_API_KEY</td><td>qwen-plus</td></tr>
+<tr><td>ernie</td><td>cn</td><td>QIANFAN_API_KEY</td><td>ernie-4.0-turbo</td></tr>
+<tr><td>spark</td><td>cn</td><td>SPARK_API_KEY</td><td>generalv3.5</td></tr>
+<tr><td>nano · baidu-ai</td><td>cn</td><td>— manual sheets</td><td>—</td></tr>
+<tr><td>openai</td><td>global</td><td>OPENAI_API_KEY</td><td>gpt-4o-mini</td></tr>
+<tr><td>anthropic</td><td>global</td><td>ANTHROPIC_API_KEY</td><td>claude-haiku-4-5</td></tr>
+<tr><td>gemini</td><td>global</td><td>GEMINI_API_KEY</td><td>gemini-2.0-flash</td></tr>
+<tr><td>grok</td><td>global</td><td>XAI_API_KEY</td><td>grok-3-mini</td></tr>
+<tr><td>perplexity</td><td>global</td><td>PERPLEXITY_API_KEY</td><td>sonar (citations)</td></tr>
+<tr><td>ChatGPT/Claude web · AIO</td><td>global</td><td>— manual sheets</td><td>—</td></tr>
+</tbody></table>
+<p class="note">Behind a proxy: set HTTPS_PROXY (the CLI wires Node's fetch to it); exclude domestic
+endpoints via NO_PROXY. UI language: --lang zh or FASTERGEO_LANG=zh.</p>
+
+<h2 id="commands">Command reference — all 24</h2>
+<table><thead><tr><th>command</th><th>what it does</th></tr></thead><tbody>
+<tr><td>check</td><td>key health for every engine, four-state diagnosis with hints — run first</td></tr>
+<tr><td>sample</td><td>one-off question to configured engines; prints answers + citations</td></tr>
+<tr><td>metrics</td><td>samples → funnel metrics, sentiment, recognition, citation sources; <b>--judge</b> enables both LLM judges; <b>--format geolook</b> reads GeoLook exports</td></tr>
+<tr><td>audit</td><td>six-dimension page scores + site checks; search-crawler bans are blockers, training opt-outs are notes; unreachable pages named</td></tr>
+<tr><td>sources</td><td>per-market "who AI trusts in your category" from your samples' citations — the PR target list</td></tr>
+<tr><td>botlog</td><td>your access logs → AI crawler hits by purpose (training / search-index / user-request) + AI-referred human visits; logs never leave your machine</td></tr>
+<tr><td>official</td><td>reconcile GSC Gen-AI / Bing AI Performance CSV with your audit: blind spots, low-score winners, silent good pages</td></tr>
+<tr><td>plan</td><td>audit+metrics → prioritized tickets, incl. off-site tickets naming cited domains and an auto-verifiable entity ticket</td></tr>
+<tr><td>verify</td><td>re-measure acceptance: pass→done, done-then-fail→<b>regressed</b>, unmeasurable states why</td></tr>
+<tr><td>outline · draft</td><td>outline / first draft from the fact store (confirmed, non-E facts only)</td></tr>
+<tr><td>fabcheck</td><td>the fabrication gate standalone: unsourced numbers, superlatives, do-not-claim, grade-E claims</td></tr>
+<tr><td>publish</td><td>gate + publish to WordPress / GitHub / signed webhook; gate failure refuses; --force is recorded; WP defaults to draft</td></tr>
+<tr><td>expand</td><td>suggest mining (Baidu + Google autocomplete, intent modifiers) → question-bank <b>candidates</b>, never auto-added</td></tr>
+<tr><td>products</td><td>catalog from Product JSON-LD or Shopify products.json; missing price stays null, never 0</td></tr>
+<tr><td>shopping</td><td>product-level metrics; wrong-price verdicts carry the evidence sentence (decimal-safe splitting)</td></tr>
+<tr><td>bootstrap</td><td>site → brand facts (sourced), competitor candidates (noise-filtered), question-bank draft — empty over guessed</td></tr>
+<tr><td>cycle</td><td>the full period: sample (--repeat N) → metrics → audit → tickets/verify → report + trends</td></tr>
+<tr><td>schedule</td><td>macOS launchd job running cycle every N days</td></tr>
+<tr><td>trends</td><td>period deltas under the two-period rule + immediate P0 alerts</td></tr>
+<tr><td>ui</td><td>local dashboard (127.0.0.1 only; SSH-tunnel for remote)</td></tr>
+<tr><td>report</td><td>the single-file HTML diagnosis report</td></tr>
+<tr><td>sheet · import</td><td>zero-key manual sampling; import requires --questions to restore probe flags</td></tr>
+</tbody></table>
+<p class="note">Full flags, examples and output walkthroughs: <a href="https://github.com/arronyounging/fastergeo/blob/main/docs/HANDBOOK.md">the repo handbook §6</a>.</p>
+
+<h2 id="files">Data file formats</h2>
+<p class="prose">A project directory contains: <b>brand.json</b> (name / aliases / domains / description /
+competitors / auditUrls — aliases are the disambiguation bedrock, domains drive hostname-suffix citation
+attribution) · <b>questions.json</b> (id / text / market cn|global|both / brandInQuestion — hold the bank
+constant across periods) · <b>samples-DATE.jsonl</b> (one sample per line, channel honestly labeled
+api/gateway/ui/manual) · <b>tickets.json</b> · <b>facts.json</b> (fact store with A–E evidence grades and
+doNotClaim) · <b>targets.json</b> (publish targets; secrets by env-var <em>name</em> — safe to commit) ·
+<b>products.json</b> · <b>history/</b> (per-period metrics / audit / samples — the replay's data source).
+Schemas with examples: <a href="https://github.com/arronyounging/fastergeo/blob/main/docs/HANDBOOK.md">handbook §7</a>.</p>
+
+<h2 id="dsl">The acceptance DSL — complete</h2>
+<pre>site.no_ai_block            zero search-serving crawler bans (training opt-outs don't fail this)
+site.llms_txt · site.sitemap
+site.entity_schema          Organization JSON-LD + ≥2 sameAs on the root page
+site.avg_score_gte:N
+pages.no_blockers
+pages.issue_lte:&lt;code&gt;:&lt;N&gt;  codes: spa-shell · no-jsonld · block-gap:definition|statistics|
+                            comparison|steps|faq · content-short · no-date · answer-below-fold ·
+                            context-dependent-paragraphs · stale-content
+metrics.mention_rate_gte:&lt;market&gt;:&lt;x&gt;
+metrics.no_confusion:&lt;market&gt;</pre>
+
+<h2 id="workflows">Workflows</h2>
+<h3>Solo / startup — weekly</h3>
+<p class="prose"><span class="mono">bootstrap → cycle --repeat 5 → fix per tickets → verify → schedule --every 7d</span>.
+Read trends weekly; conclusions only after two consecutive same-direction periods.</p>
+<h3>Agency — the 90-day engagement</h3>
+<p class="prose">Baseline (wk 1–2) → entity &amp; technical (wk 2–4) → knowledge base (wk 3–8) →
+distribution (wk 8–12) → measurement (wk 12+), each phase with a machine-checkable exit —
+the full phase-by-phase playbook with commands lives at <a href="/agency/">/agency/</a>.</p>
+<h3>E-commerce</h3>
+<p class="prose"><span class="mono">products --shopify → cycle → shopping</span>. A wrong price in an AI
+answer is the commerce version of brand confusion — it ships with the quoted sentence.</p>
+<h3>Earned media</h3>
+<p class="prose"><span class="mono">sources</span> names the domains AI already cites in your category;
+<span class="mono">plan</span> turns them into concrete off-site tickets; content flows
+<span class="mono">draft → fabcheck → publish</span>.</p>
+<h3>Migrating from GeoLook</h3>
+<p class="prose"><span class="mono">fastergeo metrics --format geolook</span> re-scores your existing
+samples directly — plus recognition, sentiment, intervals and citation sources.</p>
+
+<h2 id="report">Reading the report</h2>
+<p class="prose">Top to bottom: <b>headline</b> (worst findings first) → <b>red banner</b> (blockers +
+verbatim confusion and negative-sentiment quotes) → <b>entity funnel</b> (per market; without a judge the
+head stages show <em>unmeasured</em>, grey — and with 0% mentions the rank stage shows "not in the
+candidate set", because no rank exists) → <b>engine table</b> (mention rates carry Wilson-interval
+tooltips) → <b>six-dimension audit</b> → <b>cited sources</b> → <b>tickets</b> → <b>answer replay</b>:
+every sampled answer verbatim, brand hits highlighted (probe answers deliberately not — name echo isn't
+knowledge), confusion evidence in red, unlocatable judge quotes listed explicitly. Every number above can
+be cross-examined against the replay. That's the point.</p>
+
+<h2 id="mcp">MCP — for agents</h2>
+<pre>claude mcp add fastergeo -- npx -y @fastergeo/mcp</pre>
+<p class="prose">Nine tools: list_engines (key presence as booleans, never values) · sample_engine ·
+audit_page · audit_site · check_ai_crawlers (purpose-aware) · compute_metrics (optional judgeEngine) ·
+generate_tickets · verify_tickets · check_fabrication. Unmeasured returns <span class="mono">null</span>
+and the descriptions tell your agent not to substitute zeros. Run over stdio in trusted environments only.</p>
+
+<h2 id="disciplines">The seven disciplines</h2>
+<div class="disc">1 · Unmeasured is null, never zero. &nbsp;2 · Visibility is a distribution — repetition,
+intervals, the two-period rule. &nbsp;3 · Verdicts carry verbatim evidence or stay unverified.
+&nbsp;4 · China and global are never averaged. &nbsp;5 · Fixes are proven by re-measurement, not assertion.
+&nbsp;6 · Probe questions are strictly segregated from visibility. &nbsp;7 · The fabrication gate applies
+to our own docs and marketing too.</div>
+<p class="prose">Full metric definitions, each pointing at the file that implements it:
+<a href="https://github.com/arronyounging/fastergeo/blob/main/METHODOLOGY.md">METHODOLOGY.md</a>.</p>
+
+<h2 id="trouble">Troubleshooting</h2>
+<table><thead><tr><th>symptom</th><th>cause &amp; fix</th></tr></thead><tbody>
+<tr><td>model-unavailable</td><td>key valid, model not enabled on that console — enable it or override ${ID}_MODEL</td></tr>
+<tr><td>global engines 403/timeout</td><td>set HTTPS_PROXY — the CLI wires Node's fetch to it</td></tr>
+<tr><td>domestic engines fail via proxy</td><td>add their endpoints to NO_PROXY (Ark / DashScope / Qianfan…)</td></tr>
+<tr><td>import refuses</td><td>by design — --questions restores probe flags; anything else fabricates mention rates</td></tr>
+<tr><td>funnel head "unmeasured"</td><td>no judge ran — add --judge glm (any configured engine)</td></tr>
+<tr><td>rank shows "—"</td><td>0% mentions: not in the candidate set, no rank exists — honest display, not a bug</td></tr>
+<tr><td>publish: missing env XXX</td><td>targets.json stores env names — export the variable first</td></tr>
+<tr><td>dashboard unreachable remotely</td><td>127.0.0.1 by design — ssh -L 8765:127.0.0.1:8765 host</td></tr>
+</tbody></table>
+<p class="note">Twelve more entries in <a href="https://github.com/arronyounging/fastergeo/blob/main/docs/HANDBOOK.md">handbook §13</a>.</p>
+
+<h2 id="faq">FAQ</h2>
+<div class="faq">
+<details><summary>Do I need API keys?</summary><p>No. Auditing needs none; sampling uses whatever you have;
+keyless engines go through manual sheets into the same pipeline.</p></details>
+<details><summary>Does my data leave my machine?</summary><p>No. Everything is plain JSON on your disk; the
+web scan processes transiently at the edge and stores nothing.</p></details>
+<details><summary>Can you guarantee AI will cite me?</summary><p>No — and whoever guarantees that is lying
+to you. What we guarantee: honest measurement, concrete fixes, and verification a machine signs off on.</p></details>
+<details><summary>Why should I trust these numbers?</summary><p>You don't have to. Every metric is publicly
+defined and traceable to code; unmeasured renders as unmeasured; verdicts ship with verbatim quotes; even
+our marketing statistics are footnoted to sources.</p></details>
+</div>
+
+</main>
+<footer><span>© 2026 FasterGEO · Apache-2.0 · Handbook v0.10</span><a href="/">← fastergeo.co</a></footer>
+</body></html>

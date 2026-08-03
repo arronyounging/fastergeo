@@ -119,6 +119,8 @@ Migrating from GeoLook? `fastergeo metrics --format geolook` re-scores your exis
 
 Every metric is publicly defined and traceable to the code that computes it — see **[METHODOLOGY.md](METHODOLOGY.md)**. No black-box scores.
 
+**📖 The full manual** — every command, flag, file format, workflow and failure mode: **[docs/HANDBOOK.md](docs/HANDBOOK.md)** (also at [fastergeo.co/docs](https://fastergeo.co/docs/)).
+
 ## Architecture
 
 Monorepo of fourteen packages, each usable standalone: `rules` (100+ deterministic lint rules with agent-fixable suggestions, forked from [geo-lint](https://github.com/IJONIS/geo-lint) with CJK support) · `providers` (18-engine adapters + key health checks) · `metrics` (funnel metrics + recognition & sentiment judges + Wilson intervals + manual sheets) · `audit` (six-dimension scoring, evidence-anchored) · `tickets` (acceptance DSL + verification) · `content` (fact store + fabrication gate + bootstrap + suggest mining) · `trends` (period history + attribution discipline) · `report` (self-contained HTML with verbatim answer replay) · `botlog` (self-hosted AI-crawler & AI-referral log analytics) · `publish` (gated distribution connectors) · `officialdata` (GSC/Bing official-report reconciliation) · `commerce` (product-level metrics: catalog ingest + wrong-price detection with evidence) · `mcp` (MCP server for agents) · `cli`
