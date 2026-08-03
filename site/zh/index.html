@@ -1,105 +1,616 @@
-<!doctype html><html lang="zh-CN"><head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>FasterGEO — 看见 AI 怎么说你的品牌，然后修好它</title>
-<meta name="description" content="FasterGEO 是开源 GEO（生成式引擎优化）平台：检测豆包、DeepSeek、通义、文心 + ChatGPT、Claude 等 18 个中外 AI 引擎怎么回答关于你的问题——认不认识你、有没有认错你、推不推荐你——然后给出机器自动验收的修复清单。免费自托管，数据在你自己电脑上。">
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FasterGEO — 看见 AI 到底怎么说你的品牌</title>
+<meta name="description" content="FasterGEO 是覆盖中外 AI 引擎的开源 GEO（生成式引擎优化）平台：检测 AI 认不认识你、有没有认错你、提不提你、排第几、引不引用你——然后用机器自动验收的工单修好它。">
 <link rel="canonical" href="https://fastergeo.co/zh/">
-<link rel="stylesheet" href="/tools/tools.css">
+<link rel="alternate" hreflang="en" href="https://fastergeo.co/">
+<link rel="alternate" hreflang="zh-CN" href="https://fastergeo.co/zh/">
+<meta property="og:title" content="FasterGEO — 开源 GEO 平台">
+<meta property="og:description" content="看见 ChatGPT、Claude、豆包、DeepSeek 到底怎么说你的品牌，用机器验收的工单修好它。免费自托管，数据不出你的电脑。">
+<meta property="og:url" content="https://fastergeo.co/zh/">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script type="application/ld+json">
 {"@context":"https://schema.org","@graph":[
-{"@type":"SoftwareApplication","name":"FasterGEO","applicationCategory":"DeveloperApplication","operatingSystem":"macOS, Linux","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"url":"https://fastergeo.co/zh/","inLanguage":"zh-CN","description":"开源 GEO 平台：18 个中外 AI 引擎的品牌认知检测（AI 认知五关）、机器自动验收的修复工单、编造门禁的内容生成。"},
+{"@type":"Organization","@id":"https://fastergeo.co/#org","name":"FasterGEO","url":"https://fastergeo.co","sameAs":["https://github.com/arronyounging/fastergeo","https://www.npmjs.com/package/fastergeo"]},
+{"@type":"SoftwareApplication","datePublished":"2026-08-02","author":{"@id":"https://fastergeo.co/#org"},"name":"FasterGEO","applicationCategory":"DeveloperApplication","operatingSystem":"macOS, Linux","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Open-source GEO platform: brand entity funnel measurement across 18 AI engines (China + global), machine-verified improvement tickets, fabrication-gated content generation.","url":"https://fastergeo.co","publisher":{"@id":"https://fastergeo.co/#org"}},
 {"@type":"FAQPage","mainEntity":[
-{"@type":"Question","name":"什么是 GEO（生成式引擎优化）？","acceptedAnswer":{"@type":"Answer","text":"GEO 是让豆包、DeepSeek、ChatGPT 这些 AI 引擎在回答用户问题时主动提到并引用你的品牌的方法。和 SEO 优化链接排名不同，GEO 优化的是成为 AI 答案本身的一部分。"}},
-{"@type":"Question","name":"FasterGEO 免费吗？","acceptedAnswer":{"@type":"Answer","text":"免费。Apache-2.0 开源、自托管，用你自己的 API Key——或者一个 Key 都不配，走人工采样表。数据不出你的电脑。"}},
-{"@type":"Question","name":"覆盖哪些 AI 引擎？","acceptedAnswer":{"@type":"Answer","text":"18 个引擎：国内豆包、DeepSeek、智谱GLM、Kimi、MiniMax、通义千问、文心一言、讯飞星火走 API，纳米AI、百度AI 走人工采样表；海外 ChatGPT、Claude、Gemini、Grok、Perplexity 等。国内海外分开出题分开计算。"}},
-{"@type":"Question","name":"和市面上的 GEO 监测工具有什么区别？","acceptedAnswer":{"@type":"Answer","text":"三点：一、测漏斗头部——AI 到底认不认识你、有没有把你认成别的公司，判定必须引用 AI 原话作证据；二、闭环——发现变成带验收标准的工单，机器重抓自动判定修没修好；三、唯一同时覆盖中国和海外引擎。"}}]}]}
+{"@type":"Question","name":"什么是 GEO（生成式引擎优化）？","acceptedAnswer":{"@type":"Answer","text":"GEO 是让 AI 引擎——ChatGPT、Claude、Perplexity、豆包、DeepSeek——在用户询问推荐时提及并引用你品牌的实践。SEO 优化的是链接排名，GEO 优化的是成为答案本身的一部分。"}},
+{"@type":"Question","name":"FasterGEO 免费吗？","acceptedAnswer":{"@type":"Answer","text":"免费。Apache-2.0 开源，自托管。自带引擎 API Key，或用零 Key 人工采样表。数据永远不离开你的电脑。"}},
+{"@type":"Question","name":"覆盖哪些 AI 引擎？","acceptedAnswer":{"@type":"Answer","text":"两个市场共 18 个：海外 ChatGPT、Claude、Gemini、Grok、Perplexity；国内 API 直连智谱 GLM、豆包、DeepSeek、Kimi、MiniMax、通义千问、文心一言、讯飞星火——无公开 API 的引擎（百度 AI、纳米 AI、Google AI Overviews）走人工采样表。"}},
+{"@type":"Question","name":"必须要 API Key 吗？","acceptedAnswer":{"@type":"Answer","text":"不必须。站点体检完全不需要 Key；答案采样有什么 Key 用什么 Key，没 Key 的引擎走人工采样表，导入同一套指标管线。"}},
+{"@type":"Question","name":"为什么该信 FasterGEO 的数字？","acceptedAnswer":{"@type":"Answer","text":"每个指标都在公开的 METHODOLOGY 文档里定义并指向计算它的代码。测不出的显示未测，绝不显示为零。判定附逐字引用，站上统计逐条注明来源。"}},
+{"@type":"Question","name":"和 AI 可见度监测工具有什么不同？","acceptedAnswer":{"@type":"Answer","text":"三点。它测漏斗头部——AI 到底认不认识你、有没有把你认成别家公司——附引用证据而非只数提及；它闭环——发现变工单，工单带机器可验收标准并自动复查；它是唯一同时覆盖中国与海外引擎的工具。"}}
+]}]}
 </script>
 <style>
-.qgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-top:26px}
-.qgrid .card b{display:block;font-size:15px;margin-bottom:6px}
-.qgrid .card small{color:var(--faint);font-size:12px;display:block;margin-top:8px}
-.gate-num{display:inline-flex;width:24px;height:24px;border:1px solid var(--red);color:var(--red);align-items:center;justify-content:center;font-family:var(--monoF);font-weight:600;font-size:13px;margin-right:8px}
-.pullzh{margin:40px 0;padding:24px 28px;background:var(--surface);border:1px solid var(--red);}
-.pullzh p{font-size:clamp(19px,2.6vw,26px);font-weight:500;font-style:italic;line-height:1.6;margin:0 0 10px}
-.pullzh mark{background:var(--red-soft);color:var(--red);padding:0 4px}
-.pullzh footer{border:none;padding:0;margin:0;color:var(--dim);font-size:14px;display:block;max-width:none}
-</style>
-</head><body>
-<header><a class="logo" href="/">Faster<b>GEO</b></a>
-<nav><a href="/tools/">免费工具</a><a href="/">English</a><a href="https://github.com/arronyounging/fastergeo">GitHub</a></nav></header>
-<main>
-<h1>AI 每天都在替你回答客户。<br><em>看见它说了什么</em>，然后修好它。</h1>
-<p class="lead">越来越多的用户直接问 AI「XX 哪家好」。FasterGEO 检测 <b style="color:var(--tx)">豆包、DeepSeek、通义、文心 + ChatGPT、Claude</b> 等
-18 个中外引擎怎么回答关于你的问题——然后给出<b style="color:var(--tx)">机器自动验收</b>的修复清单。开源免费，数据在你自己电脑上。</p>
-<form class="toolform" id="f"><input id="u" placeholder="输入你的网址，看看 AI 眼中的你" autocomplete="off" spellcheck="false"><button id="b">免费检测</button></form>
-<div class="result" id="r"></div>
-
-<h2>AI 认知五关 —— 你的品牌卡在第几关？</h2>
-<p class="prose">市面工具都在数“被提了几次”。但对大多数品牌，问题出在更前面：AI 根本不认识你——或者更糟，把你认成了别人。</p>
-<div class="qgrid">
-  <div class="card"><b><span class="gate-num">1</span>AI 认识我吗？</b>点名问 AI 你是谁，用裁判模型判定它是真认识、不认识、还是在硬编。<small>探测采样 · LLM 裁判判定</small></div>
-  <div class="card"><b><span class="gate-num">2</span>有没有认错我？</b>AI 把你说成别的公司时，逐字引用它的原话给你看——可以直接拿去开会。<small>张冠李戴检测 · P0 告警</small></div>
-  <div class="card"><b><span class="gate-num">3</span>它推荐我还是对手？</b>不点名地问品类问题，统计你和竞品各被提了多少次、排第几。<small>无提示提及率 · 竞品对比</small></div>
-  <div class="card"><b><span class="gate-num">4</span>差在哪、怎么修？</b>六维体检 + 修复工单，每条写明“怎么算修好”。<small>体检 · 工单生成</small></div>
-  <div class="card"><b><span class="gate-num">5</span>修完怎么证明？</b>机器重新检查自动打勾，返工自动打回；下期对比图说明哪些动作真的让 AI 改了口。<small>自动验收 · 期对比</small></div>
-</div>
-
-<div class="pullzh">
-<p>“该品牌主要以<mark>汽车改装外观件</mark>——前后包围、中网、内饰件为主……”</p>
-<footer>—— 一个 AI 引擎对某<b style="color:var(--tx)">定制商品平台</b>的真实回答，被认知裁判抓获，证据逐字引用。这就是第 2 关的失守现场。
-独立测试显示 ChatGPT Search 有 <b style="color:var(--tx)">76.5%</b> 的回答存在来源归因错误，且仅 4.6% 的错误带不确定表述——AI 会自信地认错人 <a href="https://ziptie.dev/blog/how-does-chatgpt-search-work/" style="color:var(--faint)">（哥伦比亚大学 Tow 中心）</a>。</footer>
-</div>
-
-<h2>和监测型工具的区别</h2>
-<p class="prose" style="margin-bottom:14px">Google Search Console 与 Bing 站长工具已开始官方提供 AI 表现报告，HubSpot 把监测卖到 50 美元/月——<b>数提及次数正在变成免费商品</b>。剩下值钱的是：知道你为什么输、修好它、并用机器证明修好了。</p>
-<p class="prose">
-<b>它们给建议，我们给闭环</b>——发现 → 工单 → 重抓验收 → 回归打回，修没修好机器说了算，不靠口头汇报。<br>
-<b>它们是黑箱，我们可复现</b>——算不出的显示「未测」绝不编数；单期波动只算观察，连续两期同向才算趋势。<b>不吓唬你的数据，本身就是稀缺品。</b><br>
-<b>它们只测海外，我们中外全覆盖</b>——国内 10 个引擎 + 海外 8 个，分开出题分开计算。</p>
-
-<h2>快速开始（技术同学 3 分钟）</h2>
-<p class="prose"><span class="mono">npx fastergeo bootstrap --root 你的网址</span> 一条命令从官网自动推导品牌事实、竞品和问题库；
-<span class="mono">cycle</span> 一条命令跑完采样→指标→体检→工单→报告。给老板的一页纸报告直接生成。零 Key 也能用（人工采样表）。</p>
-
-<h2>常见问题</h2>
-<div class="faq">
-<details open><summary>什么是 GEO（生成式引擎优化）？</summary><p>让豆包、DeepSeek、ChatGPT 这些 AI 在回答用户问题时主动提到并引用你的品牌的方法。SEO 优化链接排名；GEO 优化的是成为答案本身。</p></details>
-<details><summary>真的免费？</summary><p>Apache-2.0 开源、自托管。用你自己的 API Key，或者一个都不配走人工采样表。数据不出你的电脑，没有订阅。</p></details>
-<details><summary>不懂技术能用吗？</summary><p>上面的免费检测框不需要任何技术。完整闭环目前需要会用命令行的同事花 10 分钟装好；托管版在路线图上。</p></details>
-<details><summary>能保证 AI 一定引用我吗？</summary><p>不能，任何这样承诺的服务都值得警惕。GEO 提高的是概率不是保证——这句话我们也写给每一个客户。</p></details>
-</div>
-</main>
-<footer><span>© 2026 FasterGEO · Apache-2.0</span><a href="/">English →</a></footer>
-<script>
-const f=document.getElementById('f'),r=document.getElementById('r'),b=document.getElementById('b');
-const DIMS={crawlability:'可抓取性',length:'内容长度',structure:'结构',blocks:'可引用块',authority:'权威信号',relevance:'对题性'};
-function verdict(p){
-  if(p.blockers.length)return['bad','你的页面对 AI 基本不可见——先修渲染，其他都免谈。'];
-  const gaps=p.dimensions.find(x=>x.key==='blocks')?.issues.length??0;
-  if(p.score<40)return['bad','AI 能打开这个页面，但几乎没有值得引用的内容。'];
-  if(gaps>=3)return['mid','AI 能读到你——但缺少它爱引用的内容块（定义/数据/对比）。'];
-  if(p.grade==='B'||p.grade==='C')return['mid','底子不错，离 A 级还差几处。'];
-  return['good','页面很强。下一步的杠杆在站外：外部阵地的提及与引用。'];
+/* ════════════════════════════════════════════════════════════════════
+   FasterGEO design language v4: THE EVIDENCE FILE
+   paper & ink · proof-red marks · serif display · mono data
+   ruled like an audit report — because that is what the product makes
+   ════════════════════════════════════════════════════════════════════ */
+:root{
+  --paper:#F6F3EC; --paper2:#EFEBE0; --panel:#FCFAF5;
+  --ink:#1C1A15; --ink2:#4C4739; --faint:#8A8371;
+  --rule:#DAD3C2; --rule2:#BFB6A0;
+  --red:#B23A26; --red-wash:#F3E4DE;
+  --green:#3A6B42; --green-wash:#E7EEE2;
+  --serif:"Newsreader","Songti SC","STSong","Noto Serif CJK SC",Georgia,serif;
+  --mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace;
 }
-f.addEventListener('submit',async e=>{e.preventDefault();
-const url=document.getElementById('u').value.trim();if(!url)return;
-b.disabled=true;b.textContent='检测中…';r.innerHTML='';
-try{const res=await fetch('/api/scan?url='+encodeURIComponent(url));const d=await res.json();
-if(!res.ok)throw new Error(d.error||'检测失败');const p=d.page,v=verdict(p);
-const dims=p.dimensions.map(x=>{const k=x.score===null?0:x.score/x.max;
-return `<div style="display:grid;grid-template-columns:110px 1fr 56px;gap:10px;align-items:center;font-size:13px;color:var(--dim);margin:7px 0">
-<span>${DIMS[x.key]??x.key}</span><span style="height:6px;background:var(--well);border-radius:3px;overflow:hidden">
-<i style="display:block;height:100%;width:${Math.round(k*100)}%;background:${x.score!==null&&k<0.4?'var(--red)':'var(--tx)'};border-radius:3px"></i></span>
-<span class="num" style="text-align:right">${x.score===null?'未测':x.score+'/'+x.max}</span></div>`}).join('');
-const blockers=p.blockers.map(x=>`<div style="margin-top:10px;padding:10px 14px;background:var(--red-soft);border:1px solid var(--red);font-size:13px;color:var(--red)">■ ${esc(x)}</div>`).join('');
-r.innerHTML=`<div class="card"><div style="display:flex;align-items:center;gap:14px;margin-bottom:10px">
-<div style="width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:21px;background:${p.grade==='D'?'var(--red-soft)':p.grade==='C'?'rgba(240,178,74,.12)':'var(--green-soft)'};color:${p.grade==='D'?'var(--red)':p.grade==='C'?'var(--amber)':'var(--green)'}">${p.grade}</div>
-<div><div style="font-size:22px;font-weight:800" class="num">${p.score}<small style="font-size:13px;color:var(--faint);font-weight:400"> /100 · ${p.wordCount} 词等效可见正文</small></div>
-<div style="font-size:12px;color:var(--faint)">${esc(p.url)}</div></div></div>
-<div style="padding:10px 14px;border-radius:10px;font-size:14px;font-weight:600;margin-bottom:10px;background:${v[0]==='bad'?'var(--red-soft)':v[0]==='mid'?'rgba(240,178,74,.12)':'var(--green-soft)'};color:${v[0]==='bad'?'var(--red)':v[0]==='mid'?'var(--amber)':'var(--green)'}">${v[1]}</div>
-${dims}${blockers}
-<div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--line);font-size:13px;color:var(--dim)"><b style="color:var(--tx)">这只是第 0 关：AI 能不能读到你。</b>第 1–5 关（认识你吗/认错了吗/推荐你吗）需要真实采样 18 个引擎——<span class="mono" style="color:var(--acc)">npx fastergeo</span> 一条命令，免费。</div></div>`;
-}catch(err){r.innerHTML=`<div class="err">${esc(err.message)}</div>`}
-finally{b.disabled=false;b.textContent='免费检测'}});
-function esc(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--paper);color:var(--ink);
+  font:17px/1.75 var(--serif);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.num{font-variant-numeric:tabular-nums}
+.mono{font-family:var(--mono)}
+a{color:var(--ink);text-decoration:underline;text-decoration-color:var(--rule2);text-underline-offset:3px}
+a:hover{text-decoration-color:var(--red)}
+::selection{background:var(--red-wash)}
+.wrap{max-width:1120px;margin:0 auto;padding:0 24px}
+
+/* ── Masthead ─────────────────────────────────────────────────────── */
+.masthead{border-bottom:3px double var(--rule2);background:var(--paper);position:sticky;top:0;z-index:20}
+.masthead .wrap{display:flex;align-items:baseline;gap:24px;height:58px;align-items:center}
+.wordmark{font-family:var(--mono);font-weight:600;font-size:15px;letter-spacing:.14em;text-decoration:none}
+.wordmark b{color:var(--red);font-weight:600}
+.masthead nav{margin-left:auto;display:flex;gap:20px;align-items:center;
+  font-family:var(--mono);font-size:12.5px;letter-spacing:.03em}
+.masthead nav a{text-decoration:none;color:var(--ink2)}
+.masthead nav a:hover{color:var(--red)}
+.masthead .btn{background:var(--ink);color:var(--paper);padding:7px 14px;border:1px solid var(--ink)}
+.masthead .btn:hover{background:var(--red);border-color:var(--red);color:var(--paper)}
+
+/* ── Section furniture ────────────────────────────────────────────── */
+section{padding:104px 0 40px}
+section + section{padding-top:64px}
+.band{background:var(--paper2);padding:88px 0 96px;margin-top:64px}
+.band + section{padding-top:88px}
+.secno{font-family:var(--mono);font-size:11.5px;letter-spacing:.22em;color:var(--red);
+  text-transform:uppercase;margin-bottom:18px}
+h1{font-family:var(--serif);font-weight:500;font-size:clamp(38px,5.4vw,60px);line-height:1.08;
+  letter-spacing:-.015em;margin:0 0 20px;font-optical-sizing:auto}
+h1 em,h2 em{font-style:italic;font-weight:500}
+h2{font-family:var(--serif);font-weight:500;font-size:clamp(27px,3.4vw,38px);line-height:1.18;
+  letter-spacing:-.01em;margin:0 0 14px}
+.lead{font-size:19px;line-height:1.7;color:var(--ink2);max-width:64ch;margin:0 0 8px}
+.fn{font-size:12px;vertical-align:super;color:var(--red);text-decoration:none;font-family:var(--mono)}
+
+/* ── Hero ─────────────────────────────────────────────────────────── */
+.hero{padding:84px 0 8px}
+.hero .wrap{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:56px;align-items:start}
+.kicker{font-family:var(--mono);font-size:12.5px;letter-spacing:.08em;color:var(--faint);margin-bottom:20px}
+.kicker b{color:var(--ink);font-weight:500}
+.hero .sub{font-size:19px;line-height:1.7;color:var(--ink2);max-width:56ch}
+.cta-row{display:flex;gap:14px;flex-wrap:wrap;margin:28px 0 10px;align-items:center}
+.cmd{font-family:var(--mono);font-size:14.5px;background:var(--ink);color:var(--paper);
+  padding:13px 18px;cursor:pointer;border:1px solid var(--ink);display:inline-flex;gap:12px;align-items:center}
+.cmd:hover{background:#2A2620}
+.cmd .copy{color:#8A8371;font-size:11px;border-left:1px solid #4C4739;padding-left:12px}
+.cta-row .alt{font-family:var(--mono);font-size:13px}
+.hero .fine{font-family:var(--mono);font-size:12px;color:var(--faint);margin-top:14px}
+
+/* Exhibit — the hero artifact */
+.exhibit{background:var(--panel);border:1px solid var(--rule2);box-shadow:4px 4px 0 var(--paper2)}
+.exhibit .tab{font-family:var(--mono);font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--paper);background:var(--red);padding:8px 14px;display:flex;justify-content:space-between;gap:10px}
+.exhibit .tab span:last-child{opacity:.75;letter-spacing:.04em;text-transform:none}
+.exhibit blockquote{margin:0;padding:26px 26px 20px;font-size:20px;line-height:1.65;font-style:italic}
+.exhibit mark{background:linear-gradient(transparent 62%,var(--red-wash) 0);color:var(--red);
+  font-style:italic;text-decoration:underline;text-decoration-color:var(--red);
+  text-decoration-thickness:1.5px;text-underline-offset:4px}
+.exhibit .meta{border-top:1px solid var(--rule);padding:14px 26px 18px;font-size:13.5px;
+  line-height:1.65;color:var(--ink2);font-style:normal}
+.exhibit .meta .mono{font-size:12px;color:var(--faint)}
+
+/* ── Scan ─────────────────────────────────────────────────────────── */
+.scanbox{display:flex;border:1px solid var(--ink);background:var(--panel);max-width:640px;margin-top:22px}
+.scanbox input{flex:1;border:0;background:transparent;padding:15px 16px;font:14.5px var(--mono);
+  color:var(--ink);outline:none;min-width:0}
+.scanbox input::placeholder{color:var(--faint)}
+.scanbox button{border:0;background:var(--ink);color:var(--paper);padding:0 26px;
+  font:600 13px var(--mono);letter-spacing:.08em;cursor:pointer;text-transform:uppercase}
+.scanbox button:hover{background:var(--red)}
+.scanbox button:disabled{opacity:.6;cursor:wait}
+.scan-note{font-family:var(--mono);font-size:12px;color:var(--faint);margin-top:10px}
+.scan-steps{font-family:var(--mono);font-size:13px;color:var(--ink2);margin-top:18px;line-height:2}
+#scanResult{max-width:760px}
+.scan-card{margin-top:22px;border:1px solid var(--rule2);background:var(--panel)}
+.scan-head{display:flex;gap:18px;align-items:center;padding:18px 22px;border-bottom:1px solid var(--rule)}
+.scan-grade{width:52px;height:52px;border:2px solid var(--ink);display:flex;align-items:center;
+  justify-content:center;font:600 26px var(--mono)}
+.scan-grade.A,.scan-grade.B{border-color:var(--green);color:var(--green)}
+.scan-grade.C{border-color:var(--red);color:var(--red)}
+.scan-grade.D{border-color:var(--red);color:var(--red);background:var(--red-wash)}
+.scan-score{font:500 21px var(--mono)}
+.scan-score small{font-size:12px;color:var(--faint);font-weight:400}
+.scan-verdict{padding:13px 22px;font-size:16px;font-style:italic;border-bottom:1px solid var(--rule)}
+.scan-verdict.v-bad{color:var(--red)}
+.scan-verdict.v-good{color:var(--green)}
+.scan-dims{padding:14px 22px 18px}
+.sdim{display:grid;grid-template-columns:150px 1fr 64px;gap:12px;align-items:center;
+  font:13px var(--mono);padding:4px 0;color:var(--ink2)}
+.sdim .bar{height:6px;background:var(--paper2);position:relative}
+.sdim .bar i{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--ink);transition:width .7s ease}
+.sdim.low .bar i{background:var(--red)}
+.sdim .v{text-align:right;color:var(--ink)}
+.scan-blocker{margin:0 22px 14px;padding:10px 14px;border:1px solid var(--red);
+  background:var(--red-wash);color:var(--red);font:13px var(--mono)}
+.scan-checks{padding:0 22px 14px;font:12.5px var(--mono);color:var(--ink2)}
+.scan-cta{margin:0 22px 20px;padding-top:14px;border-top:1px solid var(--rule);font-size:15px;color:var(--ink2)}
+.scan-cta .mono{color:var(--red);cursor:pointer;font-size:13px}
+.scan-err{margin-top:18px;font:13px var(--mono);color:var(--red)}
+.ok-t{color:var(--green)} .bad-t{color:var(--red)}
+
+/* ── Findings ledger ──────────────────────────────────────────────── */
+.ledger{border-top:1px solid var(--rule2);margin-top:34px}
+.ledger .row{display:grid;grid-template-columns:190px 1fr;gap:26px;padding:26px 0;
+  border-bottom:1px solid var(--rule)}
+.ledger .fig{font:500 34px/1.1 var(--mono);letter-spacing:-.02em}
+.ledger .fig small{display:block;font-size:12px;letter-spacing:.08em;color:var(--faint);margin-top:6px;text-transform:uppercase}
+.ledger h3{font:500 20px var(--serif);margin:0 0 6px}
+.ledger p{margin:0;color:var(--ink2);font-size:16px;max-width:66ch}
+.ledger .red{color:var(--red)}
+
+/* ── Funnel diagram ───────────────────────────────────────────────── */
+.funnel{display:flex;margin-top:38px;border:1px solid var(--rule2);background:var(--panel)}
+.funnel .stage{flex:1;padding:22px 18px 20px;border-right:1px solid var(--rule);position:relative}
+.funnel .stage:last-child{border-right:0}
+.funnel .stage b{display:block;font:500 16.5px var(--serif);margin-bottom:5px}
+.funnel .stage span{font-size:13px;color:var(--ink2);line-height:1.55;display:block}
+.funnel .stage .st{font:600 11px var(--mono);letter-spacing:.12em;text-transform:uppercase;margin-bottom:10px;display:block;color:var(--green)}
+.funnel .stage.broken .st{color:var(--red)}
+.funnel .stage.broken{background:linear-gradient(var(--red-wash),transparent 55%)}
+.funnel-note{font-family:var(--mono);font-size:12.5px;color:var(--faint);margin-top:12px}
+
+/* ── Terminal artifact ────────────────────────────────────────────── */
+.term{margin-top:36px;border:1px solid var(--ink);box-shadow:5px 5px 0 var(--paper2)}
+.term-cap{font:11.5px var(--mono);letter-spacing:.14em;text-transform:uppercase;
+  background:var(--ink);color:#A9A190;padding:8px 16px;display:flex;justify-content:space-between}
+.term-body{background:#16140F;color:#D8D2C4;padding:20px 22px;font:13.5px/1.85 var(--mono);
+  min-height:300px;white-space:pre-wrap;word-break:break-word}
+.term-body .p{color:#6E695C}
+.term-body .c{color:#F0EAD9}
+.term-body .ok{color:#8FBF7A}
+.term-body .bad{color:#E88A72}
+.term-body .dim{color:#8A8371}
+.term-body > div{opacity:0}
+.term-body > div.show{opacity:1;transition:opacity .15s}
+.cursor{display:inline-block;width:8px;height:15px;background:#D8D2C4;vertical-align:-2px;
+  animation:blink 1s steps(1) infinite;margin-left:2px}
+@keyframes blink{50%{opacity:0}}
+.term-note{font-family:var(--mono);font-size:12.5px;color:var(--faint);margin-top:12px}
+
+/* ── Ruled tables ─────────────────────────────────────────────────── */
+table.ruled{width:100%;border-collapse:collapse;margin-top:32px;font-size:15.5px}
+table.ruled th{font:600 11.5px var(--mono);letter-spacing:.12em;text-transform:uppercase;
+  color:var(--faint);text-align:left;padding:10px 14px;border-bottom:1px solid var(--rule2)}
+table.ruled td{padding:14px;border-bottom:1px solid var(--rule);vertical-align:top;color:var(--ink2)}
+table.ruled td:first-child{color:var(--ink);font-weight:500;width:190px}
+table.ruled .them{color:var(--faint);font-style:italic}
+table.ruled .us{color:var(--ink)}
+table.ruled .us b{color:var(--red);font-weight:600}
+
+/* ── Engines register ─────────────────────────────────────────────── */
+.register{margin-top:30px;border-top:1px solid var(--rule2)}
+.register .row{display:grid;grid-template-columns:190px 1fr;gap:24px;padding:20px 0;border-bottom:1px solid var(--rule)}
+.register .k{font:600 11.5px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--faint);padding-top:4px}
+.register .v{font-family:var(--mono);font-size:14px;line-height:2.1;color:var(--ink2)}
+.register .v b{color:var(--ink);font-weight:500}
+
+/* ── Tools index ──────────────────────────────────────────────────── */
+.toollist{margin-top:30px;border-top:1px solid var(--rule2)}
+.toollist a{display:grid;grid-template-columns:250px 1fr auto;gap:20px;align-items:baseline;
+  padding:19px 0;border-bottom:1px solid var(--rule);text-decoration:none}
+.toollist a:hover .t{color:var(--red)}
+.toollist .t{font:500 18px var(--serif)}
+.toollist .d{color:var(--ink2);font-size:15px}
+.toollist .arr{font-family:var(--mono);color:var(--faint)}
+
+/* ── Footnotes ────────────────────────────────────────────────────── */
+.footnotes{font-size:14.5px;padding-top:72px}
+.footnotes h2{font-size:21px}
+.footnotes ol{margin:26px 0 0;padding:0 0 0 22px;color:var(--ink2)}
+.footnotes li{margin-bottom:12px;line-height:1.65}
+.footnotes b{font-family:var(--mono);font-weight:600;color:var(--ink)}
+.footnotes a{color:var(--faint)}
+
+/* ── FAQ ──────────────────────────────────────────────────────────── */
+.faq details{border-bottom:1px solid var(--rule);padding:4px 0}
+.faq details:first-of-type{border-top:1px solid var(--rule2);margin-top:30px}
+.faq summary{font:500 18px var(--serif);padding:16px 0;cursor:pointer;list-style:none;display:flex}
+.faq summary::after{content:"+";margin-left:auto;font-family:var(--mono);color:var(--faint)}
+.faq details[open] summary::after{content:"−"}
+.faq p{margin:0 0 18px;color:var(--ink2);max-width:70ch}
+
+/* ── Final CTA ────────────────────────────────────────────────────── */
+.cta-final{padding:120px 0 110px;text-align:center}
+.cta-final h2{font-size:clamp(30px,4vw,44px)}
+.cta-final .cmd{margin-top:26px;font-size:15.5px}
+.cta-final .fine{font-family:var(--mono);font-size:12.5px;color:var(--faint);margin-top:16px}
+
+footer{border-top:3px double var(--rule2);padding:34px 0 44px;
+  font:12.5px var(--mono);color:var(--faint)}
+footer .wrap{display:flex;flex-wrap:wrap;gap:18px;align-items:center}
+footer a{color:var(--ink2);text-decoration:none}
+footer a:hover{color:var(--red)}
+footer .links{margin-left:auto;display:flex;gap:18px}
+
+/* ── Reveal (restrained) ──────────────────────────────────────────── */
+.reveal{opacity:0;transform:translateY(10px);transition:opacity .5s ease,transform .5s ease}
+.reveal.in{opacity:1;transform:none}
+@media (prefers-reduced-motion: reduce){
+  .reveal{opacity:1;transform:none;transition:none}
+  .cursor{animation:none}
+}
+@media (max-width:900px){
+  .hero .wrap{grid-template-columns:1fr}
+  .funnel{flex-direction:column}
+  .funnel .stage{border-right:0;border-bottom:1px solid var(--rule)}
+  .ledger .row,.register .row{grid-template-columns:1fr;gap:8px}
+  .toollist a{grid-template-columns:1fr;gap:4px}
+  table.ruled td:first-child{width:auto}
+}
+</style>
+</head>
+<body>
+
+<div class="masthead">
+  <div class="wrap">
+    <a class="wordmark" href="/">FASTER<b>GEO</b></a>
+    <nav>
+      <a href="/tools/">免费工具</a>
+      <a href="#funnel">五个问题</a>
+      <a href="#loop">闭环</a>
+      <a href="https://github.com/arronyounging/fastergeo/blob/main/METHODOLOGY.md">方法论</a>
+      <a href="/">English</a>
+      <a href="https://github.com/arronyounging/fastergeo">GitHub</a>
+      <a class="btn" href="#scan">免费检测</a>
+    </nav>
+  </div>
+</div>
+
+<section class="hero">
+  <div class="wrap">
+    <div>
+      <div class="kicker">开源 GEO 平台 · <b>18 个中外 AI 引擎</b> · Apache-2.0 · v0.10</div>
+      <h1>AI 每天都在回答关于你品牌的问题。<br><em>来看证据。</em></h1>
+      <p class="sub">你的下一位客户刚刚问了豆包——或者 ChatGPT——「哪家好」。FasterGEO 给你看它得到的那个答案，然后把每个缺口变成机器可验收的修复——每个结论都附 AI 原话。</p>
+      <div class="cta-row">
+        <span class="cmd" onclick="navigator.clipboard.writeText('npx fastergeo bootstrap --root https://yoursite.com')" title="Click to copy">
+          $ npx fastergeo bootstrap --root yoursite.com <span class="copy">copy</span></span>
+        <a class="alt" href="https://github.com/arronyounging/fastergeo/blob/main/METHODOLOGY.md">阅读公开方法论 →</a>
+      </div>
+      <div class="fine">免费 · 自托管 · 数据不出你的电脑</div>
+    </div>
+    <figure class="exhibit reveal" style="margin:0">
+      <div class="tab"><span style="white-space:nowrap">证据 A · 逐字</span><span style="text-align:right">认知裁判 · 首次实测</span></div>
+      <blockquote>「该品牌主要以<mark>汽车改装外观件</mark>——前后包围、中网、内饰件为主……」</blockquote>
+      <div class="meta">一个 AI 引擎对某<b>定制商品平台</b>的真实回答——被抓获、引用、立为 P0。证据从不转述。</div>
+    </figure>
+  </div>
+</section>
+
+<section id="scan">
+  <div class="wrap">
+    <div class="secno">第一步检查</div>
+    <h2>AI 爬虫眼中的<em>你的网站</em>，长什么样？</h2>
+    <p class="lead">这个扫描就是产品本身，不是诱饵——与 CLI 同一套六维体检，测你的一个页面，免费、免注册。我们扫过的网站里两种失败最常见：页面在不执行 JavaScript 的爬虫眼里是<em>空白</em>，以及 robots 规则悄悄封错了爬虫。</p>
+    <form class="scanbox" id="scanForm">
+      <input id="scanUrl" type="text" inputmode="url" placeholder="你的网址" autocomplete="off" spellcheck="false">
+      <button type="submit" id="scanBtn">检测</button>
+    </form>
+    <div id="scanResult"></div>
+    <p class="scan-note">以 AI 爬虫的方式抓取原始 HTML——不执行 JavaScript。这正是关键。</p>
+    <p class="scan-note">品牌主 → 就是这个扫描 &nbsp;·&nbsp; 开发者 → <a href="https://github.com/arronyounging/fastergeo">npx fastergeo</a> &nbsp;·&nbsp; 代理商 → <a href="/agency/">90 天交付手册</a></p>
+  </div>
+</section>
+
+<section id="story">
+  <div class="wrap">
+    <div class="secno">第一份卷宗</div>
+    <h2>我们先扫了自己的网站。<br>机器找到了人漏掉的东西。</h2>
+    <p class="lead">二十分钟，三个发现。下面每个数字都来自那次真实的首诊——没有拼接，没有编造。</p>
+    <div class="ledger">
+      <div class="row reveal">
+        <div class="fig num red">23<small>可见词</small></div>
+        <div><h3>产品页是空壳</h3>
+        <p>429&thinsp;KB 的 HTML，23 个可见词。AI 爬虫不执行 JavaScript——每个产品页都在对 AI 说
+        <em>「该分类下没有商品」</em>。</p></div>
+      </div>
+      <div class="row reveal">
+        <div class="fig red">2<small>个引擎认错</small></div>
+        <div><h3>被认成完全不同的公司</h3>
+        <p>一个引擎把品牌说成汽车配件厂（上方证据 A）。另一个则自信地为同名男装定制品牌编造了用户评价。这不是孤例：独立测试显示 ChatGPT Search 有 76.5% 的回答存在来源归因错误<a class="fn" href="#fn-1">1</a>
+        ——而且几乎从不表达不确定。</p></div>
+      </div>
+      <div class="row reveal">
+        <div class="fig num red">0%<small>无提示提及率</small></div>
+        <div><h3>缺席每一次推荐</h3>
+        <p>四个引擎、64 个购买意图问题，竞品占据了全部答案。大多数品牌不是在 AI 推荐赛里落后——是从来就没上过场。</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="funnel">
+  <div class="wrap">
+    <div class="secno">品牌实体漏斗</div>
+    <h2>仪表盘量的是尾部。<br>多数品牌断在头部。</h2>
+    <p class="lead">监测工具只数提及。但真正决定 AI 是在<em>帮你卖</em>还是<em>帮别人卖</em>的，是五个问题——而多数品牌在第一问就断了。FasterGEO 五问全测，裁判必须引用原话作证。</p>
+    <div class="funnel reveal">
+      <div class="stage broken"><span class="st">✕ 断在这里</span><b>1 · AI 认识你吗？</b><span>点名探测 + LLM 裁判——绝不数名字回声</span></div>
+      <div class="stage broken"><span class="st">✕ 断在这里</span><b>2 · 有没有认错你？</b><span>张冠李戴 = P0 告警，附原话</span></div>
+      <div class="stage"><span class="st">已测量</span><b>3 · 会提到你吗？</b><span>无提示提及率，带 95% 置信区间</span></div>
+      <div class="stage"><span class="st">已测量</span><b>4 · 把你排第几？</b><span>买家问「哪家好」时你的位次</span></div>
+      <div class="stage"><span class="st">已测量</span><b>5 · 引用你吗？</b><span>来源里有没有你的域名——以及 AI 到底信任谁的域名</span></div>
+    </div>
+    <p class="funnel-note">✕ 是我们自己首次检测断掉的地方。你的断在哪？</p>
+  </div>
+</section>
+
+<section id="loop" class="band">
+  <div class="wrap">
+    <div class="secno">闭环</div>
+    <h2>不是仪表盘，是闭环——<em>看它跑一遍。</em></h2>
+    <p class="lead">真实首个项目的终端留档。诊断变成工单；工单由重抓验收，不靠口头确认。</p>
+    <div class="term reveal" id="terminal">
+      <div class="term-cap"><span>终端输出留档（原文）</span><span>custyle · 第一期</span></div>
+      <div class="term-body" id="termBody"></div>
+    </div>
+    <p class="term-note">工单只有被重抓证实才会变 done——修复失效会自动打回 regressed。</p>
+  </div>
+</section>
+
+<section id="different">
+  <div class="wrap">
+    <div class="secno">与市面工具对照</div>
+    <h2>监测正在变免费。<br>闭环才是产品。</h2>
+    <p class="lead">Google Search Console 与 Bing 站长工具已开始官方提供 AI 表现报告，HubSpot 把监测卖到
+    50 美元/月。<a class="fn" href="#fn-6">6</a> 数提及次数正在 18 个月的倒计时里变成免费商品。剩下值钱的是：知道你<em>为什么</em>输、修好它、并公开地证明修好了。</p>
+    <table class="ruled reveal">
+      <thead><tr><th></th><th>监测型 SaaS</th><th>FasterGEO</th></tr></thead>
+      <tbody>
+        <tr><td>国内引擎</td><td class="them">不覆盖</td><td class="us"><b>10 个</b>——豆包、DeepSeek、智谱、Kimi、通义、文心…… API + 人工表</td></tr>
+        <tr><td>认知判定</td><td class="them">数名字回声</td><td class="us">真认识 / 不认识 / <b>认错了</b>——必须附逐字引用，否则一律记未判定</td></tr>
+        <tr><td>行动闭环</td><td class="them">给建议</td><td class="us">工单 → 重抓 → <b>机器验收</b>通过，失效自动打回</td></tr>
+        <tr><td>内容生成</td><td class="them">自由发挥</td><td class="us">每个数字必须溯源到事实库——溯不到源的初稿<b>过不了门禁</b></td></tr>
+        <tr><td>指标口径</td><td class="them">黑箱评分</td><td class="us">全部公式公开且可溯到代码；测不出就显示<b>未测</b>，绝不填零</td></tr>
+        <tr><td>你的数据</td><td class="them">在厂商云上</td><td class="us">在你自己硬盘上</td></tr>
+        <tr><td>价格</td><td class="them">$99–5,000/月</td><td class="us">$0——Apache-2.0，自带 Key 或不用 Key</td></tr>
+      </tbody>
+    </table>
+    <p class="funnel-note">从 GeoLook 迁移？<span class="mono">fastergeo metrics --format geolook</span> 直接重算你的既有采样。</p>
+  </div>
+</section>
+
+<section id="engines">
+  <div class="wrap">
+    <div class="secno">引擎名录</div>
+    <h2>十八个引擎，两个市场。<br>永不混在一起平均。</h2>
+    <div class="register reveal">
+      <div class="row"><div class="k">国内 · API</div>
+        <div class="v"><b>GLM 智谱</b> · <b>Doubao 豆包</b> · <b>DeepSeek</b> · <b>Kimi</b> · <b>MiniMax</b> · <b>Qwen 通义</b> · <b>ERNIE 文心</b> · <b>Spark 星火</b></div></div>
+      <div class="row"><div class="k">国内 · 人工表</div>
+        <div class="v">Baidu AI 百度 · Nano AI 纳米</div></div>
+      <div class="row"><div class="k">海外 · API</div>
+        <div class="v"><b>ChatGPT</b> · <b>Claude</b> · <b>Gemini</b> · <b>Grok</b> · <b>Perplexity</b></div></div>
+      <div class="row"><div class="k">海外 · 人工表</div>
+        <div class="v">ChatGPT web · Claude web · Google AI Overviews</div></div>
+    </div>
+    <p class="funnel-note"><span class="mono">fastergeo check</span> 逐个诊断 Key——没配 / 认证失败 / 认证成功但模型未开通——每种都给可操作提示。支持 HTTPS_PROXY。</p>
+  </div>
+</section>
+
+<section id="tools">
+  <div class="wrap">
+    <div class="secno">免费仪器</div>
+    <h2>引擎的单页版本，永久免费。</h2>
+    <div class="toollist reveal">
+      <a href="/tools/geo-score-checker/"><span class="t">GEO 评分检测</span><span class="d">任意页面的六维体检，A–D 评级——AI 爬虫看到什么就测什么。</span><span class="arr">→</span></a>
+      <a href="/tools/ai-crawler-checker/"><span class="t">AI 爬虫准入检测</span><span class="d">分用途判定：封检索爬虫是事故，封训练爬虫是选择——分得清才不冤枉自己。</span><span class="arr">→</span></a>
+      <a href="/tools/llms-txt-generator/"><span class="t">llms.txt 生成器</span><span class="d">从你的真实内容起草规范格式的 llms.txt——诚实标注：Google 不读它。</span><span class="arr">→</span></a>
+    </div>
+  </div>
+</section>
+
+<section id="evidence" class="footnotes">
+  <div class="wrap">
+    <div class="secno">注脚与来源</div>
+    <h2>这场迁移背后的数字，逐条注明来源。</h2>
+    <p class="lead">AI 引用中约 <b class="num">84%</b> 来自第三方媒体，而非品牌官网<a class="fn" href="#fn-2">2</a>——
+    AI 已在引用的第三方域名就是你的公关目标清单，FasterGEO 直接从你自己的采样里把它提取出来。被 AI Overviews
+    引用的品牌自然点击率高出 <b class="num">+35%</b>（付费 +91%）<a class="fn" href="#fn-3">3</a>。与此同时
+    <b class="num">41%</b> 的网站在不知情中封了 GPTBot<a class="fn" href="#fn-4">4</a>，而在测量 AI 渠道的营销人只有 <b class="num">14%</b><a class="fn" href="#fn-5">5</a>。测量还是优势的窗口正开着——但不会一直开着。</p>
+    <ol>
+      <li id="fn-1"><b>76.5%</b> 归因错误率——哥伦比亚大学 Tow 中心对 ChatGPT Search 的测试。 <a href="https://ziptie.dev/blog/how-does-chatgpt-search-work/">ziptie.dev</a></li>
+      <li id="fn-2"><b>84%</b> 来自第三方——Muck Rack，分析 2500 万条引用。 <a href="https://machinerelations.ai/research/earned-vs-owned-ai-citation-rates-2026">machinerelations.ai</a></li>
+      <li id="fn-3"><b>+35% / +91%</b> 被引用后的点击率提升——AirOps。 <a href="https://www.airops.com/blog/featured-snippets-ai-overviews-position-zero">airops.com</a></li>
+      <li id="fn-4"><b>41%</b> 不知情封禁——Digital Strategy Force 爬虫审计。 <a href="https://digitalstrategyforce.com/journal/why-ai-crawlers-skip-most-of-your-website/">digitalstrategyforce.com</a></li>
+      <li id="fn-5"><b>14%</b> 在测量——AIThinkerLab，2026。 <a href="https://aithinkerlab.com/generative-engine-optimization-2026/">aithinkerlab.com</a></li>
+      <li id="fn-6">官方 AI 报告——Google Search Console 生成式 AI 表现（<a href="https://developers.google.com/search/blog/2026/06/gen-ai-performance-reports">developers.google.com</a>）、Bing 站长工具 AI Performance；HubSpot AEO 定价（<a href="https://www.hubspot.com/products/aeo">hubspot.com</a>）。</li>
+    </ol>
+  </div>
+</section>
+
+<section id="faq" class="faq">
+  <div class="wrap">
+    <div class="secno">常见问题</div>
+    <h2>常被问到，直接回答。</h2>
+    <details><summary>什么是 GEO（生成式引擎优化）？</summary>
+      <p>让 AI 引擎——ChatGPT、Claude、Perplexity、豆包、DeepSeek——在用户询问推荐时提及并引用你品牌的实践。
+      SEO 优化的是链接排名；GEO 优化的是成为答案本身的一部分。</p></details>
+    <details><summary>FasterGEO 免费吗？</summary>
+      <p>免费。Apache-2.0 开源，自托管。自带引擎 API Key，或用零 Key 的人工采样表。数据永远不离开你的电脑。</p></details>
+    <details><summary>覆盖哪些引擎？</summary>
+      <p>两个市场共十八个：海外 ChatGPT、Claude、Gemini、Grok、Perplexity；国内 API 直连智谱 GLM、豆包、
+      DeepSeek、Kimi、MiniMax、通义千问、文心一言、讯飞星火——无公开 API 的引擎（百度 AI、Google AI Overviews）走人工采样表。</p></details>
+    <details><summary>必须要 API Key 吗？</summary>
+      <p>不必须。站点体检完全不需要 Key。采样有什么 Key 用什么 Key；没 Key 的引擎走人工采样表，导入同一套指标管线。</p></details>
+    <details><summary>为什么该信这些数字？</summary>
+      <p>因为你不需要凭信任。每个指标都有公开定义并可追溯到计算它的代码——见<a href="https://github.com/arronyounging/fastergeo/blob/main/METHODOLOGY.md">方法论</a>。测不出的显示<em>未测</em>，绝不填零。判定附逐字引用。而且本页每个统计都注明来源——产品对你的内容强制执行的编造门禁，同样约束着我们自己的营销。</p></details>
+    <details><summary>和 AI 可见度监测工具有什么不同？</summary>
+      <p>三点。它测漏斗头部——AI 到底认不认识你、有没有把你认成别家公司——附引用证据。它闭环——发现变工单，工单带机器可验收标准并自动复查。它是唯一同时覆盖中国与海外引擎的工具。</p></details>
+  </div>
+</section>
+
+<section class="cta-final">
+  <div class="wrap">
+    <h2>你不看的每一天，<br>AI 都在<em>没有你</em>的情况下回答。</h2>
+    <span class="cmd" onclick="navigator.clipboard.writeText('npx fastergeo bootstrap --root https://yoursite.com')" title="Click to copy">
+      $ npx fastergeo bootstrap --root https://yoursite.com <span class="copy">copy</span></span>
+    <div class="fine">一条命令。事实、竞品与题库从你的网站推导——绝不编造。</div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>© 2026 FasterGEO · Apache-2.0 · <time datetime="2026-08-03">Updated Aug 3, 2026</time></span>
+    <span>站在 GEO 研究社区的肩膀上。</span>
+    <div class="links">
+      <a href="https://github.com/arronyounging/fastergeo">GitHub</a>
+      <a href="https://www.npmjs.com/package/fastergeo">npm</a>
+      <a href="https://github.com/arronyounging/fastergeo/blob/main/METHODOLOGY.md">方法论</a>
+      <a href="/agency/">代理商</a>
+      <a href="/llms.txt">llms.txt</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+/* ── Reveal on scroll (restrained) ── */
+const ro = new IntersectionObserver(es => {
+  for (const e of es) if (e.isIntersecting) { e.target.classList.add('in'); ro.unobserve(e.target); }
+}, { threshold: .12 });
+document.querySelectorAll('.reveal').forEach(el => ro.observe(el));
+
+/* ── Terminal: real captured output, typed ── */
+const TERM_LINES = [
+  ['p', '$ ', 0], ['c', 'npx fastergeo cycle --dir ./custyle', 38],
+  ['dim', '[1/5] sampling glm,doubao,deepseek,openai × 64 questions…', 0],
+  ['dim', '[2/5] metrics… recognition judge: glm', 0],
+  ['bad', '  ⚠ confusion evidence: "…aftermarket car exterior parts…" (doubao · cn)', 0],
+  ['dim', '[3/5] auditing 7 pages…', 0],
+  ['bad', '  ■ BLOCKER spa-shell: 419KB of HTML but only 23 visible word-equivalents', 0],
+  ['dim', '[4/5] first period: 14 tickets → tickets.json  (14/14 machine-verifiable)', 0],
+  ['dim', '[5/5] report → report-2026-08-02.html', 0],
+  ['p', ' ', 0],
+  ['p', '$ ', 0], ['c', 'npx fastergeo verify --tickets tickets.json', 38], ['dim', '   # …after you ship the fix', 0],
+  ['ok', '  ✓ T-001 spa-shell: 0 pages (target ≤0)', 0],
+  ['ok', '  ↻ T-001: todo → done — verified by re-crawl, not by anyone’s word', 0],
+];
+const termBody = document.getElementById('termBody');
+let termStarted = false;
+const tio = new IntersectionObserver(es => {
+  if (es.some(e => e.isIntersecting) && !termStarted) { termStarted = true; runTerm(); }
+}, { threshold: .3 });
+tio.observe(document.getElementById('terminal'));
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+async function runTerm() {
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let row = null;
+  for (const [cls, text, typeMs] of TERM_LINES) {
+    if (cls === 'p' || !row) { row = document.createElement('div'); termBody.appendChild(row); }
+    else if (!typeMs && row.dataset.done) { row = document.createElement('div'); termBody.appendChild(row); }
+    row.classList.add('show');
+    const span = document.createElement('span');
+    span.className = cls;
+    row.appendChild(span);
+    if (typeMs && !reduced) {
+      const cur = document.createElement('i'); cur.className = 'cursor'; row.appendChild(cur);
+      for (const ch of text) { span.textContent += ch; await sleep(typeMs); }
+      cur.remove();
+      row.dataset.done = '1';
+    } else {
+      span.textContent = text;
+      row.dataset.done = '1';
+      if (!reduced) await sleep(230);
+    }
+  }
+}
+
+/* ── Scan ── */
+const form = document.getElementById('scanForm');
+const out = document.getElementById('scanResult');
+const btn = document.getElementById('scanBtn');
+const DIMS = { crawlability: '可抓取性', length: '内容长度', structure: '结构', blocks: '可抽取块', authority: '权威信号', relevance: '对题性' };
+const STEPS = [
+  '抓取原始 HTML——AI 爬虫收到什么就抓什么…',
+  '提取可见正文、标题、JSON-LD…',
+  '检测可引用块：定义 · 数字 · 对比 · 步骤 · FAQ…',
+  '按公开实证数据为六个维度打分…',
+];
+form.addEventListener('submit', async e => {
+  e.preventDefault();
+  const url = document.getElementById('scanUrl').value.trim();
+  if (!url) return;
+  btn.disabled = true; btn.textContent = '检测中…';
+  out.innerHTML = '<div class="scan-steps" id="scanSteps"></div>';
+  const stepsEl = document.getElementById('scanSteps');
+  let si = 0;
+  const stepTimer = setInterval(() => {
+    if (si < STEPS.length) {
+      const d = document.createElement('div');
+      d.textContent = '▸ ' + STEPS[si++];
+      stepsEl.appendChild(d);
+    }
+  }, 650);
+  try {
+    const r = await fetch('/api/scan?url=' + encodeURIComponent(url));
+    const d = await r.json();
+    clearInterval(stepTimer);
+    if (!r.ok) throw new Error(d.error || 'scan failed');
+    const p = d.page;
+    const dims = p.dimensions.map(x => {
+      const ratio = x.score === null ? 0 : x.score / x.max;
+      const low = x.score !== null && ratio < 0.4 ? 'low' : '';
+      const val = x.score === null ? 'n/a' : `${x.score}/${x.max}`;
+      return `<div class="sdim ${low}"><span>${DIMS[x.key] ?? x.key}</span><span class="bar"><i data-w="${Math.round(ratio*100)}"></i></span><span class="v">${val}</span></div>`;
+    }).join('');
+    const blockers = p.blockers.map(b => `<div class="scan-blocker">■ ${esc(b)}</div>`).join('');
+    const site = d.site ? `<div class="scan-checks">${chk(d.site.robotsTxtFound)} robots.txt · ${chk(!(d.site.blockedSearchCrawlers ?? d.site.blockedAiCrawlers)?.length)} AI search crawlers allowed · ${chk(d.site.sitemapFound)} sitemap · ${chk(d.site.llmsTxtFound)} llms.txt</div>` : '';
+    out.innerHTML = `<div class="scan-card">
+      <div class="scan-head"><div class="scan-grade ${p.grade}">${p.grade}</div>
+        <div><div class="scan-score"><span id="scoreNum" class="num">0</span><small> /100 · ${p.wordCount} 可见词等效</small></div>
+        <div style="font:12px var(--mono);color:var(--faint)">${esc(p.url)}</div></div></div>
+      <div class="scan-verdict v-${verdict(p)[0]}">${verdict(p)[1]}</div>
+      <div class="scan-dims">${dims}</div>${blockers}${site}
+      <div class="scan-cta"><b>这只是第 0 关：AI 能不能读到你。</b>第 1–5 关——AI 认不认识你、有没有认错你、推不推荐你、排第几、引不引用你——需要对 18 个引擎做答案采样。一条命令，免费：
+        <span class="mono" onclick="navigator.clipboard.writeText('npx fastergeo bootstrap --root ${esc(p.url)}')">npx fastergeo</span></div>
+    </div>`;
+    requestAnimationFrame(() => {
+      out.querySelectorAll('.bar i').forEach(i => { i.style.width = i.dataset.w + '%'; });
+      const target = p.score, el = document.getElementById('scoreNum');
+      const t0 = performance.now();
+      const tick = now => {
+        const k = Math.min(1, (now - t0) / 700);
+        el.textContent = (target * (1 - Math.pow(1 - k, 3))).toFixed(1);
+        if (k < 1) requestAnimationFrame(tick); else el.textContent = target;
+      };
+      requestAnimationFrame(tick);
+    });
+  } catch (err) {
+    clearInterval(stepTimer);
+    out.innerHTML = `<div class="scan-err">${esc(err.message)}</div>`;
+  } finally {
+    btn.disabled = false; btn.textContent = '检测';
+  }
+});
+function verdict(p){
+  if (p.blockers.length) return ['bad', '你的页面对 AI 基本不可见——先修渲染，其他都白搭。'];
+  const gaps = p.dimensions.find(x=>x.key==='blocks')?.issues.length ?? 0;
+  if (p.score < 40) return ['bad', 'AI 能抓到这个页面，但几乎没有值得引用的东西。'];
+  if (gaps >= 3) return ['mid', 'AI 读得到你——但你缺少大部分 AI 爱引用的内容块。'];
+  if (p.grade === 'B' || p.grade === 'C') return ['mid', '底子不错。离 A 级还差几个缺口。'];
+  return ['good', '页面很强。你的下一个杠杆在站外：全网的提及与引用。'];
+}
+function chk(ok){ return ok ? '<span class="ok-t">✓</span>' : '<span class="bad-t">✗</span>'; }
+function esc(s){ return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 </script>
-</body></html>
+</body>
+</html>

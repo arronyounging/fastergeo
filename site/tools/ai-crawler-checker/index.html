@@ -12,7 +12,7 @@
 {"@type":"Question","name":"What happens if I block AI crawlers?","acceptedAnswer":{"@type":"Answer","text":"Blocked crawlers cannot read your content, so AI engines answer questions about your category from other sources — usually your competitors. If AI visibility matters to you, blocking is the single most damaging robots.txt mistake."}}]}]}
 </script>
 </head><body>
-<header><a class="logo" href="/">Faster<b>GEO</b></a>
+<header><a class="logo" href="/">FASTER<b>GEO</b></a>
 <nav><a href="/tools/">Tools</a><a href="https://github.com/arronyounging/fastergeo">GitHub</a></nav></header>
 <main>
 <div class="crumb"><a href="/">fastergeo.co</a> / <a href="/tools/">tools</a> / ai-crawler-checker</div>
@@ -56,7 +56,7 @@ robots.txt ${d.robotsTxtFound?'<span class="ok">found</span>':'<span class="bad"
 sitemap ${d.sitemapFound?'<span class="ok">✓</span>':'<span class="bad">✗</span>'} ·
 llms.txt ${d.llmsTxtFound?'<span class="ok">✓</span>':'<span class="bad">✗</span>'}</div>${rows}
 ${(d.blockedSearchCrawlers||[]).length?`<div style="margin-top:12px;padding:10px 14px;background:var(--red-soft);border:1px solid var(--red);font-size:13px;color:var(--red)">■ ${d.blockedSearchCrawlers.join(', ')} blocked — these serve AI <b>search answers</b>; blocking them removes this site from those answers.</div>`:''}
-${(d.blockedTrainingCrawlers||[]).length&&!(d.blockedSearchCrawlers||[]).length?`<div style="margin-top:12px;padding:10px 14px;background:var(--well);border:1px solid var(--line);border-radius:10px;font-size:13px;color:var(--dim)">Training-only crawlers blocked (${d.blockedTrainingCrawlers.join(', ')}) — a legitimate policy choice, not an error. AI search crawlers can still read this site.</div>`:''}</div>`;
+${(d.blockedTrainingCrawlers||[]).length&&!(d.blockedSearchCrawlers||[]).length?`<div style="margin-top:12px;padding:10px 14px;background:var(--well);border:1px solid var(--line);font-size:13px;color:var(--dim)">Training-only crawlers blocked (${d.blockedTrainingCrawlers.join(', ')}) — a legitimate policy choice, not an error. AI search crawlers can still read this site.</div>`:''}</div>`;
 }catch(err){r.innerHTML=`<div class="err">${err.message}</div>`}
 finally{b.disabled=false;b.textContent='Check'}});
 </script>

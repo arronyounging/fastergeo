@@ -13,7 +13,7 @@
 {"@type":"Question","name":"Is this checker really free?","acceptedAnswer":{"@type":"Answer","text":"Yes — no sign-up, no limits, and it runs the same open-source engine as the FasterGEO CLI. It is a real page of the product, not a teaser."}}]}]}
 </script>
 </head><body>
-<header><a class="logo" href="/">Faster<b>GEO</b></a>
+<header><a class="logo" href="/">FASTER<b>GEO</b></a>
 <nav><a href="/tools/">Tools</a><a href="https://github.com/arronyounging/fastergeo">GitHub</a></nav></header>
 <main>
 <div class="crumb"><a href="/">fastergeo.co</a> / <a href="/tools/">tools</a> / geo-score-checker</div>
@@ -51,12 +51,12 @@ try{const res=await fetch('/api/scan?url='+encodeURIComponent(url));const d=awai
 if(!res.ok)throw new Error(d.error||'check failed');const p=d.page;
 const dims=p.dimensions.map(x=>{const k=x.score===null?0:x.score/x.max;
 return `<div style="display:grid;grid-template-columns:130px 1fr 56px;gap:10px;align-items:center;font-size:13px;color:var(--dim);margin:7px 0">
-<span>${DIMS[x.key]??x.key}</span><span style="height:6px;background:var(--well);border-radius:3px;overflow:hidden">
-<i style="display:block;height:100%;width:${Math.round(k*100)}%;background:${x.score!==null&&k<0.4?'var(--red)':'linear-gradient(90deg,var(--acc),var(--acc-2))'};border-radius:3px"></i></span>
+<span>${DIMS[x.key]??x.key}</span><span style="height:6px;background:var(--well);overflow:hidden">
+<i style="display:block;height:100%;width:${Math.round(k*100)}%;background:${x.score!==null&&k<0.4?'var(--red)':'var(--tx)'}"></i></span>
 <span class="num" style="text-align:right">${x.score===null?'n/a':x.score+'/'+x.max}</span></div>`}).join('');
 const blockers=p.blockers.map(x=>`<div style="margin-top:10px;padding:10px 14px;background:var(--red-soft);border:1px solid var(--red);font-size:13px;color:var(--red)">■ ${esc(x)}</div>`).join('');
 r.innerHTML=`<div class="card"><div style="display:flex;align-items:center;gap:14px;margin-bottom:12px">
-<div style="width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:21px;background:${p.grade==='D'?'var(--red-soft)':p.grade==='C'?'rgba(240,178,74,.12)':'var(--green-soft)'};color:${p.grade==='D'?'var(--red)':p.grade==='C'?'var(--amber)':'var(--green)'}">${p.grade}</div>
+<div class="mono" style="width:46px;height:46px;border:2px solid ${p.grade==='D'||p.grade==='C'?'var(--red)':'var(--green)'};display:flex;align-items:center;justify-content:center;font-weight:600;font-size:21px;background:${p.grade==='D'?'var(--red-soft)':'transparent'};color:${p.grade==='D'||p.grade==='C'?'var(--red)':'var(--green)'}">${p.grade}</div>
 <div><div style="font-size:22px;font-weight:800" class="num">${p.score}<small style="font-size:13px;color:var(--faint);font-weight:400"> /100 · ${p.wordCount} visible word-equivalents</small></div>
 <div style="font-size:12px;color:var(--faint)">${esc(p.url)}</div></div></div>${dims}${blockers}</div>`;
 }catch(err){r.innerHTML=`<div class="err">${esc(err.message)}</div>`}
