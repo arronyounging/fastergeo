@@ -95,6 +95,9 @@ export function extractFeatures(url: string, status: number, html: string): Page
     hasAuthor: /"author"|rel=["']author["']|class=["'][^"']*author/i.test(html),
     externalLinkCount: external.length,
     internalLinkCount: internal.length,
+    internalLinks: [...new Set(internal.map(h => {
+      try { return new URL(h, url).href; } catch { return ''; }
+    }).filter(h => h && !/\.(png|jpe?g|svg|gif|webp|css|js|ico)(\?|$)/i.test(h)))].slice(0, 40),
   };
 }
 

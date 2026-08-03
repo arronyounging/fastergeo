@@ -1,0 +1,57 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI Crawler Access Checker — is robots.txt blocking GPTBot? | FasterGEO</title>
+<meta name="description" content="Free checker: is your robots.txt blocking GPTBot, ClaudeBot, PerplexityBot or other AI crawlers? Per-crawler verdict for 9 major AI bots, plus sitemap and llms.txt checks. No sign-up.">
+<link rel="canonical" href="https://fastergeo.co/tools/ai-crawler-checker/">
+<link rel="stylesheet" href="/tools/tools.css">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"SoftwareApplication","name":"FasterGEO AI Crawler Access Checker","applicationCategory":"SEO Tool","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"url":"https://fastergeo.co/tools/ai-crawler-checker/","description":"Checks whether robots.txt blocks the 9 major AI crawlers, with per-crawler verdicts."},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Which AI crawlers matter for GEO?","acceptedAnswer":{"@type":"Answer","text":"Nine crawlers decide most AI-search visibility: GPTBot, OAI-SearchBot and ChatGPT-User (OpenAI), ClaudeBot and anthropic-ai (Anthropic), PerplexityBot, Google-Extended, Bytespider (ByteDance/Doubao), and CCBot (Common Crawl, used to train many models)."}},
+{"@type":"Question","name":"What happens if I block AI crawlers?","acceptedAnswer":{"@type":"Answer","text":"Blocked crawlers cannot read your content, so AI engines answer questions about your category from other sources — usually your competitors. If AI visibility matters to you, blocking is the single most damaging robots.txt mistake."}}]}]}
+</script>
+</head><body>
+<header><a class="logo" href="/">Faster<b>GEO</b></a>
+<nav><a href="/tools/">Tools</a><a href="https://github.com/arronyounging/fastergeo">GitHub</a></nav></header>
+<main>
+<div class="crumb"><a href="/">fastergeo.co</a> / <a href="/tools/">tools</a> / ai-crawler-checker</div>
+<div class="badge">✓ Free · no sign-up · open-source engine</div>
+<h1>AI Crawler Access Checker</h1>
+<p class="lead">Nine crawlers decide most AI-search visibility. If your robots.txt blocks them, AI engines
+answer questions about your category from other sources — usually your competitors. Check your verdict per crawler.</p>
+<form class="toolform" id="f"><input id="u" placeholder="yoursite.com" autocomplete="off" spellcheck="false"><button id="b">Check</button></form>
+<div class="result" id="r"></div>
+<h2>The nine crawlers</h2>
+<p class="prose"><b>GPTBot / OAI-SearchBot / ChatGPT-User</b> feed OpenAI training, search and live browsing ·
+<b>ClaudeBot / anthropic-ai</b> feed Anthropic · <b>PerplexityBot</b> powers Perplexity's citations ·
+<b>Google-Extended</b> gates Gemini training · <b>Bytespider</b> feeds ByteDance (Doubao) ·
+<b>CCBot</b> builds Common Crawl, the corpus behind many models.</p>
+<h2>FAQ</h2>
+<div class="faq">
+<details open><summary>What happens if I block AI crawlers?</summary><p>They can't read your content, so AI engines describe your category using other sources — usually competitors. If AI visibility matters, a blanket block is the most damaging robots.txt mistake.</p></details>
+<details><summary>Should I ever block them?</summary><p>Some publishers block training crawlers (CCBot, Bytespider) while allowing citation crawlers (OAI-SearchBot, PerplexityBot) — a legitimate trade-off between training-data control and answer visibility. Just make it a decision, not an accident.</p></details>
+</div>
+<h2>Go deeper</h2>
+<p class="prose">Crawler access is stage zero. The full loop — what AI engines actually say about you across
+18 engines, and machine-verified fix tickets — is one command: <span class="mono">npx fastergeo</span></p>
+</main>
+<footer><span>© 2026 FasterGEO · Apache-2.0</span><a href="/">← fastergeo.co</a></footer>
+<script>
+const f=document.getElementById('f'),r=document.getElementById('r'),b=document.getElementById('b');
+f.addEventListener('submit',async e=>{e.preventDefault();
+const url=document.getElementById('u').value.trim();if(!url)return;
+b.disabled=true;b.textContent='Checking…';r.innerHTML='';
+try{const res=await fetch('/api/crawlers?url='+encodeURIComponent(url));const d=await res.json();
+if(!res.ok)throw new Error(d.error||'check failed');
+const rows=d.crawlers.map(c=>`<div class="bot-row"><span class="${c.blocked?'bad':'ok'}">${c.blocked?'✗ blocked':'✓ allowed'}</span><span class="mono">${c.bot}</span></div>`).join('');
+r.innerHTML=`<div class="card">
+<div style="font-size:14px;color:var(--dim);margin-bottom:12px">
+robots.txt ${d.robotsTxtFound?'<span class="ok">found</span>':'<span class="bad">missing</span>'} ·
+sitemap ${d.sitemapFound?'<span class="ok">✓</span>':'<span class="bad">✗</span>'} ·
+llms.txt ${d.llmsTxtFound?'<span class="ok">✓</span>':'<span class="bad">✗</span>'}</div>${rows}
+${d.blockedAiCrawlers.length?`<div style="margin-top:12px;padding:10px 14px;background:var(--red-soft);border:1px solid rgba(244,83,110,.25);border-radius:10px;font-size:13px">🔴 ${d.blockedAiCrawlers.length} crawler(s) blocked site-wide — AI engines can't read this site.</div>`:''}</div>`;
+}catch(err){r.innerHTML=`<div class="err">${err.message}</div>`}
+finally{b.disabled=false;b.textContent='Check'}});
+</script>
+</body></html>

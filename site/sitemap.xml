@@ -1,4 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://fastergeo.co/</loc><lastmod>2026-08-02</lastmod></url>
+  <url><loc>https://fastergeo.co/tools/</loc><lastmod>2026-08-03</lastmod></url>
+  <url><loc>https://fastergeo.co/tools/geo-score-checker/</loc><lastmod>2026-08-03</lastmod></url>
+  <url><loc>https://fastergeo.co/tools/ai-crawler-checker/</loc><lastmod>2026-08-03</lastmod></url>
+  <url><loc>https://fastergeo.co/tools/llms-txt-generator/</loc><lastmod>2026-08-03</lastmod></url>
 </urlset>

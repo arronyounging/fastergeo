@@ -33,6 +33,8 @@ export interface PageFeatures {
   hasAuthor: boolean;
   externalLinkCount: number;
   internalLinkCount: number;
+  /** Absolute internal link URLs, deduped, capped at 40. */
+  internalLinks: string[];
 }
 
 /** Extractable content blocks — the strongest citation predictors. */

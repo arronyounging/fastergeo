@@ -1,0 +1,51 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Free llms.txt Generator — draft from your real content | FasterGEO</title>
+<meta name="description" content="Free llms.txt generator: drafts a spec-shaped llms.txt from your site's actual title, description, topics and pages. Nothing invented — review, edit, publish. No sign-up.">
+<link rel="canonical" href="https://fastergeo.co/tools/llms-txt-generator/">
+<link rel="stylesheet" href="/tools/tools.css">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"SoftwareApplication","name":"FasterGEO llms.txt Generator","applicationCategory":"SEO Tool","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"url":"https://fastergeo.co/tools/llms-txt-generator/","description":"Drafts a spec-shaped llms.txt file from a site's real content."},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is llms.txt?","acceptedAnswer":{"@type":"Answer","text":"llms.txt is a proposed convention: a Markdown file at your site root that gives AI systems a curated index of what your site is and which pages matter. It is a proposal, not a standard."}},
+{"@type":"Question","name":"Does llms.txt improve Google rankings?","acceptedAnswer":{"@type":"Answer","text":"No. Google has stated it does not use llms.txt, so it carries zero weight there. Some other AI systems may read it, so it is a low-cost optional extra — publish it, but do not expect it to substitute for extractable on-page content."}}]}]}
+</script>
+</head><body>
+<header><a class="logo" href="/">Faster<b>GEO</b></a>
+<nav><a href="/tools/">Tools</a><a href="https://github.com/arronyounging/fastergeo">GitHub</a></nav></header>
+<main>
+<div class="crumb"><a href="/">fastergeo.co</a> / <a href="/tools/">tools</a> / llms-txt-generator</div>
+<div class="badge">✓ Free · no sign-up · drafts from your real content</div>
+<h1>llms.txt Generator</h1>
+<p class="lead">llms.txt is a Markdown file at your site root that gives AI systems a curated index of your site.
+This generator drafts one from your page's <b>actual</b> title, description, topics and links — nothing invented.
+Review, edit, then publish to <span class="mono">/llms.txt</span>.</p>
+<form class="toolform" id="f"><input id="u" placeholder="yoursite.com" autocomplete="off" spellcheck="false"><button id="b">Generate</button></form>
+<div class="result" id="r"></div>
+<h2>Honest expectations</h2>
+<p class="prose">Google has said it <b>does not use llms.txt</b> — it carries zero weight there. Some other AI
+systems may read it, so it's a low-cost optional extra. What actually moves citations is extractable on-page
+content: definitions, statistics with sources, comparisons, self-contained passages. Check yours with the
+<a href="/tools/geo-score-checker/">GEO Score Checker</a>.</p>
+<h2>FAQ</h2>
+<div class="faq">
+<details open><summary>What is llms.txt?</summary><p>A proposed convention: a Markdown file at your site root giving AI systems a curated index of what your site is and which pages matter. A proposal — not a standard, and not used by Google.</p></details>
+<details><summary>Why does the draft need editing?</summary><p>The generator only uses what your page actually says — link labels are derived from URL paths and may need friendlier names, and you may want to add or remove pages. Publishing unreviewed generated files is exactly the habit GEO tools shouldn't encourage.</p></details>
+</div>
+</main>
+<footer><span>© 2026 FasterGEO · Apache-2.0</span><a href="/">← fastergeo.co</a></footer>
+<script>
+const f=document.getElementById('f'),r=document.getElementById('r'),b=document.getElementById('b');
+f.addEventListener('submit',async e=>{e.preventDefault();
+const url=document.getElementById('u').value.trim();if(!url)return;
+b.disabled=true;b.textContent='Generating…';r.innerHTML='';
+try{const res=await fetch('/api/llmstxt?url='+encodeURIComponent(url));const d=await res.json();
+if(!res.ok)throw new Error(d.error||'generation failed');
+r.innerHTML=`<pre class="gen" id="out"></pre><button class="copybtn" id="cp">Copy llms.txt</button>`;
+document.getElementById('out').textContent=d.llmstxt;
+document.getElementById('cp').onclick=()=>{navigator.clipboard.writeText(d.llmstxt);document.getElementById('cp').textContent='Copied ✓'};
+}catch(err){r.innerHTML=`<div class="err">${err.message}</div>`}
+finally{b.disabled=false;b.textContent='Generate'}});
+</script>
+</body></html>

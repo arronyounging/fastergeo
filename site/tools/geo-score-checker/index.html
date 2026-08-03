@@ -1,0 +1,66 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Free GEO Score Checker — grade any page A–D | FasterGEO</title>
+<meta name="description" content="Free GEO score checker: audit any page across six dimensions (crawlability, length, structure, extractable blocks, authority, relevance) and see exactly what AI crawlers see. No sign-up.">
+<link rel="canonical" href="https://fastergeo.co/tools/geo-score-checker/">
+<link rel="stylesheet" href="/tools/tools.css">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"SoftwareApplication","name":"FasterGEO GEO Score Checker","applicationCategory":"SEO Tool","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"url":"https://fastergeo.co/tools/geo-score-checker/","description":"Free six-dimension GEO audit of any web page, showing exactly what AI crawlers see."},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is a GEO score?","acceptedAnswer":{"@type":"Answer","text":"A GEO score measures how citable a page is for AI engines like ChatGPT and Perplexity. FasterGEO grades six dimensions — crawlability, length, structure, extractable blocks, authority signals, and relevance — with thresholds anchored to published citation research."}},
+{"@type":"Question","name":"Why does my page score low despite good content?","acceptedAnswer":{"@type":"Answer","text":"The most common cause is client-side rendering: AI crawlers do not execute JavaScript, so a page whose content loads after hydration is an empty shell to them. The checker flags this as a spa-shell blocker."}},
+{"@type":"Question","name":"Is this checker really free?","acceptedAnswer":{"@type":"Answer","text":"Yes — no sign-up, no limits, and it runs the same open-source engine as the FasterGEO CLI. It is a real page of the product, not a teaser."}}]}]}
+</script>
+</head><body>
+<header><a class="logo" href="/">Faster<b>GEO</b></a>
+<nav><a href="/tools/">Tools</a><a href="https://github.com/arronyounging/fastergeo">GitHub</a></nav></header>
+<main>
+<div class="crumb"><a href="/">fastergeo.co</a> / <a href="/tools/">tools</a> / geo-score-checker</div>
+<div class="badge">✓ Free · no sign-up · open-source engine</div>
+<h1>GEO Score Checker</h1>
+<p class="lead">A GEO score measures how citable a page is for AI engines. This checker fetches the raw HTML —
+exactly what AI crawlers receive, no JavaScript — and grades six dimensions with thresholds anchored to
+published citation research.</p>
+<form class="toolform" id="f"><input id="u" placeholder="yoursite.com/page" autocomplete="off" spellcheck="false"><button id="b">Check</button></form>
+<div class="result" id="r"></div>
+<h2>The six dimensions</h2>
+<p class="prose"><b>Crawlability</b> (status, canonical, visible text) · <b>Length</b> (top-quartile cited pages
+average 1,943 words) · <b>Structure</b> (clean heading hierarchy correlates with 3.2× citations) ·
+<b>Extractable blocks</b> (statistics +61.6%, definitions +57.3% citation probability) ·
+<b>Authority</b> (dates, authors, sources, JSON-LD) · <b>Relevance</b> (the strongest single predictor, r = 0.432).</p>
+<h2 id="faq">FAQ</h2>
+<div class="faq">
+<details open><summary>What is a GEO score?</summary><p>A GEO score measures how citable a page is for AI engines like ChatGPT and Perplexity. FasterGEO grades six dimensions with thresholds anchored to published citation research — the methodology is open source and reproducible.</p></details>
+<details><summary>Why does my page score low despite good content?</summary><p>The most common cause is client-side rendering: AI crawlers do not execute JavaScript. A page whose content loads after hydration is an empty shell to them — the checker flags this as a spa-shell blocker.</p></details>
+<details><summary>What's the difference from an SEO audit?</summary><p>SEO audits optimize for ranked links; this audits for being quoted inside AI answers — extractable blocks, self-contained passages, and entity clarity matter more than keywords.</p></details>
+</div>
+<h2>Go deeper</h2>
+<p class="prose">This is one page, no API keys. The full loop — sampling 18 Chinese and global AI engines,
+the Brand Entity Funnel, machine-verified fix tickets — is one command:
+<span class="mono">npx fastergeo bootstrap --root yoursite.com</span></p>
+</main>
+<footer><span>© 2026 FasterGEO · Apache-2.0</span><a href="/">← fastergeo.co</a></footer>
+<script>
+const f=document.getElementById('f'),r=document.getElementById('r'),b=document.getElementById('b');
+const DIMS={crawlability:'Crawlability',length:'Length',structure:'Structure',blocks:'Extractable blocks',authority:'Authority',relevance:'Relevance'};
+f.addEventListener('submit',async e=>{e.preventDefault();
+const url=document.getElementById('u').value.trim();if(!url)return;
+b.disabled=true;b.textContent='Checking…';r.innerHTML='';
+try{const res=await fetch('/api/scan?url='+encodeURIComponent(url));const d=await res.json();
+if(!res.ok)throw new Error(d.error||'check failed');const p=d.page;
+const dims=p.dimensions.map(x=>{const k=x.score===null?0:x.score/x.max;
+return `<div style="display:grid;grid-template-columns:130px 1fr 56px;gap:10px;align-items:center;font-size:13px;color:var(--dim);margin:7px 0">
+<span>${DIMS[x.key]??x.key}</span><span style="height:6px;background:var(--well);border-radius:3px;overflow:hidden">
+<i style="display:block;height:100%;width:${Math.round(k*100)}%;background:${x.score!==null&&k<0.4?'var(--red)':'linear-gradient(90deg,var(--acc),var(--acc-2))'};border-radius:3px"></i></span>
+<span class="num" style="text-align:right">${x.score===null?'n/a':x.score+'/'+x.max}</span></div>`}).join('');
+const blockers=p.blockers.map(x=>`<div style="margin-top:10px;padding:10px 14px;background:var(--red-soft);border:1px solid rgba(244,83,110,.25);border-radius:10px;font-size:13px">🔴 ${esc(x)}</div>`).join('');
+r.innerHTML=`<div class="card"><div style="display:flex;align-items:center;gap:14px;margin-bottom:12px">
+<div style="width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:21px;background:${p.grade==='D'?'var(--red-soft)':p.grade==='C'?'rgba(240,178,74,.12)':'var(--green-soft)'};color:${p.grade==='D'?'var(--red)':p.grade==='C'?'var(--amber)':'var(--green)'}">${p.grade}</div>
+<div><div style="font-size:22px;font-weight:800" class="num">${p.score}<small style="font-size:13px;color:var(--faint);font-weight:400"> /100 · ${p.wordCount} visible word-equivalents</small></div>
+<div style="font-size:12px;color:var(--faint)">${esc(p.url)}</div></div></div>${dims}${blockers}</div>`;
+}catch(err){r.innerHTML=`<div class="err">${esc(err.message)}</div>`}
+finally{b.disabled=false;b.textContent='Check'}});
+function esc(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+</script>
+</body></html>
