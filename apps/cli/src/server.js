@@ -23,7 +23,7 @@ function loadPeriods(dir) {
   if (!existsSync(hist)) return [];
   const byDate = new Map();
   for (const f of readdirSync(hist)) {
-    const m = /^(\d{4}-\d{2}-\d{2})-(metrics|audit)\.json$/.exec(f);
+    const m = /^(\d{4}-\d{2}-\d{2})-(metrics|audit|samples)\.json$/.exec(f);
     if (!m) continue;
     const rec = byDate.get(m[1]) ?? { date: m[1] };
     rec[m[2]] = loadJson(join(hist, f));
@@ -67,6 +67,8 @@ export function startUi(projectDir, port = 8765) {
           brandName: brand.name ?? 'Brand',
           audit: latest.audit ?? undefined,
           metrics: latest.metrics ?? undefined,
+          samples: latest.samples ?? undefined,
+          brandAliases: brand.aliases,
           tickets: loadJson(join(projectDir, 'tickets.json'), []),
         }), 'text/html');
       }

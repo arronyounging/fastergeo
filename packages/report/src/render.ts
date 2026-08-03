@@ -14,7 +14,7 @@
  */
 
 import type { SiteAudit } from '@fastergeo/audit';
-import type { MetricsReport, PlatformMetrics } from '@fastergeo/metrics';
+import type { MetricsReport, PlatformMetrics, Sample } from '@fastergeo/metrics';
 import type { Ticket } from '@fastergeo/tickets';
 
 export type ReportLang = 'en' | 'zh';
@@ -24,6 +24,10 @@ export interface ReportInput {
   audit?: SiteAudit;
   metrics?: MetricsReport;
   tickets?: Ticket[];
+  /** Raw sampled answers → the Answer Replay section (full traceability). */
+  samples?: Sample[];
+  /** Brand aliases, for mention highlighting in the replay. */
+  brandAliases?: string[];
   generatedAt?: string;
   lang?: ReportLang;
 }
@@ -64,6 +68,10 @@ const MSG = {
     ticketsTitle: (n: number, a: number) => `Action Tickets (${n} · ${a} machine-verifiable)`,
     thTicket: 'ticket', thAcceptance: 'acceptance', thStatus: 'status',
     accAuto: '⚙ auto', accManual: '👤 manual',
+    replayTitle: (n: number) => `Answer Replay (${n} samples, verbatim)`,
+    replayTip: 'Every sampled answer, unedited, with brand mentions and confusion evidence highlighted. Every number above can be checked against this record — that is the point. Samples that named the brand are tagged "probe" and are excluded from visibility metrics.',
+    rpProbe: 'probe', rpMention: 'mentions brand', rpNoMention: 'no mention',
+    rpEvidence: 'confusion evidence', rpCitations: 'citations', rpSamples: (n: number) => `${n} samples`,
     footer: 'FasterGEO · open source & reproducible: unmeasured stays unmeasured, never a fabricated zero · single-period changes are observations; only two consecutive same-direction changes count as a trend',
   },
   zh: {
@@ -101,6 +109,10 @@ const MSG = {
     ticketsTitle: (n: number, a: number) => `行动工单（${n} 条 · ${a} 条机器自动验收）`,
     thTicket: '工单', thAcceptance: '验收', thStatus: '状态',
     accAuto: '⚙ 自动', accManual: '👤 人工',
+    replayTitle: (n: number) => `答案回放（${n} 条采样原文，逐字留档）`,
+    replayTip: '全部采样回答原文未经删改，品牌命中与混淆证据高亮。上面每个数字都可以对照这里的原文质证——这正是目的。点名品牌的样本标记为「探测」，不计入可见度指标。',
+    rpProbe: '探测·点名', rpMention: '提及品牌', rpNoMention: '未提及',
+    rpEvidence: '混淆证据', rpCitations: '引用', rpSamples: (n: number) => `${n} 条`,
     footer: 'FasterGEO · 开源可复现：算不出的显示未测，不编数 · 单期波动只作观察相关，连续两期同向才算趋势',
   },
 } as const;
@@ -233,6 +245,98 @@ function auditSection(audit: SiteAudit | undefined, m: M): string {
     <tbody>${audit.pages.map(pageRow).join('')}</tbody></table></section>`;
 }
 
+/**
+ * Highlight brand-name and confusion-evidence matches inside an answer.
+ * Char-mark pass (0 = plain, 1 = brand, 2 = evidence; evidence wins) so
+ * overlapping matches merge cleanly, then segments are HTML-escaped —
+ * highlighting can never un-escape attacker-controlled answer text.
+ */
+function highlightAnswer(answer: string, names: string[], evidence: string[]): string {
+  const marks = new Uint8Array(answer.length);
+  const lower = answer.toLowerCase();
+  for (const name of names) {
+    const needle = name.trim().toLowerCase();
+    if (needle.length < 2) continue;
+    let i = 0;
+    while ((i = lower.indexOf(needle, i)) !== -1) {
+      marks.fill(1, i, i + needle.length);
+      i += needle.length;
+    }
+  }
+  for (const e of evidence) {
+    const needle = e.trim().toLowerCase();
+    if (needle.length < 8) continue;
+    const i = lower.indexOf(needle);
+    if (i !== -1) marks.fill(2, i, i + needle.length);
+  }
+  let html = '';
+  let seg = '';
+  let cur: 0 | 1 | 2 = 0;
+  const flush = (): void => {
+    if (!seg) return;
+    const escd = esc(seg);
+    html += cur === 2 ? `<mark class="hl-ev">${escd}</mark>`
+      : cur === 1 ? `<mark class="hl-brand">${escd}</mark>` : escd;
+    seg = '';
+  };
+  for (let i = 0; i < answer.length; i++) {
+    const mk = marks[i] as 0 | 1 | 2;
+    if (mk !== cur) { flush(); cur = mk; }
+    seg += answer[i];
+  }
+  flush();
+  return html;
+}
+
+/**
+ * Answer Replay: the traceability layer. Aggregates are claims; this is the
+ * verbatim record they can be checked against. No per-sample verdicts are
+ * invented here — only deterministic facts render (name match, evidence match).
+ */
+function replaySection(input: ReportInput, m: M): string {
+  const samples = input.samples ?? [];
+  if (samples.length === 0) return '';
+  const names = [input.brandName, ...(input.brandAliases ?? [])];
+  const evidenceByProvider = new Map<string, string[]>();
+  for (const p of input.metrics?.platforms ?? []) {
+    if (p.probe?.confusedEvidence.length) evidenceByProvider.set(p.providerId, p.probe.confusedEvidence);
+  }
+  const byProvider = new Map<string, Sample[]>();
+  for (const s of samples) {
+    const list = byProvider.get(s.providerId) ?? [];
+    list.push(s);
+    byProvider.set(s.providerId, list);
+  }
+  const providers = [...byProvider.entries()]
+    .sort((a, b) => (a[1][0].market.localeCompare(b[1][0].market)) || a[0].localeCompare(b[0]));
+
+  const lower = (s: string): string => s.toLowerCase();
+  const groups = providers.map(([id, group]) => {
+    const evidence = evidenceByProvider.get(id) ?? [];
+    const items = group.map(s => {
+      const mentioned = names.some(n => n.trim().length >= 2 && lower(s.answer).includes(lower(n.trim())));
+      const evHit = evidence.some(e => e.trim().length >= 8 && lower(s.answer).includes(lower(e.trim())));
+      const chips = [
+        s.brandInQuestion ? `<span class="chip c-probe">${m.rpProbe}</span>` : '',
+        !s.brandInQuestion ? (mentioned
+          ? `<span class="chip c-ok">${m.rpMention}</span>`
+          : `<span class="chip c-dim">${m.rpNoMention}</span>`) : '',
+        evHit ? `<span class="chip c-bad">${m.rpEvidence}</span>` : '',
+      ].filter(Boolean).join('');
+      const meta = [s.model, s.channel].filter(Boolean).map(esc).join(' · ');
+      const cites = s.citations.length
+        ? `<div class="rp-cite">${m.rpCitations}: ${s.citations.map(esc).join(' · ')}</div>` : '';
+      return `<details class="rp"><summary><span class="rp-q">${esc(s.question)}</span>${chips}</summary>
+        <div class="rp-a">${highlightAnswer(s.answer, s.brandInQuestion ? [] : names, evidence)}</div>
+        ${cites}${meta ? `<div class="rp-meta">${meta}</div>` : ''}</details>`;
+    }).join('');
+    const market = group[0].market;
+    return `<h3>${esc(id)} · ${market} · ${m.rpSamples(group.length)}</h3>${items}`;
+  }).join('');
+
+  return `<section><h2>${m.replayTitle(samples.length)} <span class="m" title="${esc(m.replayTip)}">${m.methodology}</span></h2>${groups}</section>`;
+}
+
 function ticketSection(tickets: Ticket[] | undefined, m: M): string {
   if (!tickets || tickets.length === 0) return '';
   const row = (t: Ticket): string =>
@@ -308,6 +412,23 @@ margin-right:4px;position:relative;overflow:hidden;vertical-align:middle}
 .rationale{color:var(--dim);font-size:12px;margin-top:3px}
 .comps{color:var(--dim);font-size:12px}
 .m{font-size:11px;color:var(--faint);cursor:help;font-weight:400;letter-spacing:0;text-transform:none}
+/* Answer replay */
+details.rp{border:1px solid var(--line);border-radius:10px;margin:8px 0;background:var(--well)}
+details.rp summary{cursor:pointer;padding:10px 14px;font-size:13px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;list-style:none}
+details.rp summary::-webkit-details-marker{display:none}
+details.rp summary::before{content:"▸";color:var(--faint);font-size:11px}
+details.rp[open] summary::before{content:"▾"}
+.rp-q{flex:1;min-width:200px}
+.rp-a{padding:2px 16px 12px 28px;font-size:13px;color:var(--dim);white-space:pre-wrap;line-height:1.85;border-top:1px solid var(--line);margin-top:2px;padding-top:12px}
+mark.hl-brand{background:var(--acc-soft);color:var(--acc);border-radius:3px;padding:0 2px}
+mark.hl-ev{background:var(--red-soft);color:var(--red);border-radius:3px;padding:0 2px;font-weight:600}
+.chip{font-size:11px;padding:2px 8px;border-radius:99px;white-space:nowrap}
+.c-probe{background:var(--acc-soft);color:var(--acc)}
+.c-ok{background:var(--ok-soft);color:var(--ok)}
+.c-dim{background:var(--well);color:var(--faint);border:1px solid var(--line)}
+.c-bad{background:var(--red-soft);color:var(--red);font-weight:600}
+.rp-cite{padding:0 16px 10px 28px;font-size:12px;color:var(--faint);font-family:ui-monospace,Menlo,monospace;word-break:break-all}
+.rp-meta{padding:0 16px 12px 28px;font-size:11px;color:var(--faint)}
 footer{color:var(--faint);font-size:12px;text-align:center;padding:16px 0 4px}`;
 
 export function renderHtmlReport(input: ReportInput): string {
@@ -326,6 +447,7 @@ ${funnel(input.metrics, m)}
 ${engineTable(input.metrics, m)}
 ${auditSection(input.audit, m)}
 ${ticketSection(input.tickets, m)}
+${replaySection(input, m)}
 <footer>${m.footer}</footer>
 </main></body></html>`;
 }

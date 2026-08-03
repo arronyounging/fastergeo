@@ -142,7 +142,7 @@ async function cmdMetrics() {
     judge,
     brandDescription: brand.description,
   });
-  savePeriod({ metrics: report });
+  savePeriod({ metrics: report, samples });
   if (flags.json) {
     console.log(JSON.stringify(report, null, 2));
     return;
@@ -214,6 +214,8 @@ async function buildContext() {
         (await ask(jp, { question: prompt, maxTokens: 500 })).answer);
     }
     ctx.metrics = await computeMetrics(samples, brand, { judge, brandDescription: brand.description });
+    ctx.samples = samples;
+    ctx.brandAliases = brand.aliases;
   }
   return ctx;
 }
@@ -334,7 +336,10 @@ async function cmdReport() {
   const brandName = flags.brand
     ? JSON.parse(readFileSync(flags.brand, 'utf8')).name
     : (flags.root ? new URL(flags.root).hostname : 'Brand');
-  const html = renderHtmlReport({ brandName, audit: ctx.audit, metrics: ctx.metrics, tickets, lang: LANG });
+  const html = renderHtmlReport({
+    brandName, audit: ctx.audit, metrics: ctx.metrics, tickets,
+    samples: ctx.samples, brandAliases: ctx.brandAliases, lang: LANG,
+  });
   const out = flags.out ?? 'fastergeo-report.html';
   writeFileSync(out, html);
   console.log(`report → ${out} (${Math.round(html.length / 1024)}KB, self-contained)`);
@@ -461,6 +466,7 @@ async function cmdCycle() {
   // 4. 存期 + 验收
   mkdirSync(`${dir}/history`, { recursive: true });
   if (metricsReport) writeFileSync(`${dir}/history/${date}-metrics.json`, JSON.stringify(metricsReport, null, 2));
+  if (samples.length) writeFileSync(`${dir}/history/${date}-samples.json`, JSON.stringify(samples, null, 2));
   writeFileSync(`${dir}/history/${date}-audit.json`, JSON.stringify(auditReport, null, 2));
   let tickets;
   try { tickets = JSON.parse(readFileSync(`${dir}/tickets.json`, 'utf8')); } catch { /* 首期 */ }
@@ -476,7 +482,10 @@ async function cmdCycle() {
   }
 
   // 5. 报告 + 趋势
-  const html = renderHtmlReport({ brandName: brand.name, audit: auditReport, metrics: metricsReport, tickets, lang: LANG });
+  const html = renderHtmlReport({
+    brandName: brand.name, audit: auditReport, metrics: metricsReport, tickets,
+    samples, brandAliases: brand.aliases, lang: LANG,
+  });
   writeFileSync(`${dir}/report-${date}.html`, html);
   const periods = loadPeriods(`${dir}/history`);
   console.log(`[5/5] report → ${dir}/report-${date}.html · ${periods.length} period(s) in history`);
@@ -526,6 +535,7 @@ function savePeriod(ctx) {
   mkdirSync(flags.history, { recursive: true });
   const date = new Date().toISOString().slice(0, 10);
   if (ctx.metrics) writeFileSync(`${flags.history}/${date}-metrics.json`, JSON.stringify(ctx.metrics, null, 2));
+  if (ctx.samples?.length) writeFileSync(`${flags.history}/${date}-samples.json`, JSON.stringify(ctx.samples, null, 2));
   if (ctx.audit) writeFileSync(`${flags.history}/${date}-audit.json`, JSON.stringify(ctx.audit, null, 2));
   console.log(`period saved → ${flags.history}/ (${date})`);
 }

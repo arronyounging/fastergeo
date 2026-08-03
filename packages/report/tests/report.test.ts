@@ -90,6 +90,74 @@ describe('renderHtmlReport', () => {
 });
 
 
+describe('renderHtmlReport — answer replay', () => {
+  const withSamples: ReportInput = {
+    ...INPUT,
+    metrics: {
+      ...INPUT.metrics!,
+      platforms: [{
+        ...INPUT.metrics!.platforms[0],
+        probe: {
+          samples: 2,
+          recognition: { knows: 0, unknown: 0, confused: 1, unverified: 1 },
+          confusedEvidence: ['主打汽车外观改装件（前后包围、中网）'],
+        },
+      }],
+    },
+    brandAliases: ['CUSTYLE.ai'],
+    samples: [
+      {
+        providerId: 'doubao', market: 'cn', questionId: 'q1',
+        question: '定制周边平台推荐？', brandInQuestion: false,
+        answer: '推荐 Printful 和 custyle 两家。<img src=x onerror=alert(1)>',
+        citations: ['https://example.com/roundup'], channel: 'api', model: 'doubao-seed',
+      },
+      {
+        providerId: 'doubao', market: 'cn', questionId: 'q2',
+        question: 'Custyle 是什么公司？', brandInQuestion: true,
+        answer: 'Custyle 主打汽车外观改装件（前后包围、中网）等产品。',
+        citations: [],
+      },
+    ],
+  };
+  const html = renderHtmlReport(withSamples);
+
+  it('renders verbatim answers grouped by engine', () => {
+    expect(html).toContain('Answer Replay (2 samples');
+    expect(html).toContain('定制周边平台推荐？');
+    expect(html).toContain('doubao · cn');
+  });
+
+  it('highlights brand mentions case-insensitively (aliases included)', () => {
+    expect(html).toContain('<mark class="hl-brand">custyle</mark>');
+  });
+
+  it('does not highlight name echo in probe answers (name echo is not knowledge)', () => {
+    // The probe answer's brand mention must NOT be marked as a positive hit.
+    const probePart = html.slice(html.indexOf('主打汽车') - 200, html.indexOf('主打汽车') + 50);
+    expect(probePart).not.toContain('hl-brand');
+  });
+
+  it('highlights confusion evidence in red inside the answer it came from', () => {
+    expect(html).toContain('hl-ev');
+    expect(html).toContain('confusion evidence');
+  });
+
+  it('escapes answer HTML — highlighting cannot enable injection', () => {
+    expect(html).not.toContain('<img src=x');
+    expect(html).toContain('&lt;img src=x');
+  });
+
+  it('tags unprompted samples with deterministic mention chips only', () => {
+    expect(html).toContain('mentions brand');
+    expect(html).toContain('probe');
+  });
+
+  it('omits the section entirely without samples', () => {
+    expect(renderHtmlReport(INPUT)).not.toContain('Answer Replay');
+  });
+});
+
 describe('renderHtmlReport — zh locale', () => {
   it('renders Chinese when lang=zh', () => {
     const html = renderHtmlReport({ ...INPUT, lang: 'zh' });
