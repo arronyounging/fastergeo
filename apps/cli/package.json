@@ -1,7 +1,7 @@
 {
   "name": "fastergeo",
-  "version": "0.4.1",
-  "description": "Open-source GEO platform CLI \u2014 see how AI engines talk about your brand (CN + global), then fix it with machine-verified tickets.",
+  "version": "0.5.0",
+  "description": "Open-source GEO platform CLI — see how AI engines talk about your brand (CN + global), then fix it with machine-verified tickets.",
   "license": "Apache-2.0",
   "type": "module",
   "bin": {
@@ -12,17 +12,17 @@
     "test": "node src/cli.js"
   },
   "dependencies": {
-    "@fastergeo/providers": "workspace:*",
-    "@fastergeo/metrics": "workspace:*",
     "@fastergeo/audit": "workspace:*",
-    "@fastergeo/tickets": "workspace:*",
     "@fastergeo/content": "workspace:*",
+    "@fastergeo/metrics": "workspace:*",
+    "@fastergeo/providers": "workspace:*",
     "@fastergeo/report": "workspace:*",
+    "@fastergeo/tickets": "workspace:*",
     "@fastergeo/trends": "workspace:*"
   },
   "devDependencies": {
-    "typescript": "^5.6.0",
-    "@types/node": "^20.0.0"
+    "@types/node": "^20.0.0",
+    "typescript": "^5.6.0"
   },
   "files": [
     "src"

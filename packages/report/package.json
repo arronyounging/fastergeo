@@ -1,7 +1,7 @@
 {
   "name": "@fastergeo/report",
-  "version": "0.1.3",
-  "description": "FasterGEO reporting \u2014 self-contained HTML diagnosis reports built around the Brand Entity Funnel, with blocker-first layout and per-metric methodology notes. Unmeasured stays unmeasured.",
+  "version": "0.2.0",
+  "description": "FasterGEO reporting — self-contained HTML diagnosis reports built around the Brand Entity Funnel, with blocker-first layout and per-metric methodology notes. Unmeasured stays unmeasured.",
   "license": "Apache-2.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -17,10 +17,10 @@
     "@fastergeo/tickets": "workspace:*"
   },
   "devDependencies": {
+    "@types/node": "^20.0.0",
     "tsup": "^8.0.0",
     "typescript": "^5.6.0",
-    "vitest": "^3.0.0",
-    "@types/node": "^20.0.0"
+    "vitest": "^3.0.0"
   },
   "files": [
     "dist"
