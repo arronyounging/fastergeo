@@ -62,6 +62,9 @@ npx fastergeo botlog --file access.log        # AI crawler hits by purpose + AI-
 
 # 8. Mine real search demand into question-bank candidates (no keys)
 npx fastergeo expand --seed "custom t-shirts" --expand --out candidates.json
+
+# 9. Publish gate-checked content (WordPress / GitHub / signed webhook)
+npx fastergeo publish --file draft.md --targets targets.json --facts facts.json
 ```
 
 Every command works standalone. Data is plain JSON on your machine — `git init` is your backup strategy.
@@ -111,10 +114,10 @@ Every metric is publicly defined and traceable to the code that computes it — 
 
 ## Architecture
 
-Monorepo of eleven packages, each usable standalone: `rules` (100+ deterministic lint rules with agent-fixable suggestions, forked from [geo-lint](https://github.com/IJONIS/geo-lint) with CJK support) · `providers` (18-engine adapters + key health checks) · `metrics` (funnel metrics + recognition & sentiment judges + Wilson intervals + manual sheets) · `audit` (six-dimension scoring, evidence-anchored) · `tickets` (acceptance DSL + verification) · `content` (fact store + fabrication gate + bootstrap + suggest mining) · `trends` (period history + attribution discipline) · `report` (self-contained HTML with verbatim answer replay) · `botlog` (self-hosted AI-crawler & AI-referral log analytics) · `mcp` (MCP server for agents) · `cli`
+Monorepo of twelve packages, each usable standalone: `rules` (100+ deterministic lint rules with agent-fixable suggestions, forked from [geo-lint](https://github.com/IJONIS/geo-lint) with CJK support) · `providers` (18-engine adapters + key health checks) · `metrics` (funnel metrics + recognition & sentiment judges + Wilson intervals + manual sheets) · `audit` (six-dimension scoring, evidence-anchored) · `tickets` (acceptance DSL + verification) · `content` (fact store + fabrication gate + bootstrap + suggest mining) · `trends` (period history + attribution discipline) · `report` (self-contained HTML with verbatim answer replay) · `botlog` (self-hosted AI-crawler & AI-referral log analytics) · `publish` (gated distribution connectors) · `mcp` (MCP server for agents) · `cli`
 
 ```bash
-pnpm install && pnpm -r build && pnpm -r test   # 578 tests
+pnpm install && pnpm -r build && pnpm -r test
 ```
 
 ## License

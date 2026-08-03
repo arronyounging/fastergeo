@@ -25,6 +25,9 @@ importers:
       '@fastergeo/providers':
         specifier: workspace:^
         version: link:../../packages/providers
+      '@fastergeo/publish':
+        specifier: workspace:^
+        version: link:../../packages/publish
       '@fastergeo/report':
         specifier: workspace:^
         version: link:../../packages/report
@@ -161,6 +164,28 @@ importers:
       undici:
         specifier: ^6.19.0
         version: 6.28.0
+    devDependencies:
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.43
+      tsup:
+        specifier: ^8.0.0
+        version: 8.5.1(jiti@2.7.0)(postcss@8.5.25)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.6.0
+        version: 5.9.3
+      vitest:
+        specifier: ^3.0.0
+        version: 3.2.7(@types/node@20.19.43)(jiti@2.7.0)
+
+  packages/publish:
+    dependencies:
+      '@fastergeo/content':
+        specifier: workspace:^
+        version: link:../content
+      marked:
+        specifier: ^15.0.0
+        version: 15.0.12
     devDependencies:
       '@types/node':
         specifier: ^20.0.0
@@ -1296,6 +1321,11 @@ packages:
   make-dir@4.0.0:
     resolution: {integrity: sha512-hXdUTZYIVOt1Ex//jAQi+wTZZpUpwBj/0QsOzqegb3rGMMeJiSEu5xLHnYfBrRV4RH2+OCSOO95Is/7x1WJ4bw==}
     engines: {node: '>=10'}
+
+  marked@15.0.12:
+    resolution: {integrity: sha512-8dD6FusOQSrpv9Z1rdNMdlSgQOIP880DHqnohobOmYLElGEqAL/JvxvuxZO16r4HtjTlfPRDC1hbvxC9dPN2nA==}
+    engines: {node: '>= 18'}
+    hasBin: true
 
   math-intrinsics@1.1.0:
     resolution: {integrity: sha512-/IXtbwEk5HTPyEwyKX6hGkYXxM9nbj64B+ilVJnC/R6B0pH5G4V3b0pVbL7DBj4tkhBAppbQUlf6F6Xl9LHu1g==}
@@ -2635,6 +2665,8 @@ snapshots:
   make-dir@4.0.0:
     dependencies:
       semver: 7.8.5
+
+  marked@15.0.12: {}
 
   math-intrinsics@1.1.0: {}
 

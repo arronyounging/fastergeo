@@ -37,6 +37,7 @@ import { buildOutline, draftPrompt, lintFabrication, bootstrapProject, mineSugge
 import { renderHtmlReport } from '@fastergeo/report';
 import { computeTrends } from '@fastergeo/trends';
 import { analyzeBotlog } from '@fastergeo/botlog';
+import { publishTo } from '@fastergeo/publish';
 import { readdirSync, mkdirSync, existsSync } from 'node:fs';
 import { resolve as resolvePath, basename } from 'node:path';
 import { writeFileSync } from 'node:fs';
@@ -68,6 +69,10 @@ const { values: flags } = parseArgs({
     repeat: { type: 'string' },
     seed: { type: 'string' },
     expand: { type: 'boolean', default: false },
+    targets: { type: 'string' },
+    target: { type: 'string' },
+    title: { type: 'string' },
+    force: { type: 'boolean', default: false },
     port: { type: 'string' },
     lang: { type: 'string' },
     json: { type: 'boolean', default: false },
@@ -417,8 +422,63 @@ const commands = {
   report: cmdReport, bootstrap: cmdBootstrap,
   sheet: cmdSheet, import: cmdImport, trends: cmdTrends,
   cycle: cmdCycle, schedule: cmdSchedule, ui: cmdUi, botlog: cmdBotlog,
-  expand: cmdExpand,
+  expand: cmdExpand, publish: cmdPublish,
 };
+
+async function cmdPublish() {
+  if (!flags.file || !flags.targets) {
+    console.error('usage: fastergeo publish --file draft.md --targets targets.json [--target name] [--facts facts.json] [--title "..."] [--force]');
+    console.error('targets.json: [{"type":"wordpress","name":"blog","baseUrl":"https://...","username":"u","passwordEnv":"WP_APP_PASSWORD"}, {"type":"github",...}, {"type":"webhook",...}]');
+    process.exit(1);
+  }
+  const T = LANG === 'zh' ? {
+    noFacts: '⚠ 未提供 --facts：编造门禁被跳过。发布带事实断言的内容必须过门禁。',
+    noTarget: names => `--target 未指定，可选：${names}`,
+    gateFail: n => `✗ 编造门禁拦截（${n} 处问题）——逐条修复，或明知故犯用 --force（会留痕）：`,
+    forced: '⚠ 门禁失败但被 --force 强制发布——此操作已记录在结果中。',
+    ok: (r, wp) => `✓ 已发布到 ${r.target}${r.url ? ` → ${r.url}` : ''}${wp ? '（默认存草稿，最后一步由人按）' : ''}`,
+    fail: r => `✗ ${r.target} 发布失败：${r.error}`,
+  } : {
+    noFacts: '⚠ no --facts given: the fabrication gate is SKIPPED. Content with factual claims must pass the gate.',
+    noTarget: names => `--target not given; available: ${names}`,
+    gateFail: n => `✗ fabrication gate blocked publishing (${n} issue(s)) — fix them, or knowingly override with --force (recorded):`,
+    forced: '⚠ gate failed but publishing was FORCED — this is recorded in the result.',
+    ok: (r, wp) => `✓ published to ${r.target}${r.url ? ` → ${r.url}` : ''}${wp ? ' (draft by default — a human presses the final button)' : ''}`,
+    fail: r => `✗ ${r.target} failed: ${r.error}`,
+  };
+  let markdown = readFileSync(flags.file, 'utf8');
+  let title = flags.title;
+  if (!title) {
+    const m = /^#\s+(.+)$/m.exec(markdown);
+    if (m) { title = m[1].trim(); markdown = markdown.replace(m[0], '').trimStart(); }
+    else title = basename(flags.file).replace(/\.[^.]+$/, '');
+  }
+  const targets = JSON.parse(readFileSync(flags.targets, 'utf8'));
+  const chosen = flags.target ? targets.filter(t => t.name === flags.target) : targets;
+  if (chosen.length === 0) {
+    console.error(T.noTarget(targets.map(t => t.name).join(', ')));
+    process.exit(1);
+  }
+  let facts;
+  if (flags.facts) facts = JSON.parse(readFileSync(flags.facts, 'utf8'));
+  else console.log(T.noFacts);
+  let anyFail = false;
+  for (const target of chosen) {
+    const r = await publishTo(target, { title, markdown }, { facts, force: flags.force });
+    if (r.ok) {
+      if (r.gateForced) console.log(T.forced);
+      console.log(T.ok(r, target.type === 'wordpress' && (target.status ?? 'draft') === 'draft'));
+    } else {
+      anyFail = true;
+      console.log(T.fail(r));
+      if (r.gateIssues) {
+        console.log(T.gateFail(r.gateIssues.length));
+        for (const i of r.gateIssues) console.log(`   L${i.line} [${i.kind}] ${i.quote} — ${i.suggestion}`);
+      }
+    }
+  }
+  if (anyFail) process.exit(1);
+}
 
 async function cmdExpand() {
   if (!flags.seed) {

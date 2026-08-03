@@ -62,6 +62,9 @@ npx fastergeo botlog --file access.log --lang zh   # AI 爬虫分用途统计 + 
 
 # 8. 拓词：把真实搜索需求挖成题库候选（免 Key）
 npx fastergeo expand --seed "定制T恤" --expand --out candidates.json --lang zh
+
+# 9. 发布过了门禁的内容（WordPress / GitHub / 签名 Webhook）
+npx fastergeo publish --file draft.md --targets targets.json --facts facts.json --lang zh
 ```
 
 每条命令都可独立使用。数据是你本机的纯 JSON 文件——`git init` 就是备份方案。
@@ -111,10 +114,10 @@ claude mcp add fastergeo -- npx -y @fastergeo/mcp     # Claude Code
 
 ## 架构
 
-十一个包的 monorepo，每个可独立使用：`rules`（100+ 确定性规则，fork 自 [geo-lint](https://github.com/IJONIS/geo-lint) 并补全 CJK）· `providers`（18 引擎适配 + Key 健康检查）· `metrics`（漏斗指标 + 认知/口碑双裁判 + Wilson 置信区间 + 人工采样表）· `audit`（六维体检，实证锚定）· `tickets`（验收 DSL）· `content`（事实库 + 编造门禁 + bootstrap + 拓词）· `trends`（期历史 + 归因纪律）· `report`（自包含 HTML + 答案回放逐字留档）· `botlog`（自托管 AI 爬虫/AI 引荐日志分析）· `mcp`（Agent 用 MCP 服务器）· `cli`
+十二个包的 monorepo，每个可独立使用：`rules`（100+ 确定性规则，fork 自 [geo-lint](https://github.com/IJONIS/geo-lint) 并补全 CJK）· `providers`（18 引擎适配 + Key 健康检查）· `metrics`（漏斗指标 + 认知/口碑双裁判 + Wilson 置信区间 + 人工采样表）· `audit`（六维体检，实证锚定）· `tickets`（验收 DSL）· `content`（事实库 + 编造门禁 + bootstrap + 拓词）· `trends`（期历史 + 归因纪律）· `report`（自包含 HTML + 答案回放逐字留档）· `botlog`（自托管 AI 爬虫/AI 引荐日志分析）· `publish`（带编造门禁的发布连接器）· `mcp`（Agent 用 MCP 服务器）· `cli`
 
 ```bash
-pnpm install && pnpm -r build && pnpm -r test   # 578 个测试
+pnpm install && pnpm -r build && pnpm -r test
 ```
 
 ## 协议

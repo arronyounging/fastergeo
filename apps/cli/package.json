@@ -17,6 +17,7 @@
     "@fastergeo/content": "workspace:^",
     "@fastergeo/metrics": "workspace:^",
     "@fastergeo/providers": "workspace:^",
+    "@fastergeo/publish": "workspace:^",
     "@fastergeo/report": "workspace:^",
     "@fastergeo/tickets": "workspace:^",
     "@fastergeo/trends": "workspace:^",
