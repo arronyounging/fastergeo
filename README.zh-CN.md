@@ -68,6 +68,10 @@ npx fastergeo publish --file draft.md --targets targets.json --facts facts.json 
 
 # 10. 官方数据对账（GSC 生成式 AI 报告 / Bing AI Performance 的 CSV 导出 × 我们的体检）
 npx fastergeo official --file gsc-export.csv --dir myproject --lang zh
+
+# 11. 商品级 GEO：AI 推荐的是不是你的商品？报的价格对不对？
+npx fastergeo products --root https://shop.com --urls /p/a,/p/b --questions-out shopq.json
+npx fastergeo shopping --samples s.jsonl --products products.json --brand brand.json --lang zh
 ```
 
 每条命令都可独立使用。数据是你本机的纯 JSON 文件——`git init` 就是备份方案。
@@ -117,7 +121,7 @@ claude mcp add fastergeo -- npx -y @fastergeo/mcp     # Claude Code
 
 ## 架构
 
-十三个包的 monorepo，每个可独立使用：`rules`（100+ 确定性规则，fork 自 [geo-lint](https://github.com/IJONIS/geo-lint) 并补全 CJK）· `providers`（18 引擎适配 + Key 健康检查）· `metrics`（漏斗指标 + 认知/口碑双裁判 + Wilson 置信区间 + 人工采样表）· `audit`（六维体检，实证锚定）· `tickets`（验收 DSL）· `content`（事实库 + 编造门禁 + bootstrap + 拓词）· `trends`（期历史 + 归因纪律）· `report`（自包含 HTML + 答案回放逐字留档）· `botlog`（自托管 AI 爬虫/AI 引荐日志分析）· `publish`（带编造门禁的发布连接器）· `officialdata`（GSC/Bing 官方报告对账）· `mcp`（Agent 用 MCP 服务器）· `cli`
+十四个包的 monorepo，每个可独立使用：`rules`（100+ 确定性规则，fork 自 [geo-lint](https://github.com/IJONIS/geo-lint) 并补全 CJK）· `providers`（18 引擎适配 + Key 健康检查）· `metrics`（漏斗指标 + 认知/口碑双裁判 + Wilson 置信区间 + 人工采样表）· `audit`（六维体检，实证锚定）· `tickets`（验收 DSL）· `content`（事实库 + 编造门禁 + bootstrap + 拓词）· `trends`（期历史 + 归因纪律）· `report`（自包含 HTML + 答案回放逐字留档）· `botlog`（自托管 AI 爬虫/AI 引荐日志分析）· `publish`（带编造门禁的发布连接器）· `officialdata`（GSC/Bing 官方报告对账）· `commerce`（商品级指标：目录采集 + 错价检测带证据）· `mcp`（Agent 用 MCP 服务器）· `cli`
 
 ```bash
 pnpm install && pnpm -r build && pnpm -r test

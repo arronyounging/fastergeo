@@ -39,6 +39,9 @@ import { computeTrends } from '@fastergeo/trends';
 import { analyzeBotlog } from '@fastergeo/botlog';
 import { publishTo } from '@fastergeo/publish';
 import { parseOfficialCsv, detectSource, reconcile } from '@fastergeo/officialdata';
+import {
+  extractJsonLdProducts, parseShopifyProducts, analyzeShopping, buildShoppingQuestions,
+} from '@fastergeo/commerce';
 import { readdirSync, mkdirSync, existsSync } from 'node:fs';
 import { resolve as resolvePath, basename } from 'node:path';
 import { writeFileSync } from 'node:fs';
@@ -73,6 +76,9 @@ const { values: flags } = parseArgs({
     targets: { type: 'string' },
     source: { type: 'string' },
     audit: { type: 'string' },
+    shopify: { type: 'boolean', default: false },
+    products: { type: 'string' },
+    'questions-out': { type: 'string' },
     target: { type: 'string' },
     title: { type: 'string' },
     force: { type: 'boolean', default: false },
@@ -426,7 +432,105 @@ const commands = {
   sheet: cmdSheet, import: cmdImport, trends: cmdTrends,
   cycle: cmdCycle, schedule: cmdSchedule, ui: cmdUi, botlog: cmdBotlog,
   expand: cmdExpand, publish: cmdPublish, official: cmdOfficial,
+  products: cmdProducts, shopping: cmdShopping,
 };
+
+async function cmdProducts() {
+  if (!flags.root) {
+    console.error('usage: fastergeo products --root https://shop.com [--urls /p/a,/p/b | --shopify] [--out products.json] [--questions-out shopping-questions.json]');
+    process.exit(1);
+  }
+  const T = LANG === 'zh' ? {
+    got: (n, src) => `采集到 ${n} 个商品（${src}）`,
+    warn: w => `⚠ ${w.url ? w.url + ' — ' : ''}${w.message}`,
+    fetchFail: u => `✗ 抓取失败：${u}`,
+    saved: (f, n) => `目录已写入 ${f}（${n} 个商品）——价格/别名可人工修订后再用`,
+    qSaved: (f, n) => `购买意图题候选已写入 ${f}（${n} 条）——候选不自动入题库`,
+  } : {
+    got: (n, src) => `extracted ${n} product(s) (${src})`,
+    warn: w => `⚠ ${w.url ? w.url + ' — ' : ''}${w.message}`,
+    fetchFail: u => `✗ fetch failed: ${u}`,
+    saved: (f, n) => `catalog written to ${f} (${n} products) — review prices/aliases by hand before use`,
+    qSaved: (f, n) => `buying-intent question candidates written to ${f} (${n}) — candidates are never auto-added to the bank`,
+  };
+  let products = [];
+  let warnings = [];
+  let source;
+  if (flags.shopify) {
+    source = 'shopify';
+    const url = `${flags.root.replace(/\/$/, '')}/products.json`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(20000) });
+    if (!res.ok) { console.error(T.fetchFail(`${url} (HTTP ${res.status})`)); process.exit(1); }
+    const r = parseShopifyProducts(await res.text(), flags.root);
+    products = r.products; warnings = r.warnings;
+  } else {
+    source = 'jsonld';
+    const urls = (flags.urls ? flags.urls.split(',') : ['/'])
+      .map(u => (u.startsWith('http') ? u : new URL(u, flags.root).href));
+    for (const u of urls) {
+      try {
+        const res = await fetch(u, { signal: AbortSignal.timeout(20000), headers: { 'User-Agent': 'FasterGEO-Commerce/0.1 (+https://fastergeo.co)' } });
+        if (!res.ok) { warnings.push({ url: u, message: `HTTP ${res.status}` }); continue; }
+        const r = extractJsonLdProducts(await res.text(), u);
+        products.push(...r.products); warnings.push(...r.warnings);
+      } catch (err) {
+        warnings.push({ url: u, message: String(err?.message ?? err) });
+      }
+    }
+  }
+  console.log(T.got(products.length, source));
+  for (const w of warnings) console.log(T.warn(w));
+  const catalog = { source, fetchedAt: new Date().toISOString(), products, warnings };
+  const out = flags.out ?? 'products.json';
+  writeFileSync(out, JSON.stringify(catalog, null, 2));
+  console.log(T.saved(out, products.length));
+  if (flags['questions-out']) {
+    const qs = buildShoppingQuestions(products);
+    writeFileSync(flags['questions-out'], JSON.stringify(qs, null, 2));
+    console.log(T.qSaved(flags['questions-out'], qs.length));
+  }
+}
+
+async function cmdShopping() {
+  if (!flags.samples || !flags.products || !flags.brand) {
+    console.error('usage: fastergeo shopping --samples s.jsonl --products products.json --brand brand.json [--format geolook] [--json]');
+    process.exit(1);
+  }
+  const brand = JSON.parse(readFileSync(flags.brand, 'utf8'));
+  const catalog = JSON.parse(readFileSync(flags.products, 'utf8'));
+  const products = Array.isArray(catalog) ? catalog : catalog.products;
+  const raw = readFileSync(flags.samples, 'utf8');
+  const samples = flags.format === 'geolook'
+    ? parseGeoLookSamples(raw)
+    : raw.split('\n').filter(Boolean).map(l => JSON.parse(l));
+  const report = analyzeShopping(samples, products, brand.name);
+  if (flags.json) { console.log(JSON.stringify(report, null, 2)); return; }
+  const T = LANG === 'zh' ? {
+    head: r => `品牌 ${r.brand} · 样本 ${r.totalSamples} · 商品 ${products.length}`,
+    plat: p => `${p.providerId.padEnd(12)} [${p.market}] 任一商品提及率 ${p.anyProductMentionRate === null ? '未测' : (p.anyProductMentionRate * 100).toFixed(0) + '%'}（${p.samples} 样本）`,
+    prod: st => `  ${st.name.padEnd(24)} 提及 ${st.mentions} · 价格对 ${st.priceChecks.correct} / 错 ${st.priceChecks.wrong} / 未报价 ${st.priceChecks.none}`,
+    wrong: e => `    🔴 错价证据：「${e}」`,
+    none: '（无商品在任何回答中被提及）',
+  } : {
+    head: r => `brand ${r.brand} · samples ${r.totalSamples} · products ${products.length}`,
+    plat: p => `${p.providerId.padEnd(12)} [${p.market}] any-product mention ${p.anyProductMentionRate === null ? 'unmeasured' : (p.anyProductMentionRate * 100).toFixed(0) + '%'} (${p.samples} samples)`,
+    prod: st => `  ${st.name.padEnd(24)} mentions ${st.mentions} · price ok ${st.priceChecks.correct} / wrong ${st.priceChecks.wrong} / unquoted ${st.priceChecks.none}`,
+    wrong: e => `    🔴 wrong-price evidence: "${e}"`,
+    none: '(no product was mentioned in any answer)',
+  };
+  console.log(T.head(report) + '\n');
+  let any = false;
+  for (const p of report.platforms) {
+    console.log(T.plat(p));
+    for (const st of p.products) {
+      if (st.mentions === 0) continue;
+      any = true;
+      console.log(T.prod(st));
+      for (const e of st.wrongPriceEvidence) console.log(T.wrong(e));
+    }
+  }
+  if (!any) console.log(T.none);
+}
 
 async function cmdOfficial() {
   if (!flags.file) {
