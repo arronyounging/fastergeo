@@ -190,7 +190,7 @@ export function createFastergeoServer(): McpServer {
       if (judgeEngine) {
         const jp = resolveProvider(judgeEngine);
         const askJudge = async (prompt: string): Promise<string> =>
-          (await ask(jp, { question: prompt, maxTokens: 500 })).answer;
+          (await ask(jp, { question: prompt, maxTokens: 500, temperature: 0 })).answer;
         judge = makeLlmJudge(askJudge);
         sentimentJudge = makeSentimentJudge(askJudge);
       }

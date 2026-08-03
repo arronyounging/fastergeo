@@ -54,8 +54,10 @@ series rather than contaminating existing per-platform series.
 
 ### 3.2 Collection
 API-reachable engines are sampled via `fastergeo sample`; the responding model is
-recorded per sample. Temperature currently follows each engine's default and is
-not pinned — pinning it per sample is on the roadmap. Engines without APIs are
+recorded per sample. Answer-sampling temperature follows each engine's default
+(sampling should reflect what real users get); **judge calls are pinned at
+temperature 0** for verdict stability (98.2% unanimous across repeated runs on
+the golden bench). Engines without APIs are
 sampled manually through the zero-key sample sheet (`fastergeo sheet`) — a human
 pastes real app answers; the parser is tolerant but never invents fields.
 Importing a sheet **requires** the question bank so probe flags are restored:

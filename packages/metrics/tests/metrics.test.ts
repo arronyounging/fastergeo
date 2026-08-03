@@ -363,3 +363,17 @@ describe('earlyMentionRate — PAWC-lite', () => {
     expect(r.platforms[0].earlyMentionRate).toBeNull();
   });
 });
+
+describe('makeLlmJudge — invented-quote guard (prompt v2)', () => {
+  it('downgrades confused whose evidence is not verbatim in the answer', async () => {
+    const judge = makeLlmJudge(async () => '{"verdict":"confused","evidence":"这句话在原文里不存在"}');
+    const r = await judge({ answer: '该品牌主要做汽车配件。', brandName: 'X' });
+    expect(r.verdict).toBe('unverified');
+  });
+
+  it('accepts confused whose evidence matches after whitespace normalization', async () => {
+    const judge = makeLlmJudge(async () => '{"verdict":"confused","evidence":"主要做 汽车配件"}');
+    const r = await judge({ answer: '该品牌主要做汽车配件。', brandName: 'X' });
+    expect(r.verdict).toBe('confused');
+  });
+});

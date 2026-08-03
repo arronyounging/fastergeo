@@ -55,6 +55,9 @@ export interface SampleRequest {
   questionId?: string;
   timeoutMs?: number;
   maxTokens?: number;
+  /** Sampling temperature. Omit → engine default (recorded as unset).
+   * Judges pin 0 for verdict stability. */
+  temperature?: number;
 }
 
 export interface SampleResult {

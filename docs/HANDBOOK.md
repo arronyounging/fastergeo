@@ -407,7 +407,7 @@ Full definitions live in [`METHODOLOGY.md`](../METHODOLOGY.md) — every metric 
 **The seven disciplines** (in code, not in footnotes):
 1. Unmeasured is `null`, never zero. 2. Visibility is a distribution (repetition + intervals + the two-period rule). 3. Verdicts carry evidence or stay unverified. 4. cn/global are never averaged. 5. Fixes are proven by re-measurement, not assertion. 6. Probes are strictly segregated from visibility. 7. The fabrication gate applies to our own docs and marketing too — every statistic has a source.
 
-**Stated limitations**: sampling-based monitoring is inherently partial (official GSC/Bing data is ground truth for your own site — reconcile with `official`); judge verdicts depend on the judge model (`method` recorded); audit anchors are correlational priors, not laws (the Princeton +40% replicated in only 3/54 scenarios); alias-exact matching misses creative misspellings (precision over recall); temperature is not yet pinned (roadmap).
+**Stated limitations**: sampling-based monitoring is inherently partial (official GSC/Bing data is ground truth for your own site — reconcile with `official`); judge verdicts depend on the judge model (`method` recorded); audit anchors are correlational priors, not laws (the Princeton +40% replicated in only 3/54 scenarios); alias-exact matching misses creative misspellings (precision over recall). Judge temperature is pinned at 0; answer-sampling temperature follows engine defaults by design.
 
 ## 13. Troubleshooting
 
