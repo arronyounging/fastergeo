@@ -1,6 +1,6 @@
 {
   "name": "@fastergeo/report",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "description": "FasterGEO reporting — self-contained HTML diagnosis reports built around the Brand Entity Funnel, with blocker-first layout and per-metric methodology notes. Unmeasured stays unmeasured.",
   "license": "Apache-2.0",
   "type": "module",
