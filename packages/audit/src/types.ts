@@ -89,6 +89,9 @@ export interface SiteAudit {
   generatedAt: string;
   site: SiteChecks;
   pages: PageAudit[];
+  /** URLs that could not be fetched — named, never silently dropped.
+   * Optional for compatibility with audits stored before this field existed. */
+  failedUrls?: string[];
   avgScore: number | null;
   gradeDistribution: Record<'A' | 'B' | 'C' | 'D', number>;
   /** Site-wide blockers, e.g. all product pages are client-rendered shells. */

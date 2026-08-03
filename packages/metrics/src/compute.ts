@@ -19,7 +19,19 @@ function competitorSets(brand: BrandConfig): Array<{ name: string; names: string
 }
 
 function citesOwnDomain(citations: string[], domains: string[]): boolean {
-  return citations.some(url => domains.some(d => url.toLowerCase().includes(d.toLowerCase())));
+  return citations.some(url => {
+    // Hostname suffix match — 'notcustyle.ai.evil.co' must not count as
+    // custyle.ai. Non-URL citation strings fall back to substring.
+    try {
+      const host = new URL(url).hostname.toLowerCase();
+      return domains.some(d => {
+        const dom = d.toLowerCase();
+        return host === dom || host.endsWith(`.${dom}`);
+      });
+    } catch {
+      return domains.some(d => url.toLowerCase().includes(d.toLowerCase()));
+    }
+  });
 }
 
 const ratio = (num: number, den: number): number | null => (den > 0 ? num / den : null);

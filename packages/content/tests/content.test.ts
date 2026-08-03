@@ -49,6 +49,15 @@ describe('lintFabrication', () => {
     const issues = lintFabrication(draft, STORE);
     expect(issues.some(i => i.kind === 'unconfirmed-fact' && i.quote.includes('成立'))).toBe(true);
   });
+
+  it('flags confirmed grade-E facts entering a draft (hearsay gate)', () => {
+    const store: FactStore = {
+      ...STORE,
+      facts: [...STORE.facts, { id: 'F-004', claim: '团队规模约十人', grade: 'E', status: 'confirmed' }],
+    };
+    const issues = lintFabrication('据了解团队规模约十人。', store);
+    expect(issues.some(i => i.kind === 'e-grade-fact' && i.suggestion.includes('E 级'))).toBe(true);
+  });
 });
 
 describe('buildOutline', () => {

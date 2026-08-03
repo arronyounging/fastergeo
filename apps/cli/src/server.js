@@ -47,12 +47,16 @@ export function startUi(projectDir, port = 8765) {
 
       if (url.pathname === '/api/project') {
         const periods = loadPeriods(projectDir);
+        const latest = periods[periods.length - 1] ?? null;
+        // samples can be MBs of verbatim answers and the frontend does not
+        // read them from this endpoint — /api/report renders them instead.
+        const { samples: _omit, ...latestLite } = latest ?? {};
         return send(200, {
           brand: loadJson(join(projectDir, 'brand.json'), {}),
           facts: loadJson(join(projectDir, 'facts.json')),
           tickets: loadJson(join(projectDir, 'tickets.json'), []),
           periods: periods.map(p => p.date),
-          latest: periods[periods.length - 1] ?? null,
+          latest: latest ? latestLite : null,
         });
       }
 

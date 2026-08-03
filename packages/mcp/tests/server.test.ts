@@ -78,4 +78,26 @@ describe('fastergeo MCP server', () => {
     const r = await client.callTool({ name: 'generate_tickets', arguments: {} });
     expect(r.isError).toBe(true);
   });
+
+  it('returns actionable errors for malformed JSON params', async () => {
+    const bad = await client.callTool({ name: 'verify_tickets', arguments: { tickets: '{not json' } });
+    expect(bad.isError).toBe(true);
+    expect(text(bad)).toContain('tickets');
+    expect(text(bad)).toContain('not valid JSON');
+    const notArray = await client.callTool({ name: 'verify_tickets', arguments: { tickets: '{"a":1}' } });
+    expect(notArray.isError).toBe(true);
+    expect(text(notArray)).toContain('array');
+    const noFacts = await client.callTool({ name: 'check_fabrication', arguments: { draft: 'x', facts: '{}' } });
+    expect(noFacts.isError).toBe(true);
+    expect(text(noFacts)).toContain('facts');
+  });
+
+  it('rejects non-http url schemes by name in audits', async () => {
+    const r = await client.callTool({
+      name: 'audit_site',
+      arguments: { root: 'https://example.com', urls: ['javascript:alert(1)'] },
+    });
+    expect(r.isError).toBe(true);
+    expect(text(r)).toContain('unsupported scheme');
+  });
 });

@@ -111,6 +111,9 @@ export async function auditSite(
   const site = await checkSite(root, opts.timeoutMs);
   const results = await Promise.all(urls.map(u => auditPage(u, opts)));
   const pages = results.filter((p): p is PageAudit => p !== null);
+  // Unmeasured stays unmeasured: pages that could not be fetched are named,
+  // never silently dropped from the average.
+  const failedUrls = urls.filter((_, i) => results[i] === null);
 
   const gradeDistribution = { A: 0, B: 0, C: 0, D: 0 };
   for (const p of pages) gradeDistribution[p.grade]++;
@@ -131,6 +134,7 @@ export async function auditSite(
     generatedAt: new Date().toISOString(),
     site,
     pages,
+    failedUrls,
     avgScore: pages.length > 0
       ? Math.round((pages.reduce((a, p) => a + p.score, 0) / pages.length) * 10) / 10
       : null,

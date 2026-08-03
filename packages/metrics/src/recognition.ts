@@ -78,8 +78,14 @@ export function makeLlmJudge(
       const jsonText = raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1);
       const parsed = JSON.parse(jsonText);
       const v = parsed.verdict;
+      const evidence = typeof parsed.evidence === 'string' ? parsed.evidence.trim() : '';
+      // A confusion verdict without quoted evidence is not a verdict —
+      // downgrade to unverified rather than accept an unsupported P0 claim.
+      if (v === 'confused' && !evidence) {
+        return { verdict: 'unverified', method: 'judge' };
+      }
       if (v === 'knows' || v === 'unknown' || v === 'confused' || v === 'unverified') {
-        return { verdict: v, evidence: parsed.evidence, method: 'judge' };
+        return { verdict: v, evidence: evidence || undefined, method: 'judge' };
       }
     } catch { /* fall through */ }
     return { verdict: 'unverified', method: 'judge' };

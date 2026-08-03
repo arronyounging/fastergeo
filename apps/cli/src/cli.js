@@ -21,7 +21,7 @@ import { generateTickets, verifyTickets } from '@fastergeo/tickets';
 import { buildOutline, draftPrompt, lintFabrication, bootstrapProject } from '@fastergeo/content';
 import { renderHtmlReport } from '@fastergeo/report';
 import { computeTrends } from '@fastergeo/trends';
-import { readdirSync, mkdirSync } from 'node:fs';
+import { readdirSync, mkdirSync, existsSync } from 'node:fs';
 import { resolve as resolvePath, basename } from 'node:path';
 import { writeFileSync } from 'node:fs';
 
@@ -182,6 +182,7 @@ async function cmdAudit() {
   console.log(`site: robots ${s.robotsTxtFound ? '✓' : '✗'} · sitemap ${s.sitemapFound ? '✓' : '✗'} · llms.txt ${s.llmsTxtFound ? '✓' : '✗'}` +
     (s.blockedAiCrawlers.length ? ` · 🔴 AI crawlers blocked: ${s.blockedAiCrawlers.join(',')}` : ''));
   console.log(`avg ${report.avgScore ?? 'unmeasured'} · A${report.gradeDistribution.A} B${report.gradeDistribution.B} C${report.gradeDistribution.C} D${report.gradeDistribution.D}\n`);
+  for (const u of report.failedUrls ?? []) console.log(`✗ unreachable (excluded from avg, not scored): ${u}`);
   for (const b of report.blockers) console.log(`🔴 BLOCKER: ${b}`);
   for (const p of report.pages) {
     const dims = p.dimensions
@@ -445,7 +446,13 @@ async function cmdCycle() {
   const samples = sampled.filter(s => !s.error);
   const failed = sampled.filter(s => s.error);
   if (failed.length) console.log(`  ${failed.length} samples failed (skipped)`);
-  writeFileSync(`${dir}/samples-${date}.jsonl`, samples.map(s => JSON.stringify(s)).join('\n') + '\n');
+  // Never clobber an earlier same-day run with an empty file: a rerun where
+  // every sample failed (keys/network down) must not destroy the day's data.
+  if (samples.length) {
+    writeFileSync(`${dir}/samples-${date}.jsonl`, samples.map(s => JSON.stringify(s)).join('\n') + '\n');
+  } else if (existsSync(`${dir}/samples-${date}.jsonl`)) {
+    console.log(`  0 samples this run — keeping existing samples-${date}.jsonl untouched`);
+  }
 
   // 2. 指标（可选 judge）
   console.log('[2/5] metrics…');
@@ -611,7 +618,11 @@ async function cmdImport() {
   if (flags.questions) {
     imported = enrichWithQuestionBank(imported, JSON.parse(readFileSync(flags.questions, 'utf8')));
   } else {
-    console.log('⚠ no --questions given — probe flags cannot be restored; pass the question bank file.');
+    // Without the question bank, probe flags cannot be restored — probe
+    // answers would silently enter the visibility pool and inflate every
+    // metric. Refusing is the only honest behavior.
+    console.error('✗ --questions is required: without the question bank, probe questions cannot be separated from visibility questions, which fabricates mention rates. Pass the questions.json used to create this sheet.');
+    process.exit(1);
   }
   const out = flags.out ?? 'samples-manual.jsonl';
   writeFileSync(out, imported.samples.map(s => JSON.stringify(s)).join('\n') + '\n');

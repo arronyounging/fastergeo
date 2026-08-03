@@ -18,6 +18,7 @@ const INPUT: ReportInput = {
       blocks: { definition: false, statistics: false, comparison: false, steps: false, faq: false },
       blockers: ['spa-shell: 页面 HTML 419KB 但可见正文仅 23 词等效'],
     }],
+    failedUrls: ['https://custyle.ai/timeout-page'],
     avgScore: 44.6,
     gradeDistribution: { A: 0, B: 2, C: 1, D: 4 },
     blockers: [],
@@ -155,6 +156,59 @@ describe('renderHtmlReport — answer replay', () => {
 
   it('omits the section entirely without samples', () => {
     expect(renderHtmlReport(INPUT)).not.toContain('Answer Replay');
+  });
+
+  it('uses metric word-boundary rules — no mention chip or highlight for lookalike names', () => {
+    const lookalike = renderHtmlReport({
+      ...withSamples,
+      samples: [{
+        providerId: 'doubao', market: 'cn', questionId: 'q3',
+        question: 'best custom merch?', brandInQuestion: false,
+        answer: 'Custylex is a popular platform.', citations: [],
+      }],
+    });
+    expect(lookalike).not.toContain('<mark class="hl-brand">');
+    expect(lookalike).toContain('no mention');
+    expect(lookalike).not.toContain('>mentions brand<');
+  });
+
+  it('never tags unprompted answers with confusion evidence (probe-only)', () => {
+    const html2 = renderHtmlReport({
+      ...withSamples,
+      samples: [{
+        providerId: 'doubao', market: 'cn', questionId: 'q4',
+        question: 'top platforms?', brandInQuestion: false,
+        answer: '有的品牌主打汽车外观改装件（前后包围、中网）。', citations: [],
+      }],
+    });
+    // No red mark and no red chip on the unprompted sample — the evidence
+    // note (group-level fallback) is the only place the quote may surface.
+    expect(html2).not.toContain('<mark class="hl-ev">');
+    expect(html2).not.toContain('class="chip c-bad"');
+  });
+
+  it('renders judge evidence that cannot be located verbatim as an explicit note', () => {
+    const paraphrased = renderHtmlReport({
+      ...withSamples,
+      metrics: {
+        ...withSamples.metrics!,
+        platforms: [{
+          ...withSamples.metrics!.platforms[0],
+          probe: {
+            samples: 1,
+            recognition: { knows: 0, unknown: 0, confused: 1, unverified: 0 },
+            confusedEvidence: ['裁判改写过的引语（原文里不存在）'],
+          },
+        }],
+      },
+    });
+    expect(paraphrased).toContain('could not be located verbatim');
+    expect(paraphrased).toContain('裁判改写过的引语');
+  });
+
+  it('names unreachable pages in the audit section', () => {
+    expect(html).toContain('unreachable');
+    expect(html).toContain('timeout-page');
   });
 });
 

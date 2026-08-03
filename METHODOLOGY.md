@@ -48,14 +48,19 @@ numbers are inflated — a brand-in-question sample trivially "mentions" the bra
 
 ### 3.1 Question bank
 Questions come from a versioned question bank per project, split into unprompted and
-probe sets. Questions are held constant across periods; adding a question starts its
-own series rather than contaminating existing ones.
+probe sets. Protocol rule (operational discipline, not yet enforced in code): hold
+questions constant across periods; treat an added question as starting its own
+series rather than contaminating existing per-platform series.
 
 ### 3.2 Collection
-API-reachable engines are sampled via `fastergeo sample` (temperature and model
-recorded per sample). Engines without APIs are sampled manually through the
-zero-key sample sheet (`fastergeo sheet`) — a human pastes real app answers; the
-parser is tolerant but never invents fields it cannot find.
+API-reachable engines are sampled via `fastergeo sample`; the responding model is
+recorded per sample. Temperature currently follows each engine's default and is
+not pinned — pinning it per sample is on the roadmap. Engines without APIs are
+sampled manually through the zero-key sample sheet (`fastergeo sheet`) — a human
+pastes real app answers; the parser is tolerant but never invents fields.
+Importing a sheet **requires** the question bank so probe flags are restored:
+without it, `fastergeo import` refuses rather than let probe answers leak into
+the visibility pool.
 
 ### 3.3 Market separation
 Every sample carries its engine's market. All downstream computation groups by
@@ -81,15 +86,20 @@ All computed per engine, unprompted pool only (`packages/metrics/src/compute.ts`
 | Metric | Definition |
 |---|---|
 | `mentionRate` | Fraction of unprompted samples whose answer mentions the brand (name or registered alias). |
-| `top1Rate` / `top3Rate` | Fraction of unprompted samples where the brand is the 1st / within the first 3 distinct recommended entities. An unmentioned brand has no rank — it is **absent from the candidate set**, not "rank ∞". |
+| `top1Rate` / `top3Rate` | Fraction of unprompted samples where the brand is 1st / within the first 3 **among the brand and registered competitors**, ordered by first-mention position. Unregistered entities do not occupy ranks. An unmentioned brand has no rank — it is **absent from the candidate set**, not "rank ∞". |
 | `avgRank` | Mean rank across samples where the brand appeared. `null` if it never appeared. |
-| `shareOfVoice` | Brand appearances ÷ (brand + tracked-competitor appearances), by entity occurrence. Only *registered* competitors count; unknown entities are not silently added to the denominator. |
+| `shareOfVoice` | Brand presence ÷ (brand + tracked-competitor presence), counted **per sample per entity** — each entity counts at most once per answer, however often it is repeated. Only *registered* competitors count; unknown entities are not silently added to the denominator. |
 | `ownDomainCiteRate` | Fraction of unprompted samples citing ≥1 URL on the brand's own domains. |
 | `citationShare` | Brand-domain citation URLs ÷ all citation URLs across the pool. |
 | `competitorMentions` | Raw per-competitor counts, for the SoV breakdown. |
 
 Brand/competitor matching uses exact name + alias matching, not fuzzy matching —
-false positives inflate every metric downstream, so precision is preferred to recall.
+false positives inflate every metric downstream, so precision is preferred to
+recall. Latin names match on word boundaries, case-insensitive ("Custyle" does
+not hit "Custylex"); CJK names match by substring, since CJK has no word
+boundaries — pick CJK aliases that are not substrings of other entity names.
+Citation attribution matches by hostname suffix (`custyle.ai` matches
+`www.custyle.ai`, never `notcustyle.ai.evil.co`).
 
 ## 5. Recognition classification
 
@@ -98,9 +108,9 @@ Probe answers are classified into four verdicts (`packages/metrics/src/recogniti
 | Verdict | Meaning | How it is assigned |
 |---|---|---|
 | `knows` | Engine correctly describes the brand | LLM judge only, with the brand's actual description as reference |
-| `unknown` | Engine admits it doesn't know | High-precision denial patterns (zh + en), deterministic |
-| `confused` | Engine attributes the brand to a different entity/industry | LLM judge only, **must quote verbatim evidence** |
-| `unverified` | Cannot be determined | The default whenever the above cannot be established |
+| `unknown` | Engine admits it doesn't know | High-precision denial patterns (zh + en), deterministic; the judge may also return it |
+| `confused` | Engine attributes the brand to a different entity/industry | LLM judge only, **must include a quoted evidence passage** — a confused verdict without one is downgraded to `unverified` (enforced in code) |
+| `unverified` | Cannot be determined | The default whenever the above cannot be established, including unparseable judge output |
 
 **Why this exists:** name-echo counting scores every probe as "recognized" — the engine
 repeats the name you typed. In our first field run, four engines all scored 100% under
@@ -123,9 +133,11 @@ Bands are anchored to published empirical citation research, not taste:
   bottom quartile; long-form (>2,900 words) earns ~5.1 citations vs 3.2 for <800.
   Full score from 1,500 word-equivalents.
 - **Blocks (25, the heaviest):** statistics (+61.6%), definitions (+57.3%),
-  comparisons (+55.3%), step-by-step content (+41.2%) raise citation probability;
-  FAQ blocks and tables show the largest multipliers. Five detectable block types,
-  weighted accordingly.
+  comparisons (+55.3%), step-by-step content (+41.2%) raise citation probability.
+  Current weights: definition 6 · statistics 6 · comparison 5 · steps 5 · FAQ 3.
+  FAQ shows a large multiplier in the research but its regex detection is the
+  noisiest of the five, hence the conservative weight; tables are extracted but
+  not yet scored. Both are candidates for re-weighting as detection improves.
 - **Structure (20):** clean single-H1 hierarchy with ≥5 H2 sections correlates with
   ~3.2× citations.
 - **Relevance (10):** keyword coverage of the project question bank in title +
@@ -168,10 +180,12 @@ market it as a P0 fix.
 `packages/trends/src/index.ts`, in code, not in a style guide:
 
 - A change between two periods is an **observation**, never a conclusion.
-- Only **two consecutive same-direction changes** constitute a **trend**.
+- Only **two consecutive same-direction changes** constitute a **trend**
+  (consecutive *measured* periods — unmeasured gaps are skipped, not interpolated).
 - Deterministic findings alert immediately regardless (P0): a new engine starting to
-  confuse the brand, blocker counts rising, verified tickets regressing — these are
-  facts, not sampled distributions.
+  confuse the brand, blocker counts rising — these are facts, not sampled
+  distributions. Ticket regressions are raised by `verify` itself at transition
+  time (`done → regressed`), not by the trends layer.
 - A single-period mention-rate drop >10pp emits a *warning* explicitly labelled as
   observation-level.
 
@@ -185,9 +199,12 @@ Generated content (drafts, llms.txt, JSON-LD) draws exclusively from a per-proje
 > third-party · **D** non-authoritative third-party · **E** inference/hearsay —
 > **grade E never enters published content.**
 
-`fastergeo fabcheck` lints drafts for unsourced numbers, superlatives, and
-do-not-claim phrases before a human ever reviews them. The tool that tells you AI
-engines misrepresent your brand must not itself fabricate claims about you.
+Generation excludes grade-E and unconfirmed facts at the source; `fastergeo
+fabcheck` then lints drafts for unsourced numbers, superlatives, do-not-claim
+phrases, and any grade-E or unconfirmed fact claim that made it into the text
+(via human edits or LLM priors) before a human ever reviews them. The tool that
+tells you AI engines misrepresent your brand must not itself fabricate claims
+about you.
 
 ## 10. Known limitations
 
@@ -198,7 +215,8 @@ Stated here because honesty is the product:
    Official sources (Google Search Console Gen-AI reports, Bing AI Performance) are
    ground truth for *your own* citations where available — use them alongside this.
 2. **Recognition judging depends on the judge model.** Verdicts record their method
-   (`heuristic` / `judge`); judge disagreement resolves to `unverified`.
+   (`heuristic` / `judge`); unparseable judge output, and confusion verdicts
+   lacking quoted evidence, resolve to `unverified`.
 3. **Audit anchors come from published cross-sectional studies** — correlations, not
    causal guarantees. We cite bands, we do not promise citations.
 4. **Alias-exact matching misses creative misspellings.** By design: precision over

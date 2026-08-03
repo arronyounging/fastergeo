@@ -39,7 +39,7 @@ export interface FactStore {
 }
 
 export interface FabricationIssue {
-  kind: 'unsourced-number' | 'unsourced-superlative' | 'unconfirmed-fact' | 'do-not-claim';
+  kind: 'unsourced-number' | 'unsourced-superlative' | 'unconfirmed-fact' | 'do-not-claim' | 'e-grade-fact';
   /** The offending text fragment, quoted. */
   quote: string;
   line: number;

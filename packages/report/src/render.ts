@@ -14,6 +14,7 @@
  */
 
 import type { SiteAudit } from '@fastergeo/audit';
+import { matchRanges, mentions } from '@fastergeo/metrics';
 import type { MetricsReport, PlatformMetrics, Sample } from '@fastergeo/metrics';
 import type { Ticket } from '@fastergeo/tickets';
 
@@ -72,6 +73,8 @@ const MSG = {
     replayTip: 'Every sampled answer, unedited, with brand mentions and confusion evidence highlighted. Every number above can be checked against this record — that is the point. Samples that named the brand are tagged "probe" and are excluded from visibility metrics.',
     rpProbe: 'probe', rpMention: 'mentions brand', rpNoMention: 'no mention',
     rpEvidence: 'confusion evidence', rpCitations: 'citations', rpSamples: (n: number) => `${n} samples`,
+    rpEvUnlocated: 'Judge-quoted confusion evidence (could not be located verbatim in a stored answer — quote may be paraphrased):',
+    auditFailed: (n: number) => `${n} page${n > 1 ? 's' : ''} unreachable (excluded from the average, not scored as zero):`,
     footer: 'FasterGEO · open source & reproducible: unmeasured stays unmeasured, never a fabricated zero · single-period changes are observations; only two consecutive same-direction changes count as a trend',
   },
   zh: {
@@ -113,6 +116,8 @@ const MSG = {
     replayTip: '全部采样回答原文未经删改，品牌命中与混淆证据高亮。上面每个数字都可以对照这里的原文质证——这正是目的。点名品牌的样本标记为「探测」，不计入可见度指标。',
     rpProbe: '探测·点名', rpMention: '提及品牌', rpNoMention: '未提及',
     rpEvidence: '混淆证据', rpCitations: '引用', rpSamples: (n: number) => `${n} 条`,
+    rpEvUnlocated: '裁判引用的混淆证据（未能在留档答案中逐字定位——引语可能被裁判改写）：',
+    auditFailed: (n: number) => `${n} 个页面抓取失败（不计入均分，不按零分计）：`,
     footer: 'FasterGEO · 开源可复现：算不出的显示未测，不编数 · 单期波动只作观察相关，连续两期同向才算趋势',
   },
 } as const;
@@ -238,36 +243,49 @@ function auditSection(audit: SiteAudit | undefined, m: M): string {
     return `<tr class="g-${p.grade}"><td><span class="grade">${p.grade}</span></td><td class="num">${p.score}</td>
       <td class="url">${esc(p.url)}</td><td class="num">${p.wordCount}</td><td class="dims">${dims}</td></tr>`;
   };
+  const failedUrls = audit.failedUrls ?? [];
+  const failed = failedUrls.length
+    ? `<p class="bad-t">${m.auditFailed(failedUrls.length)} <span class="url">${failedUrls.map(esc).join(' · ')}</span></p>`
+    : '';
   return `<section><h2>${m.auditTitle} <span class="m" title="${esc(m.auditTip)}">${m.methodology}</span></h2>
     <p>${chk(s.robotsTxtFound, 'robots.txt')} ${chk(!s.blockedAiCrawlers.length, m.aiNotBlocked)} ${chk(s.sitemapFound, 'sitemap')} ${chk(s.llmsTxtFound, 'llms.txt')}
     　${m.avg} <b>${audit.avgScore ?? m.unmeasured}</b> · A${audit.gradeDistribution.A} B${audit.gradeDistribution.B} C${audit.gradeDistribution.C} D${audit.gradeDistribution.D}</p>
+    ${failed}
     <table><thead><tr><th></th><th>${m.thScore}</th><th>${m.thPage}</th><th>${m.thWords}</th><th>${m.thDims}</th></tr></thead>
     <tbody>${audit.pages.map(pageRow).join('')}</tbody></table></section>`;
 }
 
+const HAS_CJK_RE = /[一-鿿぀-ゟ゠-ヿ가-힯]/;
+const escapeRegExp = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/**
+ * Locate a judge-quoted evidence string inside an answer. Case-insensitive
+ * regex on the ORIGINAL string — offsets never shift (toLowerCase can change
+ * string length, e.g. 'İ'). CJK evidence needs only 4 chars to be a
+ * meaningful quote; Latin needs 8. Returns null when not found verbatim.
+ */
+function findEvidence(answer: string, evidence: string): { start: number; end: number } | null {
+  const needle = evidence.trim();
+  if (needle.length < (HAS_CJK_RE.test(needle) ? 4 : 8)) return null;
+  const m = new RegExp(escapeRegExp(needle), 'i').exec(answer);
+  return m ? { start: m.index, end: m.index + m[0].length } : null;
+}
+
 /**
  * Highlight brand-name and confusion-evidence matches inside an answer.
- * Char-mark pass (0 = plain, 1 = brand, 2 = evidence; evidence wins) so
- * overlapping matches merge cleanly, then segments are HTML-escaped —
- * highlighting can never un-escape attacker-controlled answer text.
+ * Brand matching uses matchRanges from @fastergeo/metrics — the SAME
+ * word-boundary rules that computed the metrics, so the replay can never
+ * contradict the numbers it exists to prove ('Custyle' must not light up
+ * inside 'Custylex' here either). Char-mark pass (0 plain, 1 brand,
+ * 2 evidence; evidence wins), then segments are HTML-escaped — highlighting
+ * can never un-escape attacker-controlled answer text.
  */
 function highlightAnswer(answer: string, names: string[], evidence: string[]): string {
   const marks = new Uint8Array(answer.length);
-  const lower = answer.toLowerCase();
-  for (const name of names) {
-    const needle = name.trim().toLowerCase();
-    if (needle.length < 2) continue;
-    let i = 0;
-    while ((i = lower.indexOf(needle, i)) !== -1) {
-      marks.fill(1, i, i + needle.length);
-      i += needle.length;
-    }
-  }
+  for (const r of matchRanges(answer, names)) marks.fill(1, r.start, r.end);
   for (const e of evidence) {
-    const needle = e.trim().toLowerCase();
-    if (needle.length < 8) continue;
-    const i = lower.indexOf(needle);
-    if (i !== -1) marks.fill(2, i, i + needle.length);
+    const r = findEvidence(answer, e);
+    if (r) marks.fill(2, r.start, r.end);
   }
   let html = '';
   let seg = '';
@@ -308,30 +326,41 @@ function replaySection(input: ReportInput, m: M): string {
     byProvider.set(s.providerId, list);
   }
   const providers = [...byProvider.entries()]
-    .sort((a, b) => (a[1][0].market.localeCompare(b[1][0].market)) || a[0].localeCompare(b[0]));
+    .sort((a, b) => String(a[1][0].market ?? '').localeCompare(String(b[1][0].market ?? '')) || a[0].localeCompare(b[0]));
 
-  const lower = (s: string): string => s.toLowerCase();
   const groups = providers.map(([id, group]) => {
     const evidence = evidenceByProvider.get(id) ?? [];
+    // Evidence quotes come from probe answers — they are only searched for
+    // in probe samples, so a correct unprompted answer can never be tagged
+    // with someone else's confusion evidence.
+    const located = new Set<string>();
     const items = group.map(s => {
-      const mentioned = names.some(n => n.trim().length >= 2 && lower(s.answer).includes(lower(n.trim())));
-      const evHit = evidence.some(e => e.trim().length >= 8 && lower(s.answer).includes(lower(e.trim())));
+      const mentioned = mentions(s.answer, names);
+      const evHits = s.brandInQuestion ? evidence.filter(e => findEvidence(s.answer, e) !== null) : [];
+      evHits.forEach(e => located.add(e));
       const chips = [
         s.brandInQuestion ? `<span class="chip c-probe">${m.rpProbe}</span>` : '',
         !s.brandInQuestion ? (mentioned
           ? `<span class="chip c-ok">${m.rpMention}</span>`
           : `<span class="chip c-dim">${m.rpNoMention}</span>`) : '',
-        evHit ? `<span class="chip c-bad">${m.rpEvidence}</span>` : '',
+        evHits.length ? `<span class="chip c-bad">${m.rpEvidence}</span>` : '',
       ].filter(Boolean).join('');
       const meta = [s.model, s.channel].filter(Boolean).map(esc).join(' · ');
       const cites = s.citations.length
         ? `<div class="rp-cite">${m.rpCitations}: ${s.citations.map(esc).join(' · ')}</div>` : '';
       return `<details class="rp"><summary><span class="rp-q">${esc(s.question)}</span>${chips}</summary>
-        <div class="rp-a">${highlightAnswer(s.answer, s.brandInQuestion ? [] : names, evidence)}</div>
+        <div class="rp-a">${highlightAnswer(s.answer, s.brandInQuestion ? [] : names, evHits)}</div>
         ${cites}${meta ? `<div class="rp-meta">${meta}</div>` : ''}</details>`;
     }).join('');
+    // Judge quotes that could not be located verbatim in any probe answer
+    // still render — a P0 confusion finding must never become invisible just
+    // because the judge paraphrased its quote.
+    const unlocated = evidence.filter(e => !located.has(e));
+    const evNote = unlocated.length
+      ? `<div class="rp-ev-note">${m.rpEvUnlocated}${unlocated.map(e => `<div class="rp-ev-q">「${esc(e.slice(0, 160))}」</div>`).join('')}</div>`
+      : '';
     const market = group[0].market;
-    return `<h3>${esc(id)} · ${market} · ${m.rpSamples(group.length)}</h3>${items}`;
+    return `<h3>${esc(id)} · ${esc(market ?? '?')} · ${m.rpSamples(group.length)}</h3>${evNote}${items}`;
   }).join('');
 
   return `<section><h2>${m.replayTitle(samples.length)} <span class="m" title="${esc(m.replayTip)}">${m.methodology}</span></h2>${groups}</section>`;
@@ -429,6 +458,8 @@ mark.hl-ev{background:var(--red-soft);color:var(--red);border-radius:3px;padding
 .c-bad{background:var(--red-soft);color:var(--red);font-weight:600}
 .rp-cite{padding:0 16px 10px 28px;font-size:12px;color:var(--faint);font-family:ui-monospace,Menlo,monospace;word-break:break-all}
 .rp-meta{padding:0 16px 12px 28px;font-size:11px;color:var(--faint)}
+.rp-ev-note{border:1px solid rgba(244,83,110,.35);background:var(--red-soft);border-radius:10px;padding:10px 14px;margin:8px 0;font-size:12.5px;color:var(--red)}
+.rp-ev-q{color:var(--tx);font-size:12.5px;margin-top:4px}
 footer{color:var(--faint);font-size:12px;text-align:center;padding:16px 0 4px}`;
 
 export function renderHtmlReport(input: ReportInput): string {

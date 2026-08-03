@@ -5,8 +5,9 @@
  * - a change between two periods is an OBSERVATION, never a conclusion
  * - only two consecutive same-direction changes constitute a TREND
  * - a few high-signal events alert immediately regardless (new brand
- *   confusion, ticket regressions, blockers appearing) because they are
- *   deterministic findings, not sampled distributions
+ *   confusion, blocker counts rising) because they are deterministic
+ *   findings, not sampled distributions; ticket regressions are alerted by
+ *   verify itself at transition time (tickets are not part of PeriodRecord)
  */
 
 import type { SiteAudit } from '@fastergeo/audit';

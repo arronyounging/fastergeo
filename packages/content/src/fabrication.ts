@@ -81,15 +81,22 @@ export function lintFabrication(draft: string, store: FactStore): FabricationIss
     }
   });
 
-  // Unconfirmed facts referenced verbatim in the draft
-  for (const f of store.facts.filter(x => x.status === 'unconfirmed')) {
+  // Unconfirmed or grade-E facts referenced verbatim in the draft.
+  // Grade E (inference/hearsay) is excluded from generation, but a draft can
+  // still contain it via human edits or LLM priors — the gate must catch it.
+  for (const f of store.facts.filter(x => x.status === 'unconfirmed' || x.grade === 'E')) {
     const idx = draft.indexOf(f.claim);
     if (idx >= 0) {
+      // unconfirmed takes precedence — it names the actionable state; a
+      // confirmed grade-E fact is the pure "hearsay entered the draft" case.
+      const isE = f.grade === 'E' && f.status === 'confirmed';
       issues.push({
-        kind: 'unconfirmed-fact',
+        kind: isE ? 'e-grade-fact' : 'unconfirmed-fact',
         quote: f.claim.slice(0, 60),
         line: draft.slice(0, idx).split('\n').length,
-        suggestion: `事实 ${f.id} 状态为待确认 — 确认后才能使用。`,
+        suggestion: isE
+          ? `事实 ${f.id} 为 E 级（推断/口头）— E 级不得进入对外内容，删除或升级证据等级。`
+          : `事实 ${f.id} 状态为待确认 — 确认后才能使用。`,
       });
     }
   }

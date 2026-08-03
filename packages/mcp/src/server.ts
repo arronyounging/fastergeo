@@ -39,6 +39,33 @@ const fail = (message: string): ToolResult => ({
   isError: true,
 });
 
+/** Parse a JSON param with a contextful error the calling agent can act on. */
+function parseJsonParam<T>(raw: string, param: string, expected: string): T {
+  let value: unknown;
+  try {
+    value = JSON.parse(raw);
+  } catch (err) {
+    throw new Error(`param "${param}" is not valid JSON (${(err as Error).message}) — expected ${expected}`);
+  }
+  return value as T;
+}
+
+/** Resolve page URLs against a root; reject non-http(s) schemes by name. */
+function resolveUrls(root: string, urls: string[]): string[] {
+  return urls.map(u => {
+    let abs: URL;
+    try {
+      abs = new URL(u, root);
+    } catch {
+      throw new Error(`cannot resolve url "${u}" against root "${root}"`);
+    }
+    if (abs.protocol !== 'http:' && abs.protocol !== 'https:') {
+      throw new Error(`url "${u}" resolves to unsupported scheme "${abs.protocol}" — only http/https can be audited`);
+    }
+    return abs.href;
+  });
+}
+
 /** Parse samples from JSONL, a JSON array, or GeoLook export format. */
 function parseSamples(raw: string, format?: string): Sample[] {
   if (format === 'geolook') return parseGeoLookSamples(raw);
@@ -109,8 +136,13 @@ export function createFastergeoServer(): McpServer {
         .describe('Question bank for the relevance dimension; omitted → relevance reported as null (unmeasured)'),
     },
   }, async ({ url, questions }) => {
-    const page = await auditPage(url, { questions });
-    return page ? json(page) : fail(`fetch failed: ${url}`);
+    try {
+      const [abs] = resolveUrls(url, [url]);
+      const page = await auditPage(abs, { questions });
+      return page ? json(page) : fail(`fetch failed: ${abs}`);
+    } catch (err) {
+      return fail(String((err as Error).message ?? err));
+    }
   });
 
   server.registerTool('audit_site', {
@@ -124,8 +156,12 @@ export function createFastergeoServer(): McpServer {
       questions: z.array(z.string()).optional(),
     },
   }, async ({ root, urls, questions }) => {
-    const abs = (urls ?? [root]).map(u => (u.startsWith('http') ? u : new URL(u, root).href));
-    return json(await auditSite(root, abs, { questions }));
+    try {
+      const abs = resolveUrls(root, urls ?? [root]);
+      return json(await auditSite(root, abs, { questions }));
+    } catch (err) {
+      return fail(String((err as Error).message ?? err));
+    }
   });
 
   server.registerTool('check_ai_crawlers', {
@@ -175,11 +211,15 @@ export function createFastergeoServer(): McpServer {
     },
   }, async ({ audit, metrics, lang }) => {
     if (!audit && !metrics) return fail('need at least one of audit / metrics');
-    return json(generateTickets(
-      audit ? JSON.parse(audit) : undefined,
-      metrics ? JSON.parse(metrics) : undefined,
-      lang,
-    ));
+    try {
+      return json(generateTickets(
+        audit ? parseJsonParam(audit, 'audit', 'the SiteAudit JSON object returned by audit_site') : undefined,
+        metrics ? parseJsonParam(metrics, 'metrics', 'the MetricsReport JSON object returned by compute_metrics') : undefined,
+        lang,
+      ));
+    } catch (err) {
+      return fail(String((err as Error).message ?? err));
+    }
   });
 
   server.registerTool('verify_tickets', {
@@ -193,12 +233,17 @@ export function createFastergeoServer(): McpServer {
       lang: z.enum(['en', 'zh']).default('en'),
     },
   }, async ({ tickets, audit, metrics, lang }) => {
-    const list = JSON.parse(tickets) as Ticket[];
-    const summary = verifyTickets(list, {
-      audit: audit ? JSON.parse(audit) : undefined,
-      metrics: metrics ? JSON.parse(metrics) : undefined,
-    }, lang);
-    return json({ summary, tickets: list });
+    try {
+      const list = parseJsonParam<Ticket[]>(tickets, 'tickets', 'a JSON array of tickets from generate_tickets');
+      if (!Array.isArray(list)) return fail('param "tickets" must be a JSON array of tickets, got ' + typeof list);
+      const summary = verifyTickets(list, {
+        audit: audit ? parseJsonParam(audit, 'audit', 'the SiteAudit JSON object returned by audit_site') : undefined,
+        metrics: metrics ? parseJsonParam(metrics, 'metrics', 'the MetricsReport JSON object returned by compute_metrics') : undefined,
+      }, lang);
+      return json({ summary, tickets: list });
+    } catch (err) {
+      return fail(String((err as Error).message ?? err));
+    }
   });
 
   server.registerTool('check_fabrication', {
@@ -210,9 +255,16 @@ export function createFastergeoServer(): McpServer {
       facts: z.string().describe('FactStore JSON: { brand, definition, facts: [{id, claim, grade, source, status}], doNotClaim: [...] }'),
     },
   }, async ({ draft, facts }) => {
-    const store = JSON.parse(facts) as FactStore;
-    const issues = lintFabrication(draft, store);
-    return json({ pass: issues.length === 0, issues });
+    try {
+      const store = parseJsonParam<FactStore>(facts, 'facts', 'a FactStore object: { brand, definition, facts: [...], doNotClaim?: [...] }');
+      if (!Array.isArray(store?.facts)) {
+        return fail('param "facts" must contain a "facts" array — expected shape { brand, definition, facts: [{id, claim, grade, source, status}], doNotClaim?: [] }');
+      }
+      const issues = lintFabrication(draft, store);
+      return json({ pass: issues.length === 0, issues });
+    } catch (err) {
+      return fail(String((err as Error).message ?? err));
+    }
   });
 
   return server;

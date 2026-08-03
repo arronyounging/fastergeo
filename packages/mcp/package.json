@@ -1,15 +1,21 @@
 {
   "name": "@fastergeo/mcp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "FasterGEO MCP server — exposes GEO audits, funnel metrics, machine-verified tickets, live engine sampling, and the fabrication gate as Model Context Protocol tools for any MCP-capable agent (Claude, Cursor, custom agents).",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
   "bin": {
     "fastergeo-mcp": "./dist/bin.js"
   },
   "scripts": {
-    "build": "tsup src/index.ts src/bin.ts --format esm --dts",
+    "build": "tsup src/index.ts src/bin.ts --format esm --dts --clean",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
@@ -23,10 +29,10 @@
     "zod": "^3.23.0"
   },
   "devDependencies": {
+    "@types/node": "^20.0.0",
     "tsup": "^8.0.0",
     "typescript": "^5.6.0",
-    "vitest": "^3.0.0",
-    "@types/node": "^20.0.0"
+    "vitest": "^3.0.0"
   },
   "files": [
     "dist"

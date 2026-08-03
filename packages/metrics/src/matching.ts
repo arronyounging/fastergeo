@@ -35,6 +35,40 @@ export function mentions(text: string, names: string[]): boolean {
   return firstMentionIndex(text, names) >= 0;
 }
 
+export interface MatchRange {
+  start: number;
+  end: number;
+}
+
+/**
+ * All occurrences of any name variant, same boundary rules as
+ * firstMentionIndex. This is the single matching truth: display layers
+ * (answer replay highlighting) MUST use this, never their own substring
+ * search, or the replay would contradict the metrics it exists to prove.
+ */
+export function matchRanges(text: string, names: string[]): MatchRange[] {
+  const ranges: MatchRange[] = [];
+  for (const raw of names) {
+    const name = raw?.trim();
+    if (!name || name.length < 2) continue;
+    if (HAS_CJK.test(name)) {
+      let i = 0;
+      while ((i = text.indexOf(name, i)) !== -1) {
+        ranges.push({ start: i, end: i + name.length });
+        i += name.length;
+      }
+    } else {
+      const re = new RegExp(`(?<![\\w-])${escapeRegExp(name)}(?![\\w-])`, 'gi');
+      let m: RegExpExecArray | null;
+      while ((m = re.exec(text)) !== null) {
+        ranges.push({ start: m.index, end: m.index + m[0].length });
+        if (re.lastIndex === m.index) re.lastIndex++;
+      }
+    }
+  }
+  return ranges;
+}
+
 export interface RankedMention {
   name: string;
   index: number;

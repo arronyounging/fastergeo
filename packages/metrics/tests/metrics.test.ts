@@ -187,3 +187,54 @@ describe('GeoLook adapter', () => {
     expect(samples[1].brandInQuestion).toBe(true);
   });
 });
+
+import { makeLlmJudge } from '../src/recognition.js';
+import { matchRanges } from '../src/matching.js';
+
+describe('makeLlmJudge — evidence discipline', () => {
+  it('downgrades confused-without-evidence to unverified', async () => {
+    const judge = makeLlmJudge(async () => '{"verdict":"confused"}');
+    const r = await judge({ answer: '……', brandName: 'Custyle' });
+    expect(r.verdict).toBe('unverified');
+  });
+
+  it('accepts confused with quoted evidence', async () => {
+    const judge = makeLlmJudge(async () => '{"verdict":"confused","evidence":"主打汽车外观改装件"}');
+    const r = await judge({ answer: '主打汽车外观改装件等产品', brandName: 'Custyle' });
+    expect(r.verdict).toBe('confused');
+    expect(r.evidence).toContain('汽车');
+  });
+});
+
+describe('matchRanges — display matching shares metric boundary rules', () => {
+  it('does not match Latin names inside longer words', () => {
+    expect(matchRanges('Try GeoLookPro today', ['GeoLook'])).toHaveLength(0);
+    expect(matchRanges('Try GeoLook today', ['GeoLook'])).toHaveLength(1);
+  });
+
+  it('finds all case-insensitive occurrences with correct offsets', () => {
+    const text = 'custyle and CUSTYLE and Custylex';
+    const ranges = matchRanges(text, ['Custyle']);
+    expect(ranges).toHaveLength(2);
+    expect(text.slice(ranges[0].start, ranges[0].end)).toBe('custyle');
+    expect(text.slice(ranges[1].start, ranges[1].end)).toBe('CUSTYLE');
+  });
+
+  it('matches CJK names by substring', () => {
+    expect(matchRanges('推荐定制优选和别家', ['定制优选'])).toHaveLength(1);
+  });
+});
+
+describe('citesOwnDomain via computeMetrics — hostname suffix, not substring', () => {
+  it('rejects lookalike domains and accepts subdomains', async () => {
+    const brand: BrandConfig = { name: 'Custyle', aliases: [], domains: ['custyle.ai'], competitors: [] };
+    const mk = (cites: string[]): Sample => ({
+      providerId: 'openai', market: 'global', questionId: 'q1', question: 'best?',
+      brandInQuestion: false, answer: 'Custyle is one option.', citations: cites,
+    });
+    const bad = await computeMetrics([mk(['https://notcustyle.ai.evil.co/page'])], brand);
+    expect(bad.platforms[0].ownDomainCiteRate).toBe(0);
+    const good = await computeMetrics([mk(['https://www.custyle.ai/about'])], brand);
+    expect(good.platforms[0].ownDomainCiteRate).toBe(1);
+  });
+});
