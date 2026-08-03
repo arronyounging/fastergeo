@@ -1,0 +1,48 @@
+{
+  "name": "@fastergeo/mcp",
+  "version": "0.1.0",
+  "description": "FasterGEO MCP server — exposes GEO audits, funnel metrics, machine-verified tickets, live engine sampling, and the fabrication gate as Model Context Protocol tools for any MCP-capable agent (Claude, Cursor, custom agents).",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "fastergeo-mcp": "./dist/bin.js"
+  },
+  "scripts": {
+    "build": "tsup src/index.ts src/bin.ts --format esm --dts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@fastergeo/audit": "workspace:*",
+    "@fastergeo/content": "workspace:*",
+    "@fastergeo/metrics": "workspace:*",
+    "@fastergeo/providers": "workspace:*",
+    "@fastergeo/tickets": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.0",
+    "typescript": "^5.6.0",
+    "vitest": "^3.0.0",
+    "@types/node": "^20.0.0"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/arronyounging/fastergeo",
+    "directory": "packages/mcp"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
+  "homepage": "https://fastergeo.co",
+  "license": "Apache-2.0"
+}

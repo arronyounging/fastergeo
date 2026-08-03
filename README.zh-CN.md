@@ -60,6 +60,17 @@ npx fastergeo report --root https://yoursite.com --out report.html
 
 每条命令都可独立使用。数据是你本机的纯 JSON 文件——`git init` 就是备份方案。
 
+### 给 Agent 用（MCP）
+
+以上全部能力同时是一个 [Model Context Protocol](https://modelcontextprotocol.io) 服务器——体检、漏斗指标、工单验收、引擎实采、编造门禁共 9 个工具，任何 MCP 客户端可直接调用：
+
+```bash
+claude mcp add fastergeo -- npx -y @fastergeo/mcp     # Claude Code
+# 或让任何 MCP 客户端指向：npx -y @fastergeo/mcp（stdio）
+```
+
+引擎 Key 走环境变量，与 CLI 同一套约定。你的 Agent 从此可以在循环内完成「体检这个页面→算漏斗→验收工单」。
+
 ## 和市面工具的区别
 
 | | 监测型 SaaS | FasterGEO |
@@ -90,9 +101,11 @@ npx fastergeo report --root https://yoursite.com --out report.html
 3. **归因谦逊。** 采样天然有噪声，两期同向纪律写在代码里，不是写在脚注里。
 4. **中文是一等公民。** 词等效计数、全角断句、中文分词、中文阈值档位——纯拉丁文本度量在中文内容上会静默失效，我们的不会。
 
+每个指标都有公开定义，且可追溯到计算它的代码——见 **[METHODOLOGY.md](METHODOLOGY.md)**（英文）。没有黑箱评分。
+
 ## 架构
 
-九个包的 monorepo，每个可独立使用：`rules`（100+ 确定性规则，fork 自 [geo-lint](https://github.com/IJONIS/geo-lint) 并补全 CJK）· `providers`（18 引擎适配 + Key 健康检查）· `metrics`（漏斗指标 + LLM 认知裁判 + 人工采样表）· `audit`（六维体检，实证锚定）· `tickets`（验收 DSL）· `content`（事实库 + 编造门禁 + bootstrap）· `trends`（期历史 + 归因纪律）· `report`（自包含 HTML）· `cli`
+十个包的 monorepo，每个可独立使用：`rules`（100+ 确定性规则，fork 自 [geo-lint](https://github.com/IJONIS/geo-lint) 并补全 CJK）· `providers`（18 引擎适配 + Key 健康检查）· `metrics`（漏斗指标 + LLM 认知裁判 + 人工采样表）· `audit`（六维体检，实证锚定）· `tickets`（验收 DSL）· `content`（事实库 + 编造门禁 + bootstrap）· `trends`（期历史 + 归因纪律）· `report`（自包含 HTML + 答案回放逐字留档）· `mcp`（Agent 用 MCP 服务器）· `cli`
 
 ```bash
 pnpm install && pnpm -r build && pnpm -r test   # 578 个测试

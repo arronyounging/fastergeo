@@ -60,6 +60,17 @@ npx fastergeo report --root https://yoursite.com --out report.html
 
 Every command works standalone. Data is plain JSON on your machine — `git init` is your backup strategy.
 
+### Use from agents (MCP)
+
+All of the above is also a [Model Context Protocol](https://modelcontextprotocol.io) server — audits, funnel metrics, ticket verification, live engine sampling, and the fabrication gate as 9 tools any MCP client can call:
+
+```bash
+claude mcp add fastergeo -- npx -y @fastergeo/mcp     # Claude Code
+# or point any MCP client at: npx -y @fastergeo/mcp   (stdio)
+```
+
+Engine keys come from the environment, same conventions as the CLI. Your agent can now run "audit this page, compute the funnel, verify the tickets" without leaving its loop.
+
 ## What makes it different
 
 | | Monitoring SaaS | FasterGEO |
@@ -94,7 +105,7 @@ Every metric is publicly defined and traceable to the code that computes it — 
 
 ## Architecture
 
-Monorepo of nine packages, each usable standalone: `rules` (100+ deterministic lint rules with agent-fixable suggestions, forked from [geo-lint](https://github.com/IJONIS/geo-lint) with CJK support) · `providers` (18-engine adapters + key health checks) · `metrics` (funnel metrics + LLM recognition judge + manual sheets) · `audit` (six-dimension scoring, evidence-anchored) · `tickets` (acceptance DSL + verification) · `content` (fact store + fabrication gate + bootstrap) · `trends` (period history + attribution discipline) · `report` (self-contained HTML) · `cli`
+Monorepo of ten packages, each usable standalone: `rules` (100+ deterministic lint rules with agent-fixable suggestions, forked from [geo-lint](https://github.com/IJONIS/geo-lint) with CJK support) · `providers` (18-engine adapters + key health checks) · `metrics` (funnel metrics + LLM recognition judge + manual sheets) · `audit` (six-dimension scoring, evidence-anchored) · `tickets` (acceptance DSL + verification) · `content` (fact store + fabrication gate + bootstrap) · `trends` (period history + attribution discipline) · `report` (self-contained HTML with verbatim answer replay) · `mcp` (MCP server for agents) · `cli`
 
 ```bash
 pnpm install && pnpm -r build && pnpm -r test   # 578 tests
