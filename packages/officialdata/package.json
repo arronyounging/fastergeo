@@ -1,0 +1,46 @@
+{
+  "name": "@fastergeo/officialdata",
+  "version": "0.1.0",
+  "description": "FasterGEO officialdata — parse Google Search Console Gen-AI performance and Bing Webmaster Tools AI Performance CSV exports (tolerant en/zh headers, never guessed) and reconcile the platforms' own ground truth against your FasterGEO audit: blind spots, low-score winners, silent good pages. Impressions and citations are different quantities and never merged.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts --clean",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@fastergeo/audit": "workspace:^"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.0",
+    "typescript": "^5.6.0",
+    "vitest": "^3.0.0",
+    "@types/node": "^20.0.0"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/arronyounging/fastergeo",
+    "directory": "packages/officialdata"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
+  "homepage": "https://fastergeo.co",
+  "license": "Apache-2.0"
+}

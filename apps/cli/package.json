@@ -16,6 +16,7 @@
     "@fastergeo/botlog": "workspace:^",
     "@fastergeo/content": "workspace:^",
     "@fastergeo/metrics": "workspace:^",
+    "@fastergeo/officialdata": "workspace:^",
     "@fastergeo/providers": "workspace:^",
     "@fastergeo/publish": "workspace:^",
     "@fastergeo/report": "workspace:^",

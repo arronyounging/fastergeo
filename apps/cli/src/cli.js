@@ -38,6 +38,7 @@ import { renderHtmlReport } from '@fastergeo/report';
 import { computeTrends } from '@fastergeo/trends';
 import { analyzeBotlog } from '@fastergeo/botlog';
 import { publishTo } from '@fastergeo/publish';
+import { parseOfficialCsv, detectSource, reconcile } from '@fastergeo/officialdata';
 import { readdirSync, mkdirSync, existsSync } from 'node:fs';
 import { resolve as resolvePath, basename } from 'node:path';
 import { writeFileSync } from 'node:fs';
@@ -70,6 +71,8 @@ const { values: flags } = parseArgs({
     seed: { type: 'string' },
     expand: { type: 'boolean', default: false },
     targets: { type: 'string' },
+    source: { type: 'string' },
+    audit: { type: 'string' },
     target: { type: 'string' },
     title: { type: 'string' },
     force: { type: 'boolean', default: false },
@@ -422,8 +425,81 @@ const commands = {
   report: cmdReport, bootstrap: cmdBootstrap,
   sheet: cmdSheet, import: cmdImport, trends: cmdTrends,
   cycle: cmdCycle, schedule: cmdSchedule, ui: cmdUi, botlog: cmdBotlog,
-  expand: cmdExpand, publish: cmdPublish,
+  expand: cmdExpand, publish: cmdPublish, official: cmdOfficial,
 };
+
+async function cmdOfficial() {
+  if (!flags.file) {
+    console.error('usage: fastergeo official --file gsc-export.csv [--source gsc|bing] [--audit DATE-audit.json | --dir project] [--json]');
+    console.error('exports: GSC → Performance → Search generative AI → Pages → Export CSV; Bing → Webmaster Tools → AI Performance → Export');
+    process.exit(1);
+  }
+  const text = readFileSync(flags.file, 'utf8');
+  const source = flags.source ?? detectSource(text);
+  if (!source) {
+    console.error('✗ cannot detect source from headers — pass --source gsc|bing');
+    process.exit(1);
+  }
+  const parsed = parseOfficialCsv(text, source);
+  let audit;
+  if (flags.audit) audit = JSON.parse(readFileSync(flags.audit, 'utf8'));
+  else if (flags.dir) {
+    const hist = `${flags.dir}/history`;
+    try {
+      const files = readdirSync(hist).filter(f => /-audit\.json$/.test(f)).sort();
+      if (files.length) audit = JSON.parse(readFileSync(`${hist}/${files[files.length - 1]}`, 'utf8'));
+    } catch { /* 无 history */ }
+  }
+  const rec = reconcile(parsed.rows, audit);
+  if (flags.json) {
+    console.log(JSON.stringify({ parsed: { skippedRows: parsed.skippedRows, unmappedHeaders: parsed.unmappedHeaders }, reconciliation: rec }, null, 2));
+    return;
+  }
+  const T = LANG === 'zh' ? {
+    head: (src, n, total, m) => `${src === 'gsc' ? 'Google Search Console 生成式 AI 报告' : 'Bing AI Performance'}：${n} 个页面 · ${m === 'impressions' ? '曝光' : '引用'}共 ${total}`,
+    caveat: src => src === 'gsc' ? '（注意：GSC 报的是 AI 版面曝光，不是引用——两者是不同物理量，本工具不合并）' : '',
+    skipped: (sk, un) => `解析：跳过 ${sk} 行不可用数据${un.length ? `；未映射列：${un.join('、')}` : ''}`,
+    top: '官方数据 Top 页面：',
+    winners: '⚠ 低分被引页（官方在用、我们体检 C/D——体检漏了什么，或页面赢在站外权威，都值得查）：',
+    blind: '⚠ 盲区页（官方在用、但不在体检清单——加进 audit URL）：',
+    silent: '高分无声页（体检 A/B、官方报告未见——建站好但 AI 还没用起来）：',
+    noAudit: '（未提供 audit——传 --audit 或 --dir 可做对账，当前只展示官方数据）',
+    absent: '官方报告缺席 ≠ AI 没在用（报告有滞后、只覆盖该平台版面、小数字会被抹掉）',
+  } : {
+    head: (src, n, total, m) => `${src === 'gsc' ? 'Google Search Console Gen-AI report' : 'Bing AI Performance'}: ${n} pages · ${total} total ${m}`,
+    caveat: src => src === 'gsc' ? '(note: GSC reports impressions in AI surfaces, not citations — different quantities, never merged here)' : '',
+    skipped: (sk, un) => `parse: skipped ${sk} unusable row(s)${un.length ? `; unmapped columns: ${un.join(', ')}` : ''}`,
+    top: 'Top pages by official data:',
+    winners: '⚠ Low-score winners (officially used, audited C/D — the audit missed something, or the page wins on off-page authority; both worth checking):',
+    blind: '⚠ Blind spots (officially used, never audited — add to your audit URLs):',
+    silent: 'Silent good pages (audited A/B, absent from the official report — well-built but not yet surfaced):',
+    noAudit: '(no audit given — pass --audit or --dir to reconcile; showing official data only)',
+    absent: 'Absence from an official report ≠ unused by AI (reports lag, cover one platform, and threshold small numbers)',
+  };
+  console.log(T.head(source, rec.totalPages, rec.totalMetric, rec.metricName));
+  const cav = T.caveat(source);
+  if (cav) console.log(cav);
+  if (parsed.skippedRows || parsed.unmappedHeaders.length) console.log(T.skipped(parsed.skippedRows, parsed.unmappedHeaders));
+  console.log(`\n${T.top}`);
+  for (const pg of rec.topPages) {
+    const a = pg.audit ? ` · audit ${pg.audit.grade} ${pg.audit.score}` : '';
+    console.log(`  ${String(pg.metric).padStart(7)}  ${pg.page}${a}`);
+  }
+  if (!audit) { console.log(`\n${T.noAudit}`); return; }
+  if (rec.lowScoreWinners.length) {
+    console.log(`\n${T.winners}`);
+    for (const pg of rec.lowScoreWinners) console.log(`  ${String(pg.metric).padStart(7)}  ${pg.page} · ${pg.audit.grade} ${pg.audit.score}${pg.audit.blockers ? ` · ${pg.audit.blockers} blocker(s)` : ''}`);
+  }
+  if (rec.blindSpots.length) {
+    console.log(`\n${T.blind}`);
+    for (const pg of rec.blindSpots) console.log(`  ${String(pg.metric).padStart(7)}  ${pg.page}`);
+  }
+  if (rec.silentGoodPages.length) {
+    console.log(`\n${T.silent}`);
+    for (const pg of rec.silentGoodPages) console.log(`  ${pg.grade} ${String(pg.score).padStart(5)}  ${pg.page}`);
+    console.log(`  ${T.absent}`);
+  }
+}
 
 async function cmdPublish() {
   if (!flags.file || !flags.targets) {
