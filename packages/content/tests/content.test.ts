@@ -182,3 +182,53 @@ describe('bootstrapProject', () => {
     expect(p).toContain('禁止编造');
   });
 });
+
+import { mineSuggestions, parseBaiduSuggest, parseGoogleSuggest } from '../src/suggest.js';
+
+describe('suggest mining (拓词)', () => {
+  it('parses Baidu JSONP and Google firefox-client JSON', () => {
+    expect(parseBaiduSuggest('window.baidu.sug({q:"定制T恤",p:false,s:["定制t恤衫","定制t恤多少钱"]});'))
+      .toEqual(['定制t恤衫', '定制t恤多少钱']);
+    expect(parseGoogleSuggest('["custom tshirt",["custom tshirt printing","custom tshirt design"]]'))
+      .toEqual(['custom tshirt printing', 'custom tshirt design']);
+    expect(parseBaiduSuggest('garbage')).toEqual([]);
+    expect(parseGoogleSuggest('garbage')).toEqual([]);
+  });
+
+  it('mines both engines with market tagging and dedupe', async () => {
+    const fetchFn = async (url: string) => ({
+      ok: true, status: 200,
+      text: async () => url.includes('baidu')
+        ? 'window.baidu.sug({q:"x",p:false,s:["定制t恤衫","定制t恤衫"]});'
+        : '["x",["custom tshirt printing"]]',
+    });
+    const r = await mineSuggestions('定制T恤', { fetchFn });
+    expect(r.candidates).toHaveLength(2);
+    expect(r.candidates[0].market).toBe('cn');
+    expect(r.candidates[1].market).toBe('global');
+    expect(r.failures).toEqual([]);
+  });
+
+  it('reports per-engine failures instead of returning silently empty', async () => {
+    const fetchFn = async (url: string) => {
+      if (url.includes('google')) throw new Error('blocked');
+      return { ok: true, status: 200, text: async () => 'window.baidu.sug({q:"x",p:false,s:["a1"]});' };
+    };
+    const r = await mineSuggestions('x', { fetchFn });
+    expect(r.candidates).toHaveLength(1);
+    expect(r.failures).toHaveLength(1);
+    expect(r.failures[0].engine).toBe('google');
+    expect(r.failures[0].reason).toContain('blocked');
+  });
+
+  it('expand mode adds intent-modifier rounds per engine', async () => {
+    const queries: string[] = [];
+    const fetchFn = async (url: string) => {
+      queries.push(decodeURIComponent(url));
+      return { ok: true, status: 200, text: async () => '["x",[]]' };
+    };
+    await mineSuggestions('seed', { engines: ['google'], expand: true, fetchFn });
+    expect(queries.length).toBe(6); // seed + 5 modifiers
+    expect(queries.some(q => q.includes('seed best'))).toBe(true);
+  });
+});

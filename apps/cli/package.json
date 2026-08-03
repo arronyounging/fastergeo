@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@fastergeo/audit": "workspace:^",
+    "@fastergeo/botlog": "workspace:^",
     "@fastergeo/content": "workspace:^",
     "@fastergeo/metrics": "workspace:^",
     "@fastergeo/providers": "workspace:^",

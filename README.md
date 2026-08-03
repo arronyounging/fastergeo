@@ -56,6 +56,12 @@ npx fastergeo verify --tickets tickets.json --root https://yoursite.com
 
 # 6. One-file HTML report
 npx fastergeo report --root https://yoursite.com --out report.html
+
+# 7. What is AI doing on your site? Parse your own access logs (nothing leaves your machine)
+npx fastergeo botlog --file access.log        # AI crawler hits by purpose + AI-referred human visits
+
+# 8. Mine real search demand into question-bank candidates (no keys)
+npx fastergeo expand --seed "custom t-shirts" --expand --out candidates.json
 ```
 
 Every command works standalone. Data is plain JSON on your machine — `git init` is your backup strategy.
@@ -105,7 +111,7 @@ Every metric is publicly defined and traceable to the code that computes it — 
 
 ## Architecture
 
-Monorepo of ten packages, each usable standalone: `rules` (100+ deterministic lint rules with agent-fixable suggestions, forked from [geo-lint](https://github.com/IJONIS/geo-lint) with CJK support) · `providers` (18-engine adapters + key health checks) · `metrics` (funnel metrics + LLM recognition judge + manual sheets) · `audit` (six-dimension scoring, evidence-anchored) · `tickets` (acceptance DSL + verification) · `content` (fact store + fabrication gate + bootstrap) · `trends` (period history + attribution discipline) · `report` (self-contained HTML with verbatim answer replay) · `mcp` (MCP server for agents) · `cli`
+Monorepo of eleven packages, each usable standalone: `rules` (100+ deterministic lint rules with agent-fixable suggestions, forked from [geo-lint](https://github.com/IJONIS/geo-lint) with CJK support) · `providers` (18-engine adapters + key health checks) · `metrics` (funnel metrics + recognition & sentiment judges + Wilson intervals + manual sheets) · `audit` (six-dimension scoring, evidence-anchored) · `tickets` (acceptance DSL + verification) · `content` (fact store + fabrication gate + bootstrap + suggest mining) · `trends` (period history + attribution discipline) · `report` (self-contained HTML with verbatim answer replay) · `botlog` (self-hosted AI-crawler & AI-referral log analytics) · `mcp` (MCP server for agents) · `cli`
 
 ```bash
 pnpm install && pnpm -r build && pnpm -r test   # 578 tests

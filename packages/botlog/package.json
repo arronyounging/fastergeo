@@ -1,0 +1,43 @@
+{
+  "name": "@fastergeo/botlog",
+  "version": "0.1.0",
+  "description": "FasterGEO botlog — parse your own access logs (nginx/apache combined, Cloudflare Logpush) to see what AI is doing on your site: AI crawler activity by purpose (training / search-index / user-request) and human visits referred from AI answers. Self-hosted agent analytics: the logs never leave your machine.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts --clean",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.0",
+    "typescript": "^5.6.0",
+    "vitest": "^3.0.0",
+    "@types/node": "^20.0.0"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/arronyounging/fastergeo",
+    "directory": "packages/botlog"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
+  "homepage": "https://fastergeo.co",
+  "license": "Apache-2.0"
+}

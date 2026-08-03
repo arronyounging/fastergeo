@@ -16,6 +16,12 @@ import { EnvHttpProxyAgent, setGlobalDispatcher } from 'undici';
 // fail. Route ALL fetches through the env proxy; NO_PROXY is honored.
 if (process.env.HTTPS_PROXY || process.env.https_proxy
   || process.env.HTTP_PROXY || process.env.http_proxy) {
+  // EnvHttpProxyAgent emits an "experimental" warning on every run; keep
+  // stderr for real warnings only.
+  process.removeAllListeners('warning');
+  process.on('warning', w => {
+    if (w.code !== 'UNDICI-EHPA') console.error(w.stack ?? `${w.name}: ${w.message}`);
+  });
   setGlobalDispatcher(new EnvHttpProxyAgent());
 }
 import {
@@ -27,9 +33,10 @@ import {
 } from '@fastergeo/metrics';
 import { auditSite, fetchPage } from '@fastergeo/audit';
 import { generateTickets, verifyTickets } from '@fastergeo/tickets';
-import { buildOutline, draftPrompt, lintFabrication, bootstrapProject } from '@fastergeo/content';
+import { buildOutline, draftPrompt, lintFabrication, bootstrapProject, mineSuggestions } from '@fastergeo/content';
 import { renderHtmlReport } from '@fastergeo/report';
 import { computeTrends } from '@fastergeo/trends';
+import { analyzeBotlog } from '@fastergeo/botlog';
 import { readdirSync, mkdirSync, existsSync } from 'node:fs';
 import { resolve as resolvePath, basename } from 'node:path';
 import { writeFileSync } from 'node:fs';
@@ -59,6 +66,8 @@ const { values: flags } = parseArgs({
     dir: { type: 'string' },
     every: { type: 'string' },
     repeat: { type: 'string' },
+    seed: { type: 'string' },
+    expand: { type: 'boolean', default: false },
     port: { type: 'string' },
     lang: { type: 'string' },
     json: { type: 'boolean', default: false },
@@ -407,8 +416,87 @@ const commands = {
   outline: cmdOutline, draft: cmdDraft, fabcheck: cmdFabcheck,
   report: cmdReport, bootstrap: cmdBootstrap,
   sheet: cmdSheet, import: cmdImport, trends: cmdTrends,
-  cycle: cmdCycle, schedule: cmdSchedule, ui: cmdUi,
+  cycle: cmdCycle, schedule: cmdSchedule, ui: cmdUi, botlog: cmdBotlog,
+  expand: cmdExpand,
 };
+
+async function cmdExpand() {
+  if (!flags.seed) {
+    console.error('usage: fastergeo expand --seed "定制T恤" [--engines baidu,google] [--expand] [--out candidates.json]');
+    process.exit(1);
+  }
+  const engines = flags.engines ? flags.engines.split(',') : ['baidu', 'google'];
+  const r = await mineSuggestions(flags.seed, { engines, expand: flags.expand });
+  const T = LANG === 'zh' ? {
+    found: (n, s) => `「${s}」拓出 ${n} 条真实搜索需求：`,
+    fail: f => `⚠ ${f.engine} 请求失败（${f.query}）：${f.reason}`,
+    note: '以上是题库候选，不会自动加入 questions.json——题库变更开启新序列，是人的决定。',
+    saved: (out, n) => `候选已写入 ${out}（${n} 条，含既有去重）`,
+  } : {
+    found: (n, s) => `"${s}" expanded into ${n} real search-demand phrases:`,
+    fail: f => `⚠ ${f.engine} request failed (${f.query}): ${f.reason}`,
+    note: 'These are question-bank CANDIDATES — never auto-added to questions.json; changing the bank starts a new series and is a human decision.',
+    saved: (out, n) => `candidates written to ${out} (${n} entries, deduped with existing)`,
+  };
+  console.log(T.found(r.candidates.length, r.seed));
+  for (const c of r.candidates) console.log(`  [${c.market}] ${c.text}`);
+  for (const f of r.failures) console.log(T.fail(f));
+  if (flags.out) {
+    let existing = [];
+    try { existing = JSON.parse(readFileSync(flags.out, 'utf8')); } catch { /* 新文件 */ }
+    const seen = new Set(existing.map(c => `${c.source}:${c.text}`));
+    const merged = [...existing, ...r.candidates.filter(c => !seen.has(`${c.source}:${c.text}`))];
+    writeFileSync(flags.out, JSON.stringify(merged, null, 2));
+    console.log(T.saved(flags.out, merged.length));
+  }
+  console.log(`\n${T.note}`);
+}
+
+async function cmdBotlog() {
+  if (!flags.file) {
+    console.error('usage: fastergeo botlog --file access.log [--format combined|cloudflare] [--json]');
+    process.exit(1);
+  }
+  const report = analyzeBotlog(readFileSync(flags.file, 'utf8'), { format: flags.format ?? 'auto' });
+  if (flags.json) {
+    console.log(JSON.stringify(report, null, 2));
+    return;
+  }
+  const T = LANG === 'zh' ? {
+    lines: (t, p, sk) => `日志 ${t} 行 · 解析 ${p} · 无法解析 ${sk}（已计数，不隐藏）`,
+    window: (f, to) => `时间窗：${f ?? '未知'} → ${to ?? '未知'}`,
+    noBots: '未发现 AI 爬虫访问（UA 判定——若日志来自 CDN 之后，爬虫可能已被挡在上游）',
+    purpose: { 'training': '训练采集', 'search-index': '搜索索引', 'user-request': '用户实时代取' },
+    botsTitle: 'AI 爬虫（按 UA 自称统计）',
+    blocked: n => `⚠ ${n} 次 4xx——该爬虫可能正被屏蔽`,
+    refTitle: 'AI 引荐的真人访问（按 referer）',
+    noRefs: '未发现来自 AI 答案的引荐访问',
+  } : {
+    lines: (t, p, sk) => `log ${t} lines · parsed ${p} · unparseable ${sk} (counted, not hidden)`,
+    window: (f, to) => `window: ${f ?? 'unknown'} → ${to ?? 'unknown'}`,
+    noBots: 'no AI crawler hits found (UA-based — behind a CDN, crawlers may be stopped upstream of this log)',
+    purpose: { 'training': 'training', 'search-index': 'search-index', 'user-request': 'user-request' },
+    botsTitle: 'AI crawlers (as claimed by UA)',
+    blocked: n => `⚠ ${n} 4xx responses — this crawler may be being blocked`,
+    refTitle: 'Human visits referred from AI answers (by referer)',
+    noRefs: 'no visits referred from AI answers found',
+  };
+  console.log(T.lines(report.totalLines, report.parsedLines, report.skippedLines));
+  console.log(T.window(report.window.from?.slice(0, 16), report.window.to?.slice(0, 16)));
+  console.log(`\n${T.botsTitle}`);
+  if (report.bots.length === 0) console.log(`  ${T.noBots}`);
+  for (const b of report.bots) {
+    console.log(`  ${b.id.padEnd(20)} ${String(b.hits).padStart(5)} hits · ${b.uniquePaths} paths · ${T.purpose[b.purpose]} · ${b.operator}`);
+    if (b.statuses['4xx'] > 0) console.log(`    ${T.blocked(b.statuses['4xx'])}`);
+    for (const tp of b.topPaths.slice(0, 3)) console.log(`    ${String(tp.hits).padStart(5)}  ${tp.path}`);
+  }
+  console.log(`\n${T.refTitle}`);
+  if (report.aiReferrals.length === 0) console.log(`  ${T.noRefs}`);
+  for (const r of report.aiReferrals) {
+    console.log(`  ${r.label.padEnd(16)} [${r.market}] ${String(r.hits).padStart(5)} visits`);
+    for (const tp of r.topPaths.slice(0, 3)) console.log(`    ${String(tp.hits).padStart(5)}  ${tp.path}`);
+  }
+}
 
 async function cmdUi() {
   const dir = flags.dir ?? '.';

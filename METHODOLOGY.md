@@ -75,8 +75,9 @@ for stable rates; FasterGEO's pragmatic protocol is:
 - **Decision-grade** (before/after comparisons, reporting to stakeholders): ≥5
   repetitions per question, and conclusions only under the two-period rule (§8).
 
-Confidence intervals on rates are on the roadmap; until then, small-sample rates are
-reported with their `n` so readers can judge stability themselves.
+Rates carry Wilson 95% intervals (`wilsonInterval`, `packages/metrics/src/stats.ts`)
+surfaced in the report — 0/14 renders as "0% (95% CI 0–22%)", not "certainly zero".
+`fastergeo cycle --repeat N` runs each question N times for decision-grade periods.
 
 ## 4. Visibility metrics
 
@@ -120,6 +121,23 @@ knowledge.
 
 The judge is instructed to default to `unverified` when unsure. A human-readable
 `confused` finding always ships with the quoted passage, so it can be disputed.
+
+## 5b. Mention sentiment
+
+Answers that mention the brand are classified positive / neutral / negative /
+unverified (`packages/metrics/src/sentiment.ts`), with the same discipline as
+recognition:
+
+- Deterministic negative patterns (zh + en) are tested **only on sentences that
+  mention the brand** — negativity about a competitor never counts against you.
+- The optional LLM judge decides positive/neutral/negative; **negative requires
+  a quoted evidence passage** or it downgrades to `unverified`.
+- Without a judge, non-obvious cases stay `unverified` — never guessed.
+- `sentiment` is `null` when the brand was never mentioned: nothing to judge
+  is not a zero.
+
+Negative evidence quotes surface in the report's top banner alongside
+confusion evidence.
 
 ## 6. Page audit — six dimensions
 

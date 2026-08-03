@@ -15,6 +15,12 @@ import { createFastergeoServer } from './server.js';
 // proxies (NO_PROXY is respected).
 if (process.env.HTTPS_PROXY || process.env.https_proxy
   || process.env.HTTP_PROXY || process.env.http_proxy) {
+  // EnvHttpProxyAgent emits an "experimental" warning on every run; keep
+  // stderr for real warnings only.
+  process.removeAllListeners('warning');
+  process.on('warning', w => {
+    if ((w as { code?: string }).code !== 'UNDICI-EHPA') console.error(w.stack ?? `${w.name}: ${w.message}`);
+  });
   setGlobalDispatcher(new EnvHttpProxyAgent());
 }
 
