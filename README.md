@@ -90,6 +90,8 @@ Migrating from GeoLook? `fastergeo metrics --format geolook` re-scores your exis
 3. **Humble attribution.** Sampling AI answers is noisy. The two-period rule is enforced in code, not footnotes.
 4. **CJK is first-class.** Word-equivalent counting, full-width sentence handling, Chinese segmentation, zh-calibrated thresholds — Latin-only text metrics silently break on Chinese content; ours don't.
 
+Every metric is publicly defined and traceable to the code that computes it — see **[METHODOLOGY.md](METHODOLOGY.md)**. No black-box scores.
+
 ## Architecture
 
 Monorepo of nine packages, each usable standalone: `rules` (100+ deterministic lint rules with agent-fixable suggestions, forked from [geo-lint](https://github.com/IJONIS/geo-lint) with CJK support) · `providers` (18-engine adapters + key health checks) · `metrics` (funnel metrics + LLM recognition judge + manual sheets) · `audit` (six-dimension scoring, evidence-anchored) · `tickets` (acceptance DSL + verification) · `content` (fact store + fabrication gate + bootstrap) · `trends` (period history + attribution discipline) · `report` (self-contained HTML) · `cli`
