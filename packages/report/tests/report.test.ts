@@ -27,7 +27,7 @@ const INPUT: ReportInput = {
     generatedAt: '2026-08-02T12:00:00Z', brand: 'Custyle', totalSamples: 64,
     platforms: [{
       providerId: 'doubao', market: 'cn', samples: 14,
-      mentionRate: 0, top1Rate: 0, top3Rate: 0, avgRank: null,
+      mentionRate: 0, top1Rate: 0, top3Rate: 0, avgRank: null, earlyMentionRate: null,
       shareOfVoice: 0, ownDomainCiteRate: 0, citationShare: null,
       competitorMentions: { Printful: 1 },
       sentiment: null,

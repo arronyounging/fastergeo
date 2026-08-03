@@ -14,7 +14,7 @@ function period(date: string, over: {
       generatedAt: date, brand: 'Custyle', totalSamples: 16,
       platforms: [{
         providerId: 'doubao', market: 'cn', samples: 14,
-        mentionRate: over.mentionRate ?? 0, top1Rate: 0, top3Rate: 0, avgRank: null,
+        mentionRate: over.mentionRate ?? 0, top1Rate: 0, top3Rate: 0, avgRank: null, earlyMentionRate: null,
         shareOfVoice: 0, ownDomainCiteRate: 0, citationShare: null, competitorMentions: {}, sentiment: null,
         probe: {
           samples: 2,

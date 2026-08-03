@@ -310,3 +310,56 @@ describe('wilsonInterval', () => {
     expect(wilsonInterval(5, 3)).toBeNull();
   });
 });
+
+import { analyzeCitationSources } from '../src/sources.js';
+
+describe('analyzeCitationSources — the earned-media target list', () => {
+  const brand: BrandConfig = { name: 'Custyle', aliases: [], domains: ['custyle.ai'], competitors: [] };
+  const mk = (providerId: string, market: 'cn' | 'global', citations: string[], probe = false): Sample => ({
+    providerId, market, questionId: 'q1', question: 'best?', brandInQuestion: probe,
+    answer: 'x', citations,
+  });
+
+  it('aggregates per market with own-domain tagging, www stripped, probes excluded', () => {
+    const r = analyzeCitationSources([
+      mk('openai', 'global', ['https://www.reddit.com/r/x', 'https://reddit.com/r/y', 'https://custyle.ai/blog']),
+      mk('perplexity', 'global', ['https://reddit.com/r/z']),
+      mk('doubao', 'cn', ['https://zhihu.com/question/1']),
+      mk('doubao', 'cn', ['https://zhihu.com/question/2'], true), // probe — excluded
+    ], brand);
+    const reddit = r.find(s => s.domain === 'reddit.com')!;
+    expect(reddit.citations).toBe(3);
+    expect(reddit.samples).toBe(2);
+    expect(reddit.engines).toEqual(['openai', 'perplexity']);
+    expect(reddit.own).toBe(false);
+    expect(r.find(s => s.domain === 'custyle.ai')!.own).toBe(true);
+    expect(r.find(s => s.domain === 'zhihu.com')!.citations).toBe(1); // probe excluded
+    expect(r[0].market).toBe('cn'); // market-grouped ordering
+  });
+
+  it('skips malformed citation strings without inventing domains', () => {
+    const r = analyzeCitationSources([mk('openai', 'global', ['not a url', 'https://ok.com/a'])], brand);
+    expect(r).toHaveLength(1);
+    expect(r[0].domain).toBe('ok.com');
+  });
+});
+
+describe('earlyMentionRate — PAWC-lite', () => {
+  const brand: BrandConfig = { name: 'Custyle', aliases: [], domains: [], competitors: [] };
+  const mk = (answer: string): Sample => ({
+    providerId: 'openai', market: 'global', questionId: 'q1', question: 'best?',
+    brandInQuestion: false, answer, citations: [],
+  });
+
+  it('measures share of mentions falling in the first 30% of the answer', async () => {
+    const early = 'Custyle is a great option. ' + 'x'.repeat(200);
+    const late = 'x'.repeat(200) + ' Finally, Custyle exists.';
+    const r = await computeMetrics([mk(early), mk(late), mk('no brand here')], brand);
+    expect(r.platforms[0].earlyMentionRate).toBe(0.5);
+  });
+
+  it('is null when never mentioned — not a zero', async () => {
+    const r = await computeMetrics([mk('nothing relevant')], brand);
+    expect(r.platforms[0].earlyMentionRate).toBeNull();
+  });
+});

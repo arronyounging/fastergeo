@@ -20,12 +20,15 @@ function pagesWithIssue(audit: SiteAudit, code: string): number {
 function evaluate(check: string, ctx: VerifyContext, T: typeof VM.en | typeof VM.zh): { pass: boolean; detail: string } | null {
   const [head, ...args] = check.split(':');
   switch (head) {
-    case 'site.no_ai_block':
+    case 'site.no_ai_block': {
       if (!ctx.audit) return null;
+      // Search-serving crawlers only; training-only blocks are policy, not failure.
+      const blocked = ctx.audit.site.blockedSearchCrawlers ?? ctx.audit.site.blockedAiCrawlers;
       return {
-        pass: ctx.audit.site.blockedAiCrawlers.length === 0,
-        detail: `blocked=[${ctx.audit.site.blockedAiCrawlers.join(',')}]`,
+        pass: blocked.length === 0,
+        detail: `blockedSearch=[${blocked.join(',')}]`,
       };
+    }
     case 'site.llms_txt':
       if (!ctx.audit) return null;
       return { pass: ctx.audit.site.llmsTxtFound, detail: `llmsTxtFound=${ctx.audit.site.llmsTxtFound}` };

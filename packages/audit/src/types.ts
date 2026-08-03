@@ -76,10 +76,36 @@ export const AI_CRAWLERS = [
   'PerplexityBot', 'Google-Extended', 'Bytespider', 'CCBot',
 ] as const;
 
+/**
+ * Blocking consequences differ by purpose, and conflating them misreports a
+ * legitimate policy as an accident:
+ * - training: blocking only opts out of training corpora — a policy choice
+ * - search-index / user-request: blocking removes the site from AI SEARCH
+ *   answers — a visibility blocker
+ */
+export type CrawlerPurpose = 'training' | 'search-index' | 'user-request';
+
+export const AI_CRAWLER_PURPOSES: Record<(typeof AI_CRAWLERS)[number], CrawlerPurpose> = {
+  GPTBot: 'training',
+  'OAI-SearchBot': 'search-index',
+  'ChatGPT-User': 'user-request',
+  ClaudeBot: 'training',
+  'anthropic-ai': 'training',
+  PerplexityBot: 'search-index',
+  'Google-Extended': 'training',
+  Bytespider: 'training',
+  CCBot: 'training',
+};
+
 export interface SiteChecks {
   robotsTxtFound: boolean;
-  /** AI crawlers explicitly disallowed for the whole site. */
+  /** All AI crawlers explicitly disallowed for the whole site. */
   blockedAiCrawlers: string[];
+  /** Blocked crawlers that serve AI SEARCH answers — a visibility blocker.
+   * Optional for audits stored before this split existed. */
+  blockedSearchCrawlers?: string[];
+  /** Blocked training-only crawlers — a policy choice, noted, never an error. */
+  blockedTrainingCrawlers?: string[];
   sitemapFound: boolean;
   llmsTxtFound: boolean;
 }

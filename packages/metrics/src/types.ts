@@ -96,6 +96,10 @@ export interface PlatformMetrics {
   top3Rate: number | null;
   /** Average 1-based rank among mentioned brands, when mentioned. */
   avgRank: number | null;
+  /** Of the answers that mention the brand, the share where the first
+   * mention falls in the answer's first 30% (position-weighted visibility,
+   * after Princeton's PAWC). null when never mentioned. */
+  earlyMentionRate: number | null;
   /** Brand mentions / (brand + competitor mentions), unprompted. */
   shareOfVoice: number | null;
   /** Share of unprompted samples citing an own domain. */
@@ -126,4 +130,7 @@ export interface MetricsReport {
   brand: string;
   totalSamples: number;
   platforms: PlatformMetrics[];
+  /** Which domains AI cites for this category, per market — the earned-media
+   * target list. Optional for reports stored before this existed. */
+  citationSources?: import('./sources.js').CitationSource[];
 }

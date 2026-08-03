@@ -34,7 +34,7 @@ function mkMetrics(over: Partial<MetricsReport> = {}): MetricsReport {
     generatedAt: '2026-08-02T00:00:00Z', brand: 'Custyle', totalSamples: 10,
     platforms: [{
       providerId: 'doubao', market: 'cn', samples: 5,
-      mentionRate: 0, top1Rate: 0, top3Rate: 0, avgRank: null,
+      mentionRate: 0, top1Rate: 0, top3Rate: 0, avgRank: null, earlyMentionRate: null,
       shareOfVoice: 0, ownDomainCiteRate: 0, citationShare: null,
       competitorMentions: {}, sentiment: null,
       probe: {
@@ -139,5 +139,35 @@ describe('generateTickets — zh locale', () => {
   it('generates Chinese titles when lang=zh', () => {
     const tickets = generateTickets(undefined, mkMetrics(), 'zh');
     expect(tickets.some(t => t.title.includes('实体消歧'))).toBe(true);
+  });
+});
+
+describe('earned-media off-site ticket', () => {
+  const lowMention: MetricsReport = {
+    generatedAt: '', brand: 'Custyle', totalSamples: 10,
+    platforms: [{
+      providerId: 'doubao', market: 'cn', samples: 10,
+      mentionRate: 0, top1Rate: 0, top3Rate: 0, avgRank: null, earlyMentionRate: null,
+      shareOfVoice: 0, ownDomainCiteRate: 0, citationShare: null,
+      competitorMentions: {}, sentiment: null, probe: null,
+    }],
+    citationSources: [
+      { market: 'cn', domain: 'zhihu.com', citations: 9, samples: 6, engines: ['doubao'], own: false },
+      { market: 'cn', domain: 'custyle.ai', citations: 1, samples: 1, engines: ['doubao'], own: true },
+    ],
+  };
+
+  it('emits a manual ticket naming the third-party domains AI already cites', () => {
+    const tickets = generateTickets(undefined, lowMention, 'en');
+    const earned = tickets.find(t => t.title.includes('sources AI already trusts'));
+    expect(earned).toBeDefined();
+    expect(earned!.title).toContain('zhihu.com');
+    expect(earned!.title).not.toContain('custyle.ai'); // own domains are not PR targets
+    expect(earned!.acceptance.type).toBe('manual');
+  });
+
+  it('emits no off-site ticket without citation sources', () => {
+    const tickets = generateTickets(undefined, { ...lowMention, citationSources: [] }, 'en');
+    expect(tickets.some(t => t.title.includes('already trusts'))).toBe(false);
   });
 });

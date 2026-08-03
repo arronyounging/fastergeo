@@ -5,7 +5,7 @@
 
 import { extractFeatures, detectBlocks } from './extract.js';
 import { scorePage } from './score.js';
-import { AI_CRAWLERS, type AuditOptions, type PageAudit, type SiteAudit, type SiteChecks } from './types.js';
+import { AI_CRAWLERS, AI_CRAWLER_PURPOSES, type AuditOptions, type PageAudit, type SiteAudit, type SiteChecks } from './types.js';
 
 const DEFAULT_TIMEOUT_MS = 20_000;
 
@@ -86,10 +86,15 @@ export async function checkSite(root: string, timeoutMs = DEFAULT_TIMEOUT_MS): P
     fetch(`${origin}/llms.txt`, { method: 'HEAD', signal: AbortSignal.timeout(timeoutMs) })
       .then(r => r.ok).catch(() => false),
   ]);
+  const blockedAiCrawlers =
+    robots && robots.status === 200 ? blockedAiCrawlersFromRobots(robots.body) : [];
+  const purpose = (c: string): string =>
+    AI_CRAWLER_PURPOSES[c as (typeof AI_CRAWLERS)[number]] ?? 'training';
   return {
     robotsTxtFound: Boolean(robots && robots.status === 200),
-    blockedAiCrawlers:
-      robots && robots.status === 200 ? blockedAiCrawlersFromRobots(robots.body) : [],
+    blockedAiCrawlers,
+    blockedSearchCrawlers: blockedAiCrawlers.filter(c => purpose(c) !== 'training'),
+    blockedTrainingCrawlers: blockedAiCrawlers.filter(c => purpose(c) === 'training'),
     sitemapFound: Boolean(sitemap),
     llmsTxtFound: Boolean(llms),
   };
@@ -119,8 +124,14 @@ export async function auditSite(
   for (const p of pages) gradeDistribution[p.grade]++;
 
   const blockers: string[] = [];
-  if (site.blockedAiCrawlers.length > 0) {
-    blockers.push(`robots-blocks-ai: robots.txt blocks ${site.blockedAiCrawlers.join(', ')}`);
+  // Only SEARCH-serving crawlers are blocker-level: blocking them removes the
+  // site from AI answers. Training-only blocks are a policy choice, not an
+  // error — flagging them would misreport a legitimate opt-out.
+  const searchBlocked = site.blockedSearchCrawlers ?? site.blockedAiCrawlers;
+  if (searchBlocked.length > 0) {
+    blockers.push(
+      `robots-blocks-ai-search: robots.txt blocks ${searchBlocked.join(', ')} — these serve AI search answers; blocking them removes the site from those answers`,
+    );
   }
   const shellPages = pages.filter(p => p.blockers.some(b => b.startsWith('spa-shell')));
   if (shellPages.length > 0 && shellPages.length >= pages.length / 2) {

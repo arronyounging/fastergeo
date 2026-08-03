@@ -68,7 +68,8 @@ const MSG = {
       `Negative mention (${id} · ${mkt}): AI said "${e}…"`,
     auditTitle: 'Six-Dimension Audit',
     auditTip: 'Crawlability 15 / length 15 / structure 20 / extractable blocks 25 / authority 15 / relevance 10. Thresholds anchored to published empirical citation data. Fetching does not execute JS — this measures exactly what AI crawlers see.',
-    aiNotBlocked: 'AI crawlers not blocked', avg: 'avg',
+    aiNotBlocked: 'AI search crawlers not blocked', avg: 'avg',
+    trainingOptOut: (bots: string) => `training opt-out: ${bots} (policy choice, not an error)`,
     thScore: 'score', thPage: 'page', thWords: 'word-eq', thDims: 'dimensions',
     ticketsTitle: (n: number, a: number) => `Action Tickets (${n} · ${a} machine-verifiable)`,
     thTicket: 'ticket', thAcceptance: 'acceptance', thStatus: 'status',
@@ -78,6 +79,11 @@ const MSG = {
     rpProbe: 'probe', rpMention: 'mentions brand', rpNoMention: 'no mention',
     rpEvidence: 'confusion evidence', rpCitations: 'citations', rpSamples: (n: number) => `${n} samples`,
     rpEvUnlocated: 'Judge-quoted confusion evidence (could not be located verbatim in a stored answer — quote may be paraphrased):',
+    sourcesTitle: 'Cited Sources — who AI trusts in your category',
+    sourcesTip: 'Domains AI actually cited when answering your category questions, from your own samples. Cross-corpus studies find ~84% of AI citations are earned media (Muck Rack, 25M citations): owned content shapes how AI describes you; third-party presence decides whether it recommends you. The third-party domains below are your PR target list. cn and global are never merged.',
+    thDomain: 'domain', thCitations: 'citations', thInSamples: 'in samples', thEngines: 'engines',
+    ownTag: 'own',
+    earlyTip: 'Of the answers mentioning the brand, the share where the first mention falls in the answer\'s first 30% — position-weighted visibility, after Princeton\'s PAWC.',
     auditFailed: (n: number) => `${n} page${n > 1 ? 's' : ''} unreachable (excluded from the average, not scored as zero):`,
     footer: 'FasterGEO · open source & reproducible: unmeasured stays unmeasured, never a fabricated zero · single-period changes are observations; only two consecutive same-direction changes count as a trend',
   },
@@ -115,7 +121,8 @@ const MSG = {
       `负面提及（${id} · ${mkt}）：AI 原文「${e}…」`,
     auditTitle: '六维体检',
     auditTip: '可抓取性15/长度15/结构20/可抽取块25/权威信号15/对题性10。阈值锚定公开实证数据。抓取不执行 JS——测的就是 AI 爬虫看到的东西。',
-    aiNotBlocked: 'AI 爬虫未被屏蔽', avg: '均分',
+    aiNotBlocked: 'AI 搜索爬虫未被屏蔽', avg: '均分',
+    trainingOptOut: (bots: string) => `训练退出：${bots}（政策选择，非错误）`,
     thScore: '分', thPage: '页面', thWords: '词等效', thDims: '维度',
     ticketsTitle: (n: number, a: number) => `行动工单（${n} 条 · ${a} 条机器自动验收）`,
     thTicket: '工单', thAcceptance: '验收', thStatus: '状态',
@@ -125,6 +132,11 @@ const MSG = {
     rpProbe: '探测·点名', rpMention: '提及品牌', rpNoMention: '未提及',
     rpEvidence: '混淆证据', rpCitations: '引用', rpSamples: (n: number) => `${n} 条`,
     rpEvUnlocated: '裁判引用的混淆证据（未能在留档答案中逐字定位——引语可能被裁判改写）：',
+    sourcesTitle: '引用来源 — AI 在你的品类信任谁',
+    sourcesTip: '从你自己的采样中统计：AI 回答品类问题时实际引用了哪些域名。跨语料研究显示约 84% 的 AI 引用来自第三方（Muck Rack，2500 万条引用）：自有内容决定 AI 如何描述你，第三方阵地决定它是否推荐你。下面的第三方域名就是你的公关目标清单。国内海外永不合并。',
+    thDomain: '域名', thCitations: '引用数', thInSamples: '出现样本', thEngines: '引擎',
+    ownTag: '自有',
+    earlyTip: '在提及品牌的回答中，首次提及落在答案前 30% 的比例——位置加权可见度（源自 Princeton PAWC 思想）。',
     auditFailed: (n: number) => `${n} 个页面抓取失败（不计入均分，不按零分计）：`,
     footer: 'FasterGEO · 开源可复现：算不出的显示未测，不编数 · 单期波动只作观察相关，连续两期同向才算趋势',
   },
@@ -277,8 +289,12 @@ function auditSection(audit: SiteAudit | undefined, m: M): string {
   const failed = failedUrls.length
     ? `<p class="bad-t">${m.auditFailed(failedUrls.length)} <span class="url">${failedUrls.map(esc).join(' · ')}</span></p>`
     : '';
+  const searchBlocked = s.blockedSearchCrawlers ?? s.blockedAiCrawlers;
+  const trainingBlocked = s.blockedTrainingCrawlers ?? [];
+  const trainingNote = trainingBlocked.length
+    ? ` <span class="na">${esc(m.trainingOptOut(trainingBlocked.join(', ')))}</span>` : '';
   return `<section><h2>${m.auditTitle} <span class="m" title="${esc(m.auditTip)}">${m.methodology}</span></h2>
-    <p>${chk(s.robotsTxtFound, 'robots.txt')} ${chk(!s.blockedAiCrawlers.length, m.aiNotBlocked)} ${chk(s.sitemapFound, 'sitemap')} ${chk(s.llmsTxtFound, 'llms.txt')}
+    <p>${chk(s.robotsTxtFound, 'robots.txt')} ${chk(!searchBlocked.length, m.aiNotBlocked)}${trainingNote} ${chk(s.sitemapFound, 'sitemap')} ${chk(s.llmsTxtFound, 'llms.txt')}
     　${m.avg} <b>${audit.avgScore ?? m.unmeasured}</b> · A${audit.gradeDistribution.A} B${audit.gradeDistribution.B} C${audit.gradeDistribution.C} D${audit.gradeDistribution.D}</p>
     ${failed}
     <table><thead><tr><th></th><th>${m.thScore}</th><th>${m.thPage}</th><th>${m.thWords}</th><th>${m.thDims}</th></tr></thead>
@@ -396,6 +412,22 @@ function replaySection(input: ReportInput, m: M): string {
   return `<section><h2>${m.replayTitle(samples.length)} <span class="m" title="${esc(m.replayTip)}">${m.methodology}</span></h2>${groups}</section>`;
 }
 
+function sourcesSection(metrics: MetricsReport | undefined, m: M): string {
+  const sources = metrics?.citationSources ?? [];
+  if (sources.length === 0) return '';
+  const markets = [...new Set(sources.map(s => s.market))];
+  const groups = markets.map(market => {
+    const rows = sources.filter(s => s.market === market).slice(0, 10).map(s =>
+      `<tr><td class="url">${esc(s.domain)}${s.own ? ` <span class="chip c-ok">${m.ownTag}</span>` : ''}</td>
+       <td class="num">${s.citations}</td><td class="num">${s.samples}</td>
+       <td class="comps">${s.engines.map(esc).join(' ')}</td></tr>`).join('');
+    return `<h3>${market === 'cn' ? m.marketCn : m.marketGlobal}</h3>
+      <table><thead><tr><th>${m.thDomain}</th><th>${m.thCitations}</th><th>${m.thInSamples}</th><th>${m.thEngines}</th></tr></thead>
+      <tbody>${rows}</tbody></table>`;
+  }).join('');
+  return `<section><h2>${m.sourcesTitle} <span class="m" title="${esc(m.sourcesTip)}">${m.methodology}</span></h2>${groups}</section>`;
+}
+
 function ticketSection(tickets: Ticket[] | undefined, m: M): string {
   if (!tickets || tickets.length === 0) return '';
   const row = (t: Ticket): string =>
@@ -508,6 +540,7 @@ ${blockerBanner(input, m)}
 ${funnel(input.metrics, m)}
 ${engineTable(input.metrics, m)}
 ${auditSection(input.audit, m)}
+${sourcesSection(input.metrics, m)}
 ${ticketSection(input.tickets, m)}
 ${replaySection(input, m)}
 <footer>${m.footer}</footer>

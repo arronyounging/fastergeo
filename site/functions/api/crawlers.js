@@ -2,7 +2,7 @@
  * /api/crawlers?url=… — AI Crawler Access Checker.
  * Per-crawler verdict from robots.txt + sitemap/llms.txt presence.
  */
-import { checkSite, blockedAiCrawlersFromRobots, AI_CRAWLERS } from '@fastergeo/audit';
+import { checkSite, AI_CRAWLERS, AI_CRAWLER_PURPOSES } from '@fastergeo/audit';
 
 const BAD_HOSTS = /^(localhost|127\.|0\.|10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|\[|.*\.(local|internal)$)/i;
 
@@ -24,9 +24,16 @@ export async function onRequestGet({ request }) {
   }
   try {
     const site = await checkSite(parsed.href, 10000);
+    // Blocking consequences differ by purpose: search-serving crawlers
+    // blocked = removed from AI answers (severe); training-only blocked =
+    // policy choice (informational). Conflating them manufactures panic.
     const crawlers = AI_CRAWLERS.map(bot => ({
       bot,
+      purpose: AI_CRAWLER_PURPOSES[bot],
       blocked: site.blockedAiCrawlers.includes(bot),
+      severity: site.blockedAiCrawlers.includes(bot)
+        ? (AI_CRAWLER_PURPOSES[bot] === 'training' ? 'policy' : 'blocker')
+        : 'ok',
     }));
     return new Response(JSON.stringify({ ...site, crawlers }), { headers });
   } catch (err) {

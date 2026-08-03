@@ -47,9 +47,12 @@ const ISSUE_TICKETS: Record<TicketLang, Record<string, IssueSpec>> = {
 
 const M = {
   en: {
-    unblockRobots: (bots: string) => `Unblock AI crawlers in robots.txt (${bots})`,
-    unblockRationale: 'site.blockedAiCrawlers — with crawlers blocked, all content work is void',
-    unblockDesc: 'robots.txt no longer blocks AI crawlers site-wide',
+    unblockRobots: (bots: string) => `Unblock AI SEARCH crawlers in robots.txt (${bots})`,
+    unblockRationale: 'search-serving crawlers blocked — the site is removed from those AI answers; all content work is void (training-only blocks are a policy choice and not flagged)',
+    unblockDesc: 'robots.txt no longer blocks AI search crawlers site-wide',
+    earnedTitle: (market: string, domains: string) => `Earn presence on the sources AI already trusts [${market}]: ${domains}`,
+    earnedRationale: 'the brand is barely mentioned, and ~84% of AI citations come from earned media (Muck Rack, 25M citations) — owned content shapes how AI describes you; third-party presence decides whether it recommends you. These domains are already cited in your category.',
+    earnedDesc: 'brand appears (mention/coverage/listing) on at least one of the listed cited domains — human-verified',
     shellRationale: (n: number) => `${n} page(s) are client-rendered empty shells (AI crawlers do not execute JS)`,
     llmsTitle: 'Deploy llms.txt at the site root',
     llmsRationale: 'site.llmsTxtFound=false (note: Google does not use llms.txt; this only helps some engines)',
@@ -67,9 +70,12 @@ const M = {
     mentionDesc: 'next-period market average mention rate ≥ 30%',
   },
   zh: {
-    unblockRobots: (bots: string) => `robots.txt 解除对 AI 爬虫的屏蔽（${bots}）`,
-    unblockRationale: 'site.blockedAiCrawlers — 封了爬虫则一切内容工作无效',
-    unblockDesc: 'robots.txt 不再整站屏蔽 AI 爬虫',
+    unblockRobots: (bots: string) => `robots.txt 解除对 AI 搜索爬虫的屏蔽（${bots}）`,
+    unblockRationale: '检索型爬虫被封 — 站点被从对应 AI 答案中除名，一切内容工作无效（封训练型爬虫是政策选择，不计入）',
+    unblockDesc: 'robots.txt 不再整站屏蔽 AI 搜索爬虫',
+    earnedTitle: (market: string, domains: string) => `在 AI 已信任的阵地获得存在感 [${market}]：${domains}`,
+    earnedRationale: '品牌几乎未被提及，而约 84% 的 AI 引用来自第三方（Muck Rack，2500 万引用）——自有内容决定 AI 如何描述你，第三方阵地决定它是否推荐你。这些域名已经在你的品类里被 AI 引用。',
+    earnedDesc: '品牌在所列被引域名中的至少一个获得提及/报道/收录——人工核验',
     shellRationale: (n: number) => `${n} 个页面是客户端渲染空壳（AI 爬虫不执行 JS）`,
     llmsTitle: '部署 llms.txt 到站点根目录',
     llmsRationale: 'site.llmsTxtFound=false（注：Google 不使用 llms.txt，此项仅利于部分引擎）',
@@ -115,9 +121,10 @@ export function generateTickets(
 
   if (audit) {
     // ── P0: ticket problems ──────────────────────────────────────────────
-    if (audit.site.blockedAiCrawlers.length > 0) {
+    const searchBlocked = audit.site.blockedSearchCrawlers ?? audit.site.blockedAiCrawlers;
+    if (searchBlocked.length > 0) {
       mk({
-        title: m.unblockRobots(audit.site.blockedAiCrawlers.join(', ')),
+        title: m.unblockRobots(searchBlocked.join(', ')),
         priority: 'P0',
         rationale: m.unblockRationale,
         acceptance: { type: 'auto', check: 'site.no_ai_block', desc: m.unblockDesc },
@@ -215,6 +222,22 @@ export function generateTickets(
             desc: m.mentionDesc,
           },
         });
+        // Off-site remedy: low mention rate is rarely fixed on-site alone.
+        // The citation sources in the SAME samples name the third-party
+        // domains AI already trusts for this category — a concrete, earned-
+        // media target list instead of a vague "do PR" suggestion.
+        const topThirdParty = (metrics.citationSources ?? [])
+          .filter(cs => cs.market === market && !cs.own)
+          .slice(0, 5);
+        if (topThirdParty.length > 0) {
+          mk({
+            title: m.earnedTitle(market, topThirdParty.map(cs => cs.domain).join(', ')),
+            priority: 'P1',
+            market,
+            rationale: m.earnedRationale,
+            acceptance: { type: 'manual', desc: m.earnedDesc },
+          });
+        }
       }
     }
   }

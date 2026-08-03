@@ -189,7 +189,13 @@ over re-measurable facts (`packages/tickets/src/verify.ts`): site-level checks
 - A criterion that cannot currently be measured leaves the ticket unchanged, with the
   reason stated. Verification never guesses (Principle 1).
 
-Priorities are impact-ordered: P0 = blockers (shells, robots bans, brand confusion);
+Priorities are impact-ordered: P0 = blockers (shells, AI-search-crawler bans,
+brand confusion). Robots verdicts are purpose-aware: blocking a
+**search-serving** crawler (OAI-SearchBot, PerplexityBot, ChatGPT-User)
+removes the site from AI answers and is a blocker; blocking a
+**training-only** crawler (GPTBot, CCBot, Google-Extended…) is a legitimate
+policy choice and is noted, never flagged as an error
+(`packages/audit/src/types.ts`, AI_CRAWLER_PURPOSES);
 `llms.txt` is honestly a P2 — adoption by engines is unproven, so we refuse to
 market it as a P0 fix.
 
@@ -236,8 +242,19 @@ Stated here because honesty is the product:
    (`heuristic` / `judge`); unparseable judge output, and confusion verdicts
    lacking quoted evidence, resolve to `unverified`.
 3. **Audit anchors come from published cross-sectional studies** — correlations, not
-   causal guarantees. We cite bands, we do not promise citations.
-4. **Alias-exact matching misses creative misspellings.** By design: precision over
+   causal guarantees, and the effect sizes should be read as priors, not laws:
+   the Princeton GEO paper's headline "+40% visibility" ran on a simulated
+   engine, and an independent replication (C-SEO Bench, NeurIPS '25) found
+   significant positive effects in only 3 of 54 scenarios. Direction credible,
+   magnitude uncertain — our bands order priorities; they do not promise
+   citations.
+4. **Engines play two different games.** Retrieval-grounded surfaces
+   (Perplexity, Gemini, AI Overviews) answer from live pages — audit fixes can
+   move them in weeks. Parametric-memory answers (ChatGPT/Claude without
+   search) reflect training corpora — entity presence and third-party coverage
+   move them over months. Per-engine metrics should be read against which game
+   that engine is playing; a fix that moves one may not move the other.
+5. **Alias-exact matching misses creative misspellings.** By design: precision over
    recall (§4).
 
 ## 11. Versioning

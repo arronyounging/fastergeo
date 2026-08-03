@@ -44,13 +44,19 @@ const url=document.getElementById('u').value.trim();if(!url)return;
 b.disabled=true;b.textContent='Checking…';r.innerHTML='';
 try{const res=await fetch('/api/crawlers?url='+encodeURIComponent(url));const d=await res.json();
 if(!res.ok)throw new Error(d.error||'check failed');
-const rows=d.crawlers.map(c=>`<div class="bot-row"><span class="${c.blocked?'bad':'ok'}">${c.blocked?'✗ blocked':'✓ allowed'}</span><span class="mono">${c.bot}</span></div>`).join('');
+const PL={'search-index':'AI search index','user-request':'live user fetch','training':'training only'};
+const rows=d.crawlers.map(c=>{
+  const cls=c.severity==='blocker'?'bad':c.severity==='policy'?'dim':'ok';
+  const label=c.severity==='blocker'?'✗ blocked':c.severity==='policy'?'✗ opt-out':'✓ allowed';
+  return `<div class="bot-row"><span class="${cls}">${label}</span><span class="mono">${c.bot}</span><span class="dim" style="margin-left:auto;font-size:12px">${PL[c.purpose]||''}</span></div>`;
+}).join('');
 r.innerHTML=`<div class="card">
 <div style="font-size:14px;color:var(--dim);margin-bottom:12px">
 robots.txt ${d.robotsTxtFound?'<span class="ok">found</span>':'<span class="bad">missing</span>'} ·
 sitemap ${d.sitemapFound?'<span class="ok">✓</span>':'<span class="bad">✗</span>'} ·
 llms.txt ${d.llmsTxtFound?'<span class="ok">✓</span>':'<span class="bad">✗</span>'}</div>${rows}
-${d.blockedAiCrawlers.length?`<div style="margin-top:12px;padding:10px 14px;background:var(--red-soft);border:1px solid rgba(244,83,110,.25);border-radius:10px;font-size:13px">🔴 ${d.blockedAiCrawlers.length} crawler(s) blocked site-wide — AI engines can't read this site.</div>`:''}</div>`;
+${(d.blockedSearchCrawlers||[]).length?`<div style="margin-top:12px;padding:10px 14px;background:var(--red-soft);border:1px solid rgba(244,83,110,.25);border-radius:10px;font-size:13px">🔴 ${d.blockedSearchCrawlers.join(', ')} blocked — these serve AI <b>search answers</b>; blocking them removes this site from those answers.</div>`:''}
+${(d.blockedTrainingCrawlers||[]).length&&!(d.blockedSearchCrawlers||[]).length?`<div style="margin-top:12px;padding:10px 14px;background:var(--well);border:1px solid var(--line);border-radius:10px;font-size:13px;color:var(--dim)">Training-only crawlers blocked (${d.blockedTrainingCrawlers.join(', ')}) — a legitimate policy choice, not an error. AI search crawlers can still read this site.</div>`:''}</div>`;
 }catch(err){r.innerHTML=`<div class="err">${err.message}</div>`}
 finally{b.disabled=false;b.textContent='Check'}});
 </script>

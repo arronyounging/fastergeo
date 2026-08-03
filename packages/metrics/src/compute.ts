@@ -7,9 +7,10 @@ import type {
   BrandConfig, MetricsReport, PlatformMetrics, RecognitionJudge,
   RecognitionVerdict, Sample, SentimentJudge, SentimentVerdict,
 } from './types.js';
-import { brandRank, mentions } from './matching.js';
+import { brandRank, firstMentionIndex } from './matching.js';
 import { classifyRecognition } from './recognition.js';
 import { classifySentiment } from './sentiment.js';
+import { analyzeCitationSources } from './sources.js';
 
 function brandNames(brand: BrandConfig): string[] {
   return [brand.name, ...brand.aliases];
@@ -59,6 +60,7 @@ async function computePlatform(
   const probes = samples.filter(s => s.brandInQuestion);
 
   let mentioned = 0;
+  let earlyMentions = 0;
   let top1 = 0;
   let top3 = 0;
   const ranks: number[] = [];
@@ -81,6 +83,8 @@ async function computePlatform(
       if (rank === 1) top1++;
       if (rank <= 3) top3++;
       brandVoice++;
+      const idx = firstMentionIndex(s.answer, names);
+      if (idx >= 0 && s.answer.length > 0 && idx <= s.answer.length * 0.3) earlyMentions++;
       const sent = await classifySentiment(s.answer, names, { judge: opts.sentimentJudge });
       sentimentVerdicts[sent.verdict]++;
       if (sent.verdict === 'negative' && sent.evidence) negativeEvidence.push(sent.evidence);
@@ -122,6 +126,7 @@ async function computePlatform(
     top1Rate: ratio(top1, unprompted.length),
     top3Rate: ratio(top3, unprompted.length),
     avgRank: ranks.length > 0 ? ranks.reduce((a, b) => a + b, 0) / ranks.length : null,
+    earlyMentionRate: ratio(earlyMentions, mentioned),
     shareOfVoice: ratio(brandVoice, brandVoice + competitorVoice),
     ownDomainCiteRate: ratio(ownCiteSamples, unprompted.length),
     citationShare: ratio(ownCitations, allCitations),
@@ -155,5 +160,6 @@ export async function computeMetrics(
     brand: brand.name,
     totalSamples: samples.length,
     platforms,
+    citationSources: analyzeCitationSources(samples, brand),
   };
 }

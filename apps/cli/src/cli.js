@@ -204,6 +204,11 @@ async function cmdMetrics() {
       for (const e of p.probe.confusedEvidence) console.log(`             ⚠ confusion evidence: ${e.slice(0, 80)}`);
     }
   }
+  const srcs = (report.citationSources ?? []).filter(cs => !cs.own).slice(0, 8);
+  if (srcs.length) {
+    console.log('\ncited third-party sources (your earned-media target list — fastergeo sources for full):');
+    for (const cs of srcs) console.log(`  [${cs.market}] ${String(cs.citations).padStart(4)} × ${cs.domain}`);
+  }
 }
 
 async function cmdAudit() {
@@ -222,8 +227,11 @@ async function cmdAudit() {
     return;
   }
   const s = report.site;
+  const searchBlocked = s.blockedSearchCrawlers ?? s.blockedAiCrawlers;
+  const trainingBlocked = s.blockedTrainingCrawlers ?? [];
   console.log(`site: robots ${s.robotsTxtFound ? '✓' : '✗'} · sitemap ${s.sitemapFound ? '✓' : '✗'} · llms.txt ${s.llmsTxtFound ? '✓' : '✗'}` +
-    (s.blockedAiCrawlers.length ? ` · 🔴 AI crawlers blocked: ${s.blockedAiCrawlers.join(',')}` : ''));
+    (searchBlocked.length ? ` · 🔴 AI SEARCH crawlers blocked: ${searchBlocked.join(',')} (removes you from those AI answers)` : '') +
+    (trainingBlocked.length ? ` · training opt-out: ${trainingBlocked.join(',')} (policy choice, not an error)` : ''));
   console.log(`avg ${report.avgScore ?? 'unmeasured'} · A${report.gradeDistribution.A} B${report.gradeDistribution.B} C${report.gradeDistribution.C} D${report.gradeDistribution.D}\n`);
   for (const u of report.failedUrls ?? []) console.log(`✗ unreachable (excluded from avg, not scored): ${u}`);
   for (const b of report.blockers) console.log(`🔴 BLOCKER: ${b}`);
@@ -432,8 +440,42 @@ const commands = {
   sheet: cmdSheet, import: cmdImport, trends: cmdTrends,
   cycle: cmdCycle, schedule: cmdSchedule, ui: cmdUi, botlog: cmdBotlog,
   expand: cmdExpand, publish: cmdPublish, official: cmdOfficial,
-  products: cmdProducts, shopping: cmdShopping,
+  products: cmdProducts, shopping: cmdShopping, sources: cmdSources,
 };
+
+async function cmdSources() {
+  if (!flags.samples || !flags.brand) {
+    console.error('usage: fastergeo sources --samples s.jsonl --brand brand.json [--format geolook] [--json]');
+    process.exit(1);
+  }
+  const brand = JSON.parse(readFileSync(flags.brand, 'utf8'));
+  const raw = readFileSync(flags.samples, 'utf8');
+  const samples = flags.format === 'geolook'
+    ? parseGeoLookSamples(raw)
+    : raw.split('\n').filter(Boolean).map(l => JSON.parse(l));
+  const { analyzeCitationSources } = await import('@fastergeo/metrics');
+  const sources = analyzeCitationSources(samples, brand);
+  if (flags.json) { console.log(JSON.stringify(sources, null, 2)); return; }
+  const T = LANG === 'zh' ? {
+    title: 'AI 在你的品类信任谁（来自你自己的采样引用）',
+    note: '约 84% 的 AI 引用来自第三方（Muck Rack）——下面的第三方域名就是你的公关目标清单。',
+    none: '样本中没有任何引用 URL（该引擎组合可能不带引用，或需开启 web search）。',
+    own: '自有',
+  } : {
+    title: 'Who AI trusts in your category (from your own samples\' citations)',
+    note: '~84% of AI citations are earned media (Muck Rack) — the third-party domains below are your PR target list.',
+    none: 'No citation URLs in these samples (this engine mix may not cite, or needs web search enabled).',
+    own: 'own',
+  };
+  console.log(T.title);
+  if (sources.length === 0) { console.log(T.none); return; }
+  let lastMarket = '';
+  for (const src of sources) {
+    if (src.market !== lastMarket) { console.log(`\n[${src.market}]`); lastMarket = src.market; }
+    console.log(`  ${String(src.citations).padStart(4)} × ${src.domain}${src.own ? ` (${T.own})` : ''} · ${src.samples} samples · ${src.engines.join(',')}`);
+  }
+  console.log(`\n${T.note}`);
+}
 
 async function cmdProducts() {
   if (!flags.root) {

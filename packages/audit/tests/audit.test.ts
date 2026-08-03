@@ -125,3 +125,16 @@ describe('blockedAiCrawlersFromRobots', () => {
     expect(blockedAiCrawlersFromRobots('User-agent: *\nDisallow:\n')).toEqual([]);
   });
 });
+
+import { AI_CRAWLER_PURPOSES } from '../src/types.js';
+
+describe('crawler purpose classification', () => {
+  it('classifies all 9 crawlers with search/user crawlers identified', () => {
+    expect(AI_CRAWLER_PURPOSES['OAI-SearchBot']).toBe('search-index');
+    expect(AI_CRAWLER_PURPOSES['PerplexityBot']).toBe('search-index');
+    expect(AI_CRAWLER_PURPOSES['ChatGPT-User']).toBe('user-request');
+    expect(AI_CRAWLER_PURPOSES['GPTBot']).toBe('training');
+    expect(AI_CRAWLER_PURPOSES['Google-Extended']).toBe('training');
+    expect(Object.keys(AI_CRAWLER_PURPOSES)).toHaveLength(9);
+  });
+});
