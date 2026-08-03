@@ -30,6 +30,7 @@ const INPUT: ReportInput = {
       mentionRate: 0, top1Rate: 0, top3Rate: 0, avgRank: null,
       shareOfVoice: 0, ownDomainCiteRate: 0, citationShare: null,
       competitorMentions: { Printful: 1 },
+      sentiment: null,
       probe: {
         samples: 2,
         recognition: { knows: 0, unknown: 0, confused: 1, unverified: 1 },
@@ -209,6 +210,33 @@ describe('renderHtmlReport — answer replay', () => {
   it('names unreachable pages in the audit section', () => {
     expect(html).toContain('unreachable');
     expect(html).toContain('timeout-page');
+  });
+
+  it('renders sentiment column and puts negative evidence in the banner', () => {
+    const withSentiment = renderHtmlReport({
+      ...INPUT,
+      metrics: {
+        ...INPUT.metrics!,
+        platforms: [{
+          ...INPUT.metrics!.platforms[0],
+          mentionRate: 0.5, samples: 14,
+          sentiment: {
+            mentionedSamples: 7,
+            verdicts: { positive: 4, neutral: 2, negative: 1, unverified: 0 },
+            negativeEvidence: ['不推荐使用该品牌，投诉较多'],
+          },
+        }],
+      },
+    });
+    expect(withSentiment).toContain('+4');
+    expect(withSentiment).toContain('−1');
+    expect(withSentiment).toContain('Negative mention');
+    expect(withSentiment).toContain('不推荐使用该品牌');
+  });
+
+  it('mention rate carries a Wilson CI tooltip, and 0% is an interval too', () => {
+    expect(html).toContain('95% CI');
+    expect(html).toContain('Wilson');
   });
 });
 

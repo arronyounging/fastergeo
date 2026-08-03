@@ -15,7 +15,7 @@ function period(date: string, over: {
       platforms: [{
         providerId: 'doubao', market: 'cn', samples: 14,
         mentionRate: over.mentionRate ?? 0, top1Rate: 0, top3Rate: 0, avgRank: null,
-        shareOfVoice: 0, ownDomainCiteRate: 0, citationShare: null, competitorMentions: {},
+        shareOfVoice: 0, ownDomainCiteRate: 0, citationShare: null, competitorMentions: {}, sentiment: null,
         probe: {
           samples: 2,
           recognition: { knows: 0, unknown: 2 - (over.confused ?? 0), confused: over.confused ?? 0, unverified: 0 },

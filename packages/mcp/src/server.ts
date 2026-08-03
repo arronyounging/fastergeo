@@ -17,7 +17,7 @@ import {
   auditPage, auditSite, checkSite,
 } from '@fastergeo/audit';
 import {
-  computeMetrics, makeLlmJudge, parseGeoLookSamples,
+  computeMetrics, makeLlmJudge, makeSentimentJudge, parseGeoLookSamples,
 } from '@fastergeo/metrics';
 import type { BrandConfig, Sample } from '@fastergeo/metrics';
 import { generateTickets, verifyTickets } from '@fastergeo/tickets';
@@ -186,13 +186,16 @@ export function createFastergeoServer(): McpServer {
     try {
       const parsed = parseSamples(samples, format);
       let judge;
+      let sentimentJudge;
       if (judgeEngine) {
         const jp = resolveProvider(judgeEngine);
-        judge = makeLlmJudge(async prompt =>
-          (await ask(jp, { question: prompt, maxTokens: 500 })).answer);
+        const askJudge = async (prompt: string): Promise<string> =>
+          (await ask(jp, { question: prompt, maxTokens: 500 })).answer;
+        judge = makeLlmJudge(askJudge);
+        sentimentJudge = makeSentimentJudge(askJudge);
       }
       const report = await computeMetrics(parsed, brand as BrandConfig, {
-        judge, brandDescription: brand.description,
+        judge, sentimentJudge, brandDescription: brand.description,
       });
       return json(report);
     } catch (err) {

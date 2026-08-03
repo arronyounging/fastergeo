@@ -5,10 +5,11 @@
 
 import type {
   BrandConfig, MetricsReport, PlatformMetrics, RecognitionJudge,
-  RecognitionVerdict, Sample,
+  RecognitionVerdict, Sample, SentimentJudge, SentimentVerdict,
 } from './types.js';
 import { brandRank, mentions } from './matching.js';
 import { classifyRecognition } from './recognition.js';
+import { classifySentiment } from './sentiment.js';
 
 function brandNames(brand: BrandConfig): string[] {
   return [brand.name, ...brand.aliases];
@@ -39,6 +40,8 @@ const ratio = (num: number, den: number): number | null => (den > 0 ? num / den 
 export interface ComputeOptions {
   /** LLM judge for probe recognition; without it, undecided → 'unverified'. */
   judge?: RecognitionJudge;
+  /** LLM judge for mention sentiment; without it, undecided → 'unverified'. */
+  sentimentJudge?: SentimentJudge;
   brandDescription?: string;
 }
 
@@ -65,6 +68,10 @@ async function computePlatform(
   let ownCitations = 0;
   let allCitations = 0;
   const competitorMentions: Record<string, number> = {};
+  const sentimentVerdicts: Record<SentimentVerdict, number> = {
+    positive: 0, neutral: 0, negative: 0, unverified: 0,
+  };
+  const negativeEvidence: string[] = [];
 
   for (const s of unprompted) {
     const { rank, mentioned: entities } = brandRank(s.answer, names, comps);
@@ -74,6 +81,9 @@ async function computePlatform(
       if (rank === 1) top1++;
       if (rank <= 3) top3++;
       brandVoice++;
+      const sent = await classifySentiment(s.answer, names, { judge: opts.sentimentJudge });
+      sentimentVerdicts[sent.verdict]++;
+      if (sent.verdict === 'negative' && sent.evidence) negativeEvidence.push(sent.evidence);
     }
     for (const e of entities) {
       if (e.name !== '__brand__') {
@@ -116,6 +126,9 @@ async function computePlatform(
     ownDomainCiteRate: ratio(ownCiteSamples, unprompted.length),
     citationShare: ratio(ownCitations, allCitations),
     competitorMentions,
+    sentiment: mentioned > 0
+      ? { mentionedSamples: mentioned, verdicts: sentimentVerdicts, negativeEvidence }
+      : null,
     probe,
   };
 }

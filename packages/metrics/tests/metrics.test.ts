@@ -238,3 +238,75 @@ describe('citesOwnDomain via computeMetrics — hostname suffix, not substring',
     expect(good.platforms[0].ownDomainCiteRate).toBe(1);
   });
 });
+
+import { classifySentiment, makeSentimentJudge } from '../src/sentiment.js';
+import { wilsonInterval } from '../src/stats.js';
+
+describe('classifySentiment — precision-first discipline', () => {
+  it('flags clear negative with the offending sentence as evidence (zh)', async () => {
+    const r = await classifySentiment('不推荐使用 Custyle，投诉很多。', ['Custyle']);
+    expect(r.verdict).toBe('negative');
+    expect(r.evidence).toContain('不推荐');
+  });
+
+  it('ignores negativity about competitors in other sentences', async () => {
+    const r = await classifySentiment('Printful 投诉很多，质量差。Custyle 也是一个选择。', ['Custyle']);
+    expect(r.verdict).toBe('unverified'); // no judge → never guessed positive/neutral
+  });
+
+  it('stays unverified without a judge instead of guessing', async () => {
+    const r = await classifySentiment('Custyle is a customization platform.', ['Custyle']);
+    expect(r.verdict).toBe('unverified');
+  });
+
+  it('uses the judge when heuristics find nothing', async () => {
+    const judge = makeSentimentJudge(async () => '{"verdict":"positive","evidence":"highly recommended"}');
+    const r = await classifySentiment('Custyle is highly recommended.', ['Custyle'], { judge });
+    expect(r.verdict).toBe('positive');
+  });
+
+  it('downgrades judge negative-without-evidence to unverified', async () => {
+    const judge = makeSentimentJudge(async () => '{"verdict":"negative"}');
+    const r = await judge({ answer: 'x', brandName: 'Custyle' });
+    expect(r.verdict).toBe('unverified');
+  });
+});
+
+describe('computeMetrics — sentiment aggregation', () => {
+  const brand: BrandConfig = { name: 'Custyle', aliases: [], domains: [], competitors: [] };
+  const mk = (answer: string): Sample => ({
+    providerId: 'glm', market: 'cn', questionId: 'q1', question: '推荐？',
+    brandInQuestion: false, answer, citations: [],
+  });
+
+  it('is null when the brand was never mentioned (nothing to judge)', async () => {
+    const r = await computeMetrics([mk('推荐 Printful。')], brand);
+    expect(r.platforms[0].sentiment).toBeNull();
+  });
+
+  it('aggregates verdicts with negative evidence', async () => {
+    const r = await computeMetrics([mk('不推荐使用 Custyle。'), mk('Custyle 也可以。')], brand);
+    const s = r.platforms[0].sentiment!;
+    expect(s.mentionedSamples).toBe(2);
+    expect(s.verdicts.negative).toBe(1);
+    expect(s.verdicts.unverified).toBe(1);
+    expect(s.negativeEvidence[0]).toContain('不推荐');
+  });
+});
+
+describe('wilsonInterval', () => {
+  it('behaves at the extremes GEO data lives at', () => {
+    const zero = wilsonInterval(0, 14)!;
+    expect(zero.low).toBe(0);
+    expect(zero.high).toBeGreaterThan(0.1); // 0/14 does NOT mean "certainly 0%"
+    expect(zero.high).toBeLessThan(0.3);
+    const all = wilsonInterval(5, 5)!;
+    expect(all.high).toBe(1);
+    expect(all.low).toBeLessThan(0.9);
+  });
+
+  it('returns null for invalid inputs, never a fabricated interval', () => {
+    expect(wilsonInterval(3, 0)).toBeNull();
+    expect(wilsonInterval(5, 3)).toBeNull();
+  });
+});

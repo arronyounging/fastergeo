@@ -67,6 +67,24 @@ export type RecognitionJudge = (input: {
   brandDescription?: string;
 }) => Promise<RecognitionResult>;
 
+/**
+ * Sentiment of a brand mention. 'unverified' = could not be determined
+ * (no judge, or judge undecided) — reported as unmeasured, never guessed.
+ */
+export type SentimentVerdict = 'positive' | 'neutral' | 'negative' | 'unverified';
+
+export interface SentimentResult {
+  verdict: SentimentVerdict;
+  /** Quoted evidence — required for 'negative'. */
+  evidence?: string;
+  method: 'heuristic' | 'judge';
+}
+
+export type SentimentJudge = (input: {
+  answer: string;
+  brandName: string;
+}) => Promise<SentimentResult>;
+
 export interface PlatformMetrics {
   providerId: string;
   market: Market;
@@ -85,6 +103,16 @@ export interface PlatformMetrics {
   /** Own-domain citations / all citations (null when no citations at all). */
   citationShare: number | null;
   competitorMentions: Record<string, number>;
+  /**
+   * Sentiment of brand mentions in unprompted answers. null when the brand
+   * was never mentioned (nothing to judge — not a zero).
+   */
+  sentiment: {
+    mentionedSamples: number;
+    verdicts: Record<SentimentVerdict, number>;
+    /** Evidence quotes for every 'negative' verdict. */
+    negativeEvidence: string[];
+  } | null;
   probe: {
     samples: number;
     recognition: Record<RecognitionVerdict, number>;

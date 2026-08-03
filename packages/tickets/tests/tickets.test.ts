@@ -36,7 +36,7 @@ function mkMetrics(over: Partial<MetricsReport> = {}): MetricsReport {
       providerId: 'doubao', market: 'cn', samples: 5,
       mentionRate: 0, top1Rate: 0, top3Rate: 0, avgRank: null,
       shareOfVoice: 0, ownDomainCiteRate: 0, citationShare: null,
-      competitorMentions: {},
+      competitorMentions: {}, sentiment: null,
       probe: {
         samples: 2,
         recognition: { knows: 0, unknown: 0, confused: 1, unverified: 1 },

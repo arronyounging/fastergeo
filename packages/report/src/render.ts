@@ -14,7 +14,7 @@
  */
 
 import type { SiteAudit } from '@fastergeo/audit';
-import { matchRanges, mentions } from '@fastergeo/metrics';
+import { matchRanges, mentions, wilsonInterval } from '@fastergeo/metrics';
 import type { MetricsReport, PlatformMetrics, Sample } from '@fastergeo/metrics';
 import type { Ticket } from '@fastergeo/tickets';
 
@@ -61,7 +61,11 @@ const MSG = {
     enginesTitle: 'Engine Performance',
     enginesTip: 'Mention rate = share of unprompted answers mentioning the brand (brand-naming probes are strictly segregated). SoV = brand mentions / (brand + competitor mentions). China and global markets are never averaged together. Anything not computable renders as unmeasured.',
     thEngine: 'engine', thMarket: 'market', thSamples: 'samples', thMention: 'mention',
-    thSov: 'SoV', thCite: 'own cite', thRecognition: 'recognition', thCompetitors: 'competitors seen',
+    thSov: 'SoV', thCite: 'own cite', thSentiment: 'sentiment', thRecognition: 'recognition', thCompetitors: 'competitors seen',
+    ciNote: (lo: string, hi: string, n: number) => `95% CI ${lo}–${hi} (n=${n}, Wilson) — a rate from few samples is an interval, not a point`,
+    sentimentNone: '—no mentions', sentimentUnverified: 'unverified',
+    negativeItem: (id: string, mkt: string, e: string) =>
+      `Negative mention (${id} · ${mkt}): AI said "${e}…"`,
     auditTitle: 'Six-Dimension Audit',
     auditTip: 'Crawlability 15 / length 15 / structure 20 / extractable blocks 25 / authority 15 / relevance 10. Thresholds anchored to published empirical citation data. Fetching does not execute JS — this measures exactly what AI crawlers see.',
     aiNotBlocked: 'AI crawlers not blocked', avg: 'avg',
@@ -104,7 +108,11 @@ const MSG = {
     enginesTitle: '引擎表现',
     enginesTip: '提及率=无提示问题中品牌被提及的比例（点名探测题严格隔离，不计入）。SoV=品牌提及/(品牌+竞品提及)。国内与海外分开计算，永不平均。算不出的显示未测，不编数。',
     thEngine: '引擎', thMarket: '市场', thSamples: '样本', thMention: '提及率',
-    thSov: 'SoV', thCite: '官网引用', thRecognition: '点名认知', thCompetitors: '竞品出现',
+    thSov: 'SoV', thCite: '官网引用', thSentiment: '口碑', thRecognition: '点名认知', thCompetitors: '竞品出现',
+    ciNote: (lo: string, hi: string, n: number) => `95% 置信区间 ${lo}–${hi}（n=${n}，Wilson）— 少量样本得出的比率是区间，不是点值`,
+    sentimentNone: '—无提及', sentimentUnverified: '未判定',
+    negativeItem: (id: string, mkt: string, e: string) =>
+      `负面提及（${id} · ${mkt}）：AI 原文「${e}…」`,
     auditTitle: '六维体检',
     auditTip: '可抓取性15/长度15/结构20/可抽取块25/权威信号15/对题性10。阈值锚定公开实证数据。抓取不执行 JS——测的就是 AI 爬虫看到的东西。',
     aiNotBlocked: 'AI 爬虫未被屏蔽', avg: '均分',
@@ -163,6 +171,9 @@ function blockerBanner(input: ReportInput, m: M): string {
     for (const e of p.probe?.confusedEvidence ?? []) {
       items.push(esc(m.confusionItem(p.providerId, p.market, e.slice(0, 120))));
     }
+    for (const e of p.sentiment?.negativeEvidence ?? []) {
+      items.push(esc(m.negativeItem(p.providerId, p.market, e.slice(0, 120))));
+    }
   }
   if (items.length === 0) return '';
   return `<section class="blockers"><h2>${m.blockersTitle(items.length)}</h2>
@@ -214,18 +225,37 @@ function funnel(metrics: MetricsReport | undefined, m: M): string {
 function engineTable(metrics: MetricsReport | undefined, m: M): string {
   if (!metrics) return '';
   const pct = pctWith(m);
+  const pctS = (v: number): string => `${(v * 100).toFixed(0)}%`;
   const row = (p: PlatformMetrics): string => {
     const comps = Object.entries(p.competitorMentions).sort((a, b) => b[1] - a[1])
       .slice(0, 4).map(([k, n]) => `${esc(k)}×${n}`).join(' ');
     const rec = p.probe
       ? Object.entries(p.probe.recognition).filter(([, n]) => n > 0).map(([k, n]) => `${k}×${n}`).join(' ')
       : '—';
+    // Mention rate cell carries its Wilson interval — a rate is a sampled
+    // estimate, and the tooltip says so instead of implying false precision.
+    let mentionCell = pct(p.mentionRate);
+    if (p.mentionRate !== null && p.samples >= 2) {
+      const ci = wilsonInterval(Math.round(p.mentionRate * p.samples), p.samples);
+      if (ci) mentionCell = `<span title="${esc(m.ciNote(pctS(ci.low), pctS(ci.high), p.samples))}">${pct(p.mentionRate)}<span class="ci">±</span></span>`;
+    }
+    let sent = `<span class="na">${m.sentimentNone}</span>`;
+    if (p.sentiment) {
+      const v = p.sentiment.verdicts;
+      const parts = [
+        v.positive ? `<span class="ok">+${v.positive}</span>` : '',
+        v.neutral ? `<span>=${v.neutral}</span>` : '',
+        v.negative ? `<span class="bad-t">−${v.negative}</span>` : '',
+        v.unverified ? `<span class="na" title="${m.sentimentUnverified}">?${v.unverified}</span>` : '',
+      ].filter(Boolean).join(' ');
+      sent = parts || `<span class="na">${m.unmeasured}</span>`;
+    }
     return `<tr><td>${esc(p.providerId)}</td><td>${p.market}</td><td class="num">${p.samples}</td>
-      <td>${pct(p.mentionRate)}</td><td>${pct(p.shareOfVoice)}</td><td>${pct(p.ownDomainCiteRate)}</td>
-      <td>${rec}</td><td class="comps">${comps || '—'}</td></tr>`;
+      <td>${mentionCell}</td><td>${pct(p.shareOfVoice)}</td><td>${pct(p.ownDomainCiteRate)}</td>
+      <td>${sent}</td><td>${rec}</td><td class="comps">${comps || '—'}</td></tr>`;
   };
   return `<section><h2>${m.enginesTitle} <span class="m" title="${esc(m.enginesTip)}">${m.methodology}</span></h2>
-    <table><thead><tr><th>${m.thEngine}</th><th>${m.thMarket}</th><th>${m.thSamples}</th><th>${m.thMention}</th><th>${m.thSov}</th><th>${m.thCite}</th><th>${m.thRecognition}</th><th>${m.thCompetitors}</th></tr></thead>
+    <table><thead><tr><th>${m.thEngine}</th><th>${m.thMarket}</th><th>${m.thSamples}</th><th>${m.thMention}</th><th>${m.thSov}</th><th>${m.thCite}</th><th>${m.thSentiment}</th><th>${m.thRecognition}</th><th>${m.thCompetitors}</th></tr></thead>
     <tbody>${metrics.platforms.map(row).join('')}</tbody></table></section>`;
 }
 
@@ -421,6 +451,7 @@ padding:8px;border-bottom:1px solid var(--line)}
 td{padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:top}
 tr:last-child td{border-bottom:none}
 .na{color:var(--faint)}
+.ci{color:var(--faint);font-size:10px;vertical-align:super;cursor:help}
 .ok{color:var(--ok)}.bad-t{color:var(--red)}
 /* Grade badges + dimension bars */
 .grade{display:inline-flex;width:26px;height:26px;border-radius:8px;align-items:center;

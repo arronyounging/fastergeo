@@ -22,7 +22,7 @@ import {
   PROVIDERS, resolveProvider, configuredProviders, ask, checkProvider,
 } from '@fastergeo/providers';
 import {
-  computeMetrics, parseGeoLookSamples, makeLlmJudge,
+  computeMetrics, parseGeoLookSamples, makeLlmJudge, makeSentimentJudge,
   renderSampleSheet, parseSampleSheet, enrichWithQuestionBank,
 } from '@fastergeo/metrics';
 import { auditSite, fetchPage } from '@fastergeo/audit';
@@ -58,6 +58,7 @@ const { values: flags } = parseArgs({
     history: { type: 'string' },
     dir: { type: 'string' },
     every: { type: 'string' },
+    repeat: { type: 'string' },
     port: { type: 'string' },
     lang: { type: 'string' },
     json: { type: 'boolean', default: false },
@@ -142,13 +143,16 @@ async function cmdMetrics() {
   // --judge <providerId>: LLM 裁判判定点名题的认知质量（knows/confused），
   // 不配则启发式判不了的保持 unverified，绝不猜测。
   let judge;
+  let sentimentJudge;
   if (flags.judge) {
     const jp = resolveProvider(flags.judge);
-    judge = makeLlmJudge(async prompt =>
-      (await ask(jp, { question: prompt, maxTokens: 500 })).answer);
+    const askJudge = async prompt => (await ask(jp, { question: prompt, maxTokens: 500 })).answer;
+    judge = makeLlmJudge(askJudge);
+    sentimentJudge = makeSentimentJudge(askJudge);
   }
   const report = await computeMetrics(samples, brand, {
     judge,
+    sentimentJudge,
     brandDescription: brand.description,
   });
   savePeriod({ metrics: report, samples });
@@ -163,6 +167,13 @@ async function cmdMetrics() {
     const comps = Object.entries(p.competitorMentions).sort((a, b) => b[1] - a[1])
       .map(([k, n]) => `${k}×${n}`).join(', ');
     if (comps) console.log(`             competitors: ${comps}`);
+    if (p.sentiment) {
+      const v = p.sentiment.verdicts;
+      const parts = [v.positive && `+${v.positive}`, v.neutral && `=${v.neutral}`,
+        v.negative && `−${v.negative}`, v.unverified && `?${v.unverified}`].filter(Boolean).join(' ');
+      console.log(`             sentiment (${p.sentiment.mentionedSamples} mentions): ${parts}`);
+      for (const e of p.sentiment.negativeEvidence) console.log(`             ⚠ negative evidence: ${e.slice(0, 80)}`);
+    }
     if (p.probe) {
       const rec = Object.entries(p.probe.recognition).filter(([, n]) => n > 0)
         .map(([k, n]) => `${k}×${n}`).join(' ');
@@ -218,12 +229,13 @@ async function buildContext() {
       ? parseGeoLookSamples(raw)
       : raw.split('\n').filter(Boolean).map(l => JSON.parse(l));
     let judge;
+  let sentimentJudge;
     if (flags.judge) {
       const jp = resolveProvider(flags.judge);
       judge = makeLlmJudge(async prompt =>
         (await ask(jp, { question: prompt, maxTokens: 500 })).answer);
     }
-    ctx.metrics = await computeMetrics(samples, brand, { judge, brandDescription: brand.description });
+    ctx.metrics = await computeMetrics(samples, brand, { judge, sentimentJudge, brandDescription: brand.description });
     ctx.samples = samples;
     ctx.brandAliases = brand.aliases;
   }
@@ -437,10 +449,13 @@ async function cmdCycle() {
   // 1. 采样：已配 Key 的 API 引擎 × 市场匹配的问题
   let providers = configuredProviders();
   if (flags.providers) providers = providers.filter(p => flags.providers.split(',').includes(p.id));
+  // --repeat N: answers are stochastic; decision-grade runs repeat each
+  // question so rates come from a distribution, not one draw.
+  const repeat = Math.max(1, parseInt(flags.repeat ?? '1', 10) || 1);
   const jobs = [];
   for (const p of providers) {
     for (const q of questions.filter(q => q.market === p.market || q.market === 'both')) {
-      jobs.push({ p, q });
+      for (let round = 0; round < repeat; round++) jobs.push({ p, q });
     }
   }
   console.log(`[1/5] sampling ${providers.map(p => p.id).join(',') || '(no keys, skipped)'} × ${jobs.length} questions…`);
@@ -466,13 +481,15 @@ async function cmdCycle() {
   // 2. 指标（可选 judge）
   console.log('[2/5] metrics…');
   let judge;
+  let sentimentJudge;
   if (flags.judge) {
     const jp = resolveProvider(flags.judge);
-    judge = makeLlmJudge(async prompt =>
-      (await ask(jp, { question: prompt, maxTokens: 500 })).answer);
+    const askJudge = async prompt => (await ask(jp, { question: prompt, maxTokens: 500 })).answer;
+    judge = makeLlmJudge(askJudge);
+    sentimentJudge = makeSentimentJudge(askJudge);
   }
   const metricsReport = samples.length
-    ? await computeMetrics(samples, brand, { judge, brandDescription: brand.description })
+    ? await computeMetrics(samples, brand, { judge, sentimentJudge, brandDescription: brand.description })
     : undefined;
 
   // 3. 体检
