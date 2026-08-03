@@ -29,6 +29,15 @@ function evaluate(check: string, ctx: VerifyContext, T: typeof VM.en | typeof VM
         detail: `blockedSearch=[${blocked.join(',')}]`,
       };
     }
+    case 'site.entity_schema': {
+      if (!ctx.audit) return null;
+      const e = ctx.audit.entity;
+      if (!e) return null; // audited before entity extraction existed — unmeasurable, never guessed
+      return {
+        pass: e.organizationSchema && e.sameAsCount >= 2,
+        detail: `organizationSchema=${e.organizationSchema} sameAs=${e.sameAsCount}`,
+      };
+    }
     case 'site.llms_txt':
       if (!ctx.audit) return null;
       return { pass: ctx.audit.site.llmsTxtFound, detail: `llmsTxtFound=${ctx.audit.site.llmsTxtFound}` };

@@ -31,6 +31,9 @@ const ISSUE_TICKETS: Record<TicketLang, Record<string, IssueSpec>> = {
     'block-gap:faq': { title: 'Add FAQ blocks', priority: 'P1', desc: 'pages missing FAQ drop ≥50%' },
     'content-short': { title: 'Expand core pages to 600+ word-equivalents', priority: 'P1', desc: 'short pages drop ≥50%' },
     'no-date': { title: 'Add publish/updated date markup', priority: 'P1', desc: 'pages missing dates drops to 0', toZero: true },
+    'answer-below-fold': { title: 'Move answers into the first 30% of the page', priority: 'P1', desc: 'pages whose definition/statistics blocks only appear below the fold drop ≥50% (44.2% of LLM citations extract from the top 30%)' },
+    'context-dependent-paragraphs': { title: 'Make paragraphs self-contained (island test)', priority: 'P1', desc: 'pages with ≥30% pronoun-opening paragraphs drop ≥50% — chunked retrieval loses their referents' },
+    'stale-content': { title: 'Refresh stale pages (90+ days unmodified)', priority: 'P1', desc: 'pages with dateModified older than 90 days drop ≥50%; update stats/cases and bump dateModified' },
   },
   zh: {
     'spa-shell': { title: '修复客户端渲染空壳页（SSR/预渲染）', priority: 'P0', desc: '受影响页面重抓后可见正文 ≥ 120 词等效' },
@@ -42,6 +45,9 @@ const ISSUE_TICKETS: Record<TicketLang, Record<string, IssueSpec>> = {
     'block-gap:faq': { title: '补「FAQ」抽取块', priority: 'P1', desc: '缺 FAQ 的页面数下降 ≥50%' },
     'content-short': { title: '核心页正文扩到 600+ 词等效', priority: 'P1', desc: '短页面数下降 ≥50%' },
     'no-date': { title: '补发布/更新日期标记', priority: 'P1', desc: '缺日期页面数降为 0', toZero: true },
+    'answer-below-fold': { title: '把答案前置到页面前 30%', priority: 'P1', desc: '定义/数字块只在后段出现的页面数下降 ≥50%（44.2% 的 LLM 引用取自页面前 30%）' },
+    'context-dependent-paragraphs': { title: '让段落自包含（孤岛测试）', priority: 'P1', desc: '代词开头段落 ≥30% 的页面数下降 ≥50%——切块检索会丢失指代' },
+    'stale-content': { title: '刷新超过 90 天未更新的页面', priority: 'P1', desc: '90 天以上未更新页面数下降 ≥50%；更新数据/案例并同步 dateModified' },
   },
 };
 
@@ -53,6 +59,9 @@ const M = {
     earnedTitle: (market: string, domains: string) => `Earn presence on the sources AI already trusts [${market}]: ${domains}`,
     earnedRationale: 'the brand is barely mentioned, and ~84% of AI citations come from earned media (Muck Rack, 25M citations) — owned content shapes how AI describes you; third-party presence decides whether it recommends you. These domains are already cited in your category.',
     earnedDesc: 'brand appears (mention/coverage/listing) on at least one of the listed cited domains — human-verified',
+    entityWiringTitle: 'Wire up entity declaration (Organization JSON-LD + sameAs)',
+    entityWiringRationale: (conf: number) => `${conf} engine(s) confuse the brand with another entity, and the root page's entity wiring is weak — inconsistent/absent entity signals are the leading cause of AI misdescribing a brand. Declare Organization JSON-LD with sameAs links (Wikidata/LinkedIn/Crunchbase…) so AI can pin the brand to the right node.`,
+    entityWiringDesc: 'root page declares Organization JSON-LD with ≥2 sameAs links',
     shellRationale: (n: number) => `${n} page(s) are client-rendered empty shells (AI crawlers do not execute JS)`,
     llmsTitle: 'Deploy llms.txt at the site root',
     llmsRationale: 'site.llmsTxtFound=false (note: Google does not use llms.txt; this only helps some engines)',
@@ -76,6 +85,9 @@ const M = {
     earnedTitle: (market: string, domains: string) => `在 AI 已信任的阵地获得存在感 [${market}]：${domains}`,
     earnedRationale: '品牌几乎未被提及，而约 84% 的 AI 引用来自第三方（Muck Rack，2500 万引用）——自有内容决定 AI 如何描述你，第三方阵地决定它是否推荐你。这些域名已经在你的品类里被 AI 引用。',
     earnedDesc: '品牌在所列被引域名中的至少一个获得提及/报道/收录——人工核验',
+    entityWiringTitle: '建立实体声明（Organization JSON-LD + sameAs）',
+    entityWiringRationale: (conf: number) => `${conf} 个引擎把品牌张冠李戴，而首页实体声明薄弱——实体信号缺失/不一致是 AI 描述错品牌的首要原因。声明 Organization JSON-LD 并用 sameAs 连接 Wikidata/LinkedIn/Crunchbase 等档案，让 AI 把品牌钉在正确节点。`,
+    entityWiringDesc: '首页声明 Organization JSON-LD 且 sameAs 链接 ≥2',
     shellRationale: (n: number) => `${n} 个页面是客户端渲染空壳（AI 爬虫不执行 JS）`,
     llmsTitle: '部署 llms.txt 到站点根目录',
     llmsRationale: 'site.llmsTxtFound=false（注：Google 不使用 llms.txt，此项仅利于部分引擎）',
@@ -201,6 +213,20 @@ export function generateTickets(
         });
       }
     }
+    // ── entity remedy for confusion: content fixes alone rarely cure
+    // misidentification; the entity layer is the concrete medicine ─────────
+    const confusions = metrics.platforms
+      .reduce((a, p) => a + (p.probe?.recognition.confused ?? 0), 0);
+    if (confusions > 0 && audit?.entity
+      && (!audit.entity.organizationSchema || audit.entity.sameAsCount < 2)) {
+      mk({
+        title: m.entityWiringTitle,
+        priority: 'P1',
+        rationale: m.entityWiringRationale(confusions),
+        acceptance: { type: 'auto', check: 'site.entity_schema', desc: m.entityWiringDesc },
+      });
+    }
+
     // ── mention-rate targets per market ─────────────────────────────────
     const markets = [...new Set(metrics.platforms.map(p => p.market))];
     for (const market of markets) {

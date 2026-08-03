@@ -46,7 +46,7 @@ function scoreLength(f: PageFeatures): DimensionScore {
   return { key: 'length', score: Math.round(score * 10) / 10, max: 15, issues };
 }
 
-function scoreStructure(f: PageFeatures): DimensionScore {
+function scoreStructure(f: PageFeatures, earlyBlocks?: BlockSignals, blocks?: BlockSignals): DimensionScore {
   const issues: string[] = [];
   let score = 0;
   if (f.h1.length === 1) score += 4;
@@ -56,6 +56,19 @@ function scoreStructure(f: PageFeatures): DimensionScore {
   if (h2 < 2) issues.push('few-h2');
   score += f.paragraphCount >= 5 ? 5 : (f.paragraphCount / 5) * 5;
   if (f.listCount > 0) score += 5; else issues.push('no-lists');
+  // 44.2% of LLM citations extract from a page's first 30% (Omniscient
+  // Digital, 23k citations) — a page whose only definition/statistics live
+  // below the fold has its best material where extraction rarely reaches.
+  if (earlyBlocks && blocks
+    && (blocks.definition || blocks.statistics)
+    && !(earlyBlocks.definition || earlyBlocks.statistics)) {
+    issues.push('answer-below-fold');
+  }
+  // Island test: models evaluate 200–500-word standalone chunks; paragraphs
+  // opening with It/This/They/这/该… lose their referent when chunked.
+  if (f.paragraphCount >= 5 && f.pronounStartParagraphs / f.paragraphCount >= 0.3) {
+    issues.push('context-dependent-paragraphs');
+  }
   return { key: 'structure', score: Math.round(score * 10) / 10, max: 20, issues };
 }
 
@@ -74,6 +87,15 @@ function scoreAuthority(f: PageFeatures): DimensionScore {
   const issues: string[] = [];
   let score = 0;
   if (f.hasPublishDate) score += 4; else issues.push('no-date');
+  // Freshness: pages unmodified for 90+ days lose citations at ~3x the rate
+  // of active pages. Only checkable when the page states dateModified —
+  // absence is already covered by no-date, never guessed at.
+  if (f.modifiedDate) {
+    const t = Date.parse(f.modifiedDate);
+    if (!Number.isNaN(t) && Date.now() - t > 90 * 24 * 3600 * 1000) {
+      issues.push('stale-content');
+    }
+  }
   if (f.hasAuthor) score += 2; else issues.push('no-author');
   if (f.externalLinkCount >= 2) score += 4;
   else if (f.externalLinkCount === 1) score += 2;
@@ -112,11 +134,12 @@ export function scorePage(
   f: PageFeatures,
   blocks: BlockSignals,
   questions?: string[],
+  extras?: { earlyBlocks?: BlockSignals },
 ): PageAudit {
   const dimensions = [
     scoreCrawlability(f),
     scoreLength(f),
-    scoreStructure(f),
+    scoreStructure(f, extras?.earlyBlocks, blocks),
     scoreBlocks(blocks),
     scoreAuthority(f),
     scoreRelevance(f, questions),
@@ -136,6 +159,10 @@ export function scorePage(
 
   return {
     url: f.url,
+    entity: {
+      organizationSchema: f.jsonLdTypes.includes('Organization'),
+      sameAsCount: f.sameAsCount,
+    },
     score,
     grade: score >= 85 ? 'A' : score >= 70 ? 'B' : score >= 40 ? 'C' : 'D',
     dimensions,

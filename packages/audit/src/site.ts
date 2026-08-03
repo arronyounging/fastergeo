@@ -104,7 +104,12 @@ export async function auditPage(url: string, opts: AuditOptions = {}): Promise<P
   const res = await fetchText(url, opts.timeoutMs ?? DEFAULT_TIMEOUT_MS);
   if (!res) return null;
   const features = extractFeatures(url, res.status, res.body);
-  return scorePage(features, detectBlocks(features), opts.questions);
+  // Blocks in the first 30% of visible text — where extraction actually reaches.
+  const earlyBlocks = detectBlocks({
+    ...features,
+    text: features.text.slice(0, Math.ceil(features.text.length * 0.3)),
+  });
+  return scorePage(features, detectBlocks(features), opts.questions, { earlyBlocks });
 }
 
 /** Audit a set of URLs plus site-level checks. */
@@ -140,12 +145,19 @@ export async function auditSite(
     );
   }
 
+  // Entity wiring from the root page (fallback: any page declaring it) —
+  // weak entity signals are the leading cause of AI misdescribing a brand.
+  const rootNorm = root.replace(/\/$/, '');
+  const rootPage = pages.find(p => p.url.replace(/\/$/, '') === rootNorm) ?? pages[0];
+  const entity = rootPage?.entity;
+
   return {
     root,
     generatedAt: new Date().toISOString(),
     site,
     pages,
     failedUrls,
+    ...(entity ? { entity } : {}),
     avgScore: pages.length > 0
       ? Math.round((pages.reduce((a, p) => a + p.score, 0) / pages.length) * 10) / 10
       : null,

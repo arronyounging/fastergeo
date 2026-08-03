@@ -171,3 +171,45 @@ describe('earned-media off-site ticket', () => {
     expect(tickets.some(t => t.title.includes('already trusts'))).toBe(false);
   });
 });
+
+describe('entity-wiring ticket (confusion remedy)', () => {
+  const confusedMetrics: MetricsReport = {
+    generatedAt: '', brand: 'Custyle', totalSamples: 4,
+    platforms: [{
+      providerId: 'doubao', market: 'cn', samples: 2,
+      mentionRate: 0, top1Rate: 0, top3Rate: 0, avgRank: null, earlyMentionRate: null,
+      shareOfVoice: 0, ownDomainCiteRate: 0, citationShare: null,
+      competitorMentions: {}, sentiment: null,
+      probe: { samples: 2, recognition: { knows: 0, unknown: 0, confused: 1, unverified: 1 }, confusedEvidence: ['汽车配件'] },
+    }],
+  };
+  const weakEntityAudit = {
+    root: 'https://a.com', generatedAt: '',
+    site: { robotsTxtFound: true, blockedAiCrawlers: [], sitemapFound: true, llmsTxtFound: true },
+    pages: [], failedUrls: [], entity: { organizationSchema: false, sameAsCount: 0 },
+    avgScore: 80, gradeDistribution: { A: 1, B: 0, C: 0, D: 0 }, blockers: [],
+  } as unknown as SiteAudit;
+
+  it('emits an auto-verifiable entity ticket when confusion meets weak wiring', () => {
+    const tickets = generateTickets(weakEntityAudit, confusedMetrics, 'en');
+    const t = tickets.find(x => x.acceptance.type === 'auto' && x.acceptance.check === 'site.entity_schema');
+    expect(t).toBeDefined();
+    expect(t!.title).toContain('Organization JSON-LD');
+  });
+
+  it('emits none when entity wiring is already solid', () => {
+    const solid = { ...weakEntityAudit, entity: { organizationSchema: true, sameAsCount: 3 } } as SiteAudit;
+    const tickets = generateTickets(solid, confusedMetrics, 'en');
+    expect(tickets.some(x => x.acceptance.type === 'auto' && x.acceptance.check === 'site.entity_schema')).toBe(false);
+  });
+
+  it('verify passes site.entity_schema only with org schema + ≥2 sameAs, unmeasurable on old audits', () => {
+    const t = { id: 'T-001', title: 'x', priority: 'P1' as const, rationale: '', status: 'todo' as const, history: [], acceptance: { type: 'auto' as const, check: 'site.entity_schema', desc: '' } };
+    const good = { ...weakEntityAudit, entity: { organizationSchema: true, sameAsCount: 2 } } as SiteAudit;
+    expect(verifyTickets([{ ...t, history: [] }], { audit: good }).verdicts[0].outcome).toBe('pass');
+    const old = { ...weakEntityAudit };
+    delete (old as { entity?: unknown }).entity;
+    const summary = verifyTickets([{ ...t, history: [] }], { audit: old as SiteAudit });
+    expect(summary.counts.unmeasurable).toBe(1);
+  });
+});

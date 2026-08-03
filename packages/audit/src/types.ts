@@ -25,11 +25,19 @@ export interface PageFeatures {
   h2: string[];
   h3: string[];
   paragraphCount: number;
+  /** Paragraphs starting with a context-dependent pronoun (It/This/They/这/该/其…)
+   * — the "island test": such paragraphs lose meaning when chunked (models
+   * evaluate content in 200–500-word standalone chunks). */
+  pronounStartParagraphs: number;
   listCount: number;
   tableCount: number;
   /** JSON-LD @type values found in the page. */
   jsonLdTypes: string[];
   hasPublishDate: boolean;
+  /** dateModified / article:modified_time when stated; null when absent. */
+  modifiedDate: string | null;
+  /** sameAs URLs in JSON-LD — the entity wiring AI uses to resolve who you are. */
+  sameAsCount: number;
   hasAuthor: boolean;
   externalLinkCount: number;
   internalLinkCount: number;
@@ -60,6 +68,8 @@ export interface DimensionScore {
 
 export interface PageAudit {
   url: string;
+  /** Entity-declaration signals found on this page (used site-level). */
+  entity?: { organizationSchema: boolean; sameAsCount: number };
   /** 0-100 normalized; unmeasured dimensions' weight redistributed. */
   score: number;
   grade: 'A' | 'B' | 'C' | 'D';
@@ -118,6 +128,9 @@ export interface SiteAudit {
   /** URLs that could not be fetched — named, never silently dropped.
    * Optional for compatibility with audits stored before this field existed. */
   failedUrls?: string[];
+  /** Entity declaration on the root page: Organization JSON-LD + sameAs.
+   * Weak entity wiring is the leading cause of AI misdescribing a brand. */
+  entity?: { organizationSchema: boolean; sameAsCount: number };
   avgScore: number | null;
   gradeDistribution: Record<'A' | 'B' | 'C' | 'D', number>;
   /** Site-wide blockers, e.g. all product pages are client-rendered shells. */

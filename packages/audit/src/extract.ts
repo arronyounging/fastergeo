@@ -86,12 +86,25 @@ export function extractFeatures(url: string, status: number, html: string): Page
     h2: matchAll(html, /<h2[^>]*>([\s\S]*?)<\/h2>/gi),
     h3: matchAll(html, /<h3[^>]*>([\s\S]*?)<\/h3>/gi),
     paragraphCount: (html.match(/<p[\s>]/gi) ?? []).length,
+    pronounStartParagraphs: [...html.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/gi)]
+      .map(m => stripTags(m[1] ?? ''))
+      .filter(t => /^(it|this|these|those|they|he|she|such)\b/i.test(t) || /^(这|那|它|他们|她们|该|其|此)/.test(t))
+      .length,
     listCount: (html.match(/<[uo]l[\s>]/gi) ?? []).length,
     tableCount: (html.match(/<table[\s>]/gi) ?? []).length,
     jsonLdTypes,
     hasPublishDate:
       /datePublished|article:published_time/i.test(html) ||
       /<time[\s>]/i.test(html),
+    modifiedDate:
+      metaContent(html, 'article:modified_time')
+      ?? /"dateModified"\s*:\s*"([^"]+)"/.exec(html)?.[1]
+      ?? null,
+    sameAsCount: (() => {
+      const m = /"sameAs"\s*:\s*(\[[^\]]*\]|"[^"]+")/.exec(html);
+      if (!m) return 0;
+      return (m[1].match(/https?:\/\//g) ?? []).length;
+    })(),
     hasAuthor: /"author"|rel=["']author["']|class=["'][^"']*author/i.test(html),
     externalLinkCount: external.length,
     internalLinkCount: internal.length,

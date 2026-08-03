@@ -138,3 +138,55 @@ describe('crawler purpose classification', () => {
     expect(Object.keys(AI_CRAWLER_PURPOSES)).toHaveLength(9);
   });
 });
+
+
+describe('report-derived checks (前30%/孤岛/新鲜度/实体层)', () => {
+  it('extracts pronoun-start paragraphs, modifiedDate, sameAs count', () => {
+    const html = `<html><head>
+      <meta property="article:modified_time" content="2026-01-01T00:00:00Z">
+      <script type="application/ld+json">{"@type":"Organization","name":"X","sameAs":["https://www.wikidata.org/wiki/Q1","https://linkedin.com/company/x"]}</script>
+      </head><body>
+      <p>Custyle is a platform.</p><p>It offers many products.</p><p>This makes it useful.</p>
+      <p>这也是原因之一。</p><p>独立成义的段落。</p></body></html>`;
+    const f = extractFeatures('https://a.com/', 200, html);
+    expect(f.pronounStartParagraphs).toBe(3); // It / This / 这
+    expect(f.modifiedDate).toBe('2026-01-01T00:00:00Z');
+    expect(f.sameAsCount).toBe(2);
+    expect(f.jsonLdTypes).toContain('Organization');
+  });
+
+  it('flags answer-below-fold only when blocks exist but not early', () => {
+    const filler = 'word '.repeat(300);
+    const html = `<html><body><p>${filler}</p><p>GEO is a discipline. 61.6% improvement.</p></body></html>`;
+    const f = extractFeatures('https://a.com/x', 200, html);
+    const early = detectBlocks({ ...f, text: f.text.slice(0, Math.ceil(f.text.length * 0.3)) });
+    const audit = scorePage(f, detectBlocks(f), undefined, { earlyBlocks: early });
+    const structure = audit.dimensions.find(d => d.key === 'structure')!;
+    expect(structure.issues).toContain('answer-below-fold');
+  });
+
+  it('flags context-dependent paragraphs at ≥30% pronoun starts', () => {
+    const ps = ['It is fast.', 'This helps.', 'They agree.', 'Standalone fact one.', 'Standalone fact two.']
+      .map(t => `<p>${t}</p>`).join('');
+    const f = extractFeatures('https://a.com/x', 200, `<html><body>${ps}</body></html>`);
+    const audit = scorePage(f, detectBlocks(f));
+    expect(audit.dimensions.find(d => d.key === 'structure')!.issues).toContain('context-dependent-paragraphs');
+  });
+
+  it('flags stale-content only when a stated dateModified is >90 days old', () => {
+    const mk = (date: string) => extractFeatures('https://a.com/x', 200,
+      `<html><head><meta property="article:modified_time" content="${date}"></head><body><p>x</p></body></html>`);
+    const staleAudit = scorePage(mk('2020-01-01T00:00:00Z'), detectBlocks(mk('2020-01-01T00:00:00Z')));
+    expect(staleAudit.dimensions.find(d => d.key === 'authority')!.issues).toContain('stale-content');
+    const fresh = mk(new Date(Date.now() - 5 * 24 * 3600 * 1000).toISOString());
+    const freshAudit = scorePage(fresh, detectBlocks(fresh));
+    expect(freshAudit.dimensions.find(d => d.key === 'authority')!.issues).not.toContain('stale-content');
+  });
+
+  it('attaches page entity signals for site-level aggregation', () => {
+    const html = `<script type="application/ld+json">{"@type":"Organization","sameAs":["https://x.com/a"]}</script><p>hi</p>`;
+    const f = extractFeatures('https://a.com/', 200, `<html><body>${html}</body></html>`);
+    const audit = scorePage(f, detectBlocks(f));
+    expect(audit.entity).toEqual({ organizationSchema: true, sameAsCount: 1 });
+  });
+});
