@@ -1,6 +1,6 @@
 {
   "name": "@fastergeo/metrics",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "FasterGEO metrics engine — visibility, share of voice, citation share, position, and recognition-quality classification. Reproducible by design: every number is computable from raw samples.",
   "license": "Apache-2.0",
   "type": "module",

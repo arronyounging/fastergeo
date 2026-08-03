@@ -1,6 +1,6 @@
 {
   "name": "@fastergeo/audit",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "FasterGEO site audit — six-dimension page scoring (crawlability, length, structure, extractable blocks, authority, relevance) anchored to published empirical citation data, plus site-level AI-crawler checks.",
   "license": "Apache-2.0",
   "type": "module",
