@@ -1,6 +1,6 @@
 {
   "name": "@fastergeo/mcp",
-  "version": "0.1.1",
+  "version": "0.1.3",
   "description": "FasterGEO MCP server — exposes GEO audits, funnel metrics, machine-verified tickets, live engine sampling, and the fabrication gate as Model Context Protocol tools for any MCP-capable agent (Claude, Cursor, custom agents).",
   "type": "module",
   "main": "./dist/index.js",
@@ -20,12 +20,13 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@fastergeo/audit": "workspace:*",
-    "@fastergeo/content": "workspace:*",
-    "@fastergeo/metrics": "workspace:*",
-    "@fastergeo/providers": "workspace:*",
-    "@fastergeo/tickets": "workspace:*",
+    "@fastergeo/audit": "workspace:^",
+    "@fastergeo/content": "workspace:^",
+    "@fastergeo/metrics": "workspace:^",
+    "@fastergeo/providers": "workspace:^",
+    "@fastergeo/tickets": "workspace:^",
     "@modelcontextprotocol/sdk": "^1.0.0",
+    "undici": "^6.19.0",
     "zod": "^3.23.0"
   },
   "devDependencies": {

@@ -4,7 +4,7 @@
   "version": "0.0.1",
   "type": "module",
   "dependencies": {
-    "@fastergeo/audit": "workspace:*",
-    "@fastergeo/rules": "workspace:*"
+    "@fastergeo/audit": "workspace:^",
+    "@fastergeo/rules": "workspace:^"
   }
 }

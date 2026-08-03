@@ -11,26 +11,29 @@ importers:
   apps/cli:
     dependencies:
       '@fastergeo/audit':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../packages/audit
       '@fastergeo/content':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../packages/content
       '@fastergeo/metrics':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../packages/metrics
       '@fastergeo/providers':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../packages/providers
       '@fastergeo/report':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../packages/report
       '@fastergeo/tickets':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../packages/tickets
       '@fastergeo/trends':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../packages/trends
+      undici:
+        specifier: ^6.19.0
+        version: 6.28.0
     devDependencies:
       '@types/node':
         specifier: ^20.0.0
@@ -42,7 +45,7 @@ importers:
   packages/audit:
     dependencies:
       '@fastergeo/rules':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../rules
     devDependencies:
       '@types/node':
@@ -61,10 +64,10 @@ importers:
   packages/content:
     dependencies:
       '@fastergeo/providers':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../providers
       '@fastergeo/rules':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../rules
     devDependencies:
       '@types/node':
@@ -83,23 +86,26 @@ importers:
   packages/mcp:
     dependencies:
       '@fastergeo/audit':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../audit
       '@fastergeo/content':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../content
       '@fastergeo/metrics':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../metrics
       '@fastergeo/providers':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../providers
       '@fastergeo/tickets':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../tickets
       '@modelcontextprotocol/sdk':
         specifier: ^1.0.0
         version: 1.30.0(zod@3.25.76)
+      undici:
+        specifier: ^6.19.0
+        version: 6.28.0
       zod:
         specifier: ^3.23.0
         version: 3.25.76
@@ -154,13 +160,13 @@ importers:
   packages/report:
     dependencies:
       '@fastergeo/audit':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../audit
       '@fastergeo/metrics':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../metrics
       '@fastergeo/tickets':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../tickets
     devDependencies:
       '@types/node':
@@ -204,10 +210,10 @@ importers:
   packages/tickets:
     dependencies:
       '@fastergeo/audit':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../audit
       '@fastergeo/metrics':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../metrics
     devDependencies:
       '@types/node':
@@ -226,10 +232,10 @@ importers:
   packages/trends:
     dependencies:
       '@fastergeo/audit':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../audit
       '@fastergeo/metrics':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../metrics
     devDependencies:
       '@types/node':
@@ -248,10 +254,10 @@ importers:
   site:
     dependencies:
       '@fastergeo/audit':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../packages/audit
       '@fastergeo/rules':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../packages/rules
 
 packages:

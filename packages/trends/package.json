@@ -1,6 +1,6 @@
 {
   "name": "@fastergeo/trends",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "FasterGEO period history and trend discipline — single-period changes are observations; only two consecutive same-direction changes constitute a trend. Sampling is noisy; attribution stays humble.",
   "license": "Apache-2.0",
   "type": "module",
@@ -12,8 +12,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@fastergeo/audit": "workspace:*",
-    "@fastergeo/metrics": "workspace:*"
+    "@fastergeo/audit": "workspace:^",
+    "@fastergeo/metrics": "workspace:^"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

@@ -1,7 +1,7 @@
 {
   "name": "@fastergeo/tickets",
   "version": "0.1.2",
-  "description": "FasterGEO ticket system \u2014 diagnosis to actionable tickets with machine-verifiable acceptance criteria. Done means re-crawled and confirmed; regressions flip back automatically.",
+  "description": "FasterGEO ticket system — diagnosis to actionable tickets with machine-verifiable acceptance criteria. Done means re-crawled and confirmed; regressions flip back automatically.",
   "license": "Apache-2.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -12,14 +12,14 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@fastergeo/audit": "workspace:*",
-    "@fastergeo/metrics": "workspace:*"
+    "@fastergeo/audit": "workspace:^",
+    "@fastergeo/metrics": "workspace:^"
   },
   "devDependencies": {
+    "@types/node": "^20.0.0",
     "tsup": "^8.0.0",
     "typescript": "^5.6.0",
-    "vitest": "^3.0.0",
-    "@types/node": "^20.0.0"
+    "vitest": "^3.0.0"
   },
   "files": [
     "dist"

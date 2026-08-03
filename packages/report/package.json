@@ -1,6 +1,6 @@
 {
   "name": "@fastergeo/report",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "FasterGEO reporting — self-contained HTML diagnosis reports built around the Brand Entity Funnel, with blocker-first layout and per-metric methodology notes. Unmeasured stays unmeasured.",
   "license": "Apache-2.0",
   "type": "module",
@@ -12,9 +12,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@fastergeo/audit": "workspace:*",
-    "@fastergeo/metrics": "workspace:*",
-    "@fastergeo/tickets": "workspace:*"
+    "@fastergeo/audit": "workspace:^",
+    "@fastergeo/metrics": "workspace:^",
+    "@fastergeo/tickets": "workspace:^"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

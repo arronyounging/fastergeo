@@ -9,6 +9,15 @@
 
 import { parseArgs } from 'node:util';
 import { readFileSync } from 'node:fs';
+import { EnvHttpProxyAgent, setGlobalDispatcher } from 'undici';
+
+// Node's fetch ignores HTTP(S)_PROXY. Behind a proxy (common for CN users
+// reaching global sites/engines) every audit/verify fetch would silently
+// fail. Route ALL fetches through the env proxy; NO_PROXY is honored.
+if (process.env.HTTPS_PROXY || process.env.https_proxy
+  || process.env.HTTP_PROXY || process.env.http_proxy) {
+  setGlobalDispatcher(new EnvHttpProxyAgent());
+}
 import {
   PROVIDERS, resolveProvider, configuredProviders, ask, checkProvider,
 } from '@fastergeo/providers';
