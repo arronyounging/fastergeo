@@ -22,6 +22,7 @@
 {"@type":"Question","name":"Is FasterGEO free?","acceptedAnswer":{"@type":"Answer","text":"Yes. FasterGEO is Apache-2.0 open source and self-hosted. You bring your own AI engine API keys, or use manual sampling sheets with zero keys. Your data never leaves your machine."}},
 {"@type":"Question","name":"Which AI engines does FasterGEO cover?","acceptedAnswer":{"@type":"Answer","text":"18 engines across two markets: ChatGPT, Claude, Gemini, Grok and Perplexity globally; GLM, Doubao, DeepSeek, Kimi, MiniMax, Qwen, ERNIE and Spark in China via API — plus manual sampling sheets for engines without public APIs, such as Baidu AI, Nano AI, and Google AI Overviews."}},
 {"@type":"Question","name":"Do I need API keys to use FasterGEO?","acceptedAnswer":{"@type":"Answer","text":"No. Site auditing needs no keys at all. Answer sampling works with any keys you have, and engines without keys fall back to manual sampling sheets that import into the same metrics pipeline."}},
+{"@type":"Question","name":"Why should I trust FasterGEO's numbers?","acceptedAnswer":{"@type":"Answer","text":"Every metric is publicly defined and traceable to the code that computes it, in the open METHODOLOGY document. Unmeasured values render as unmeasured, never as zero. Verdicts ship with verbatim quotes, and statistics on the site are footnoted to their sources."}},
 {"@type":"Question","name":"How is FasterGEO different from AI visibility monitoring tools?","acceptedAnswer":{"@type":"Answer","text":"Three ways. It measures the head of the funnel — whether AI even knows your brand or confuses it with another company — with quoted evidence, not just mention counts. It closes the loop: findings become tickets with machine-verifiable acceptance criteria, re-checked automatically. And it is the only tool covering both China and global engines."}}
 ]}]}
 </script>
@@ -274,15 +275,19 @@ footer .links{margin-left:auto;display:flex;gap:18px}
     <div>
       <div class="kicker">Open-source GEO platform · <b>18 AI engines, China + global</b> · Apache-2.0 · v0.10</div>
       <h1>AI is already answering questions about your brand.<br><em>Read the evidence.</em></h1>
-      <p class="sub">FasterGEO samples what ChatGPT, Claude, Doubao and DeepSeek actually say about
-      you — does AI know you, confuse you with someone else, recommend you? — then turns findings into
-      tickets a machine re-checks. Every claim ships with the verbatim quote behind it.</p>
+      <p class="sub">Your next customer just asked ChatGPT — or Doubao — which brand to pick.
+      FasterGEO shows you the answer they got: does AI know you? confuse you with someone else?
+      recommend a competitor instead? Then it turns every gap into a fix a machine verifies.
+      Every claim ships with the verbatim quote behind it.</p>
       <div class="cta-row">
         <span class="cmd" onclick="navigator.clipboard.writeText('npx fastergeo bootstrap --root https://yoursite.com')" title="Click to copy">
           $ npx fastergeo bootstrap --root yoursite.com <span class="copy">copy</span></span>
         <a class="alt" href="https://github.com/arronyounging/fastergeo/blob/main/METHODOLOGY.md">Read the methodology →</a>
       </div>
       <div class="fine">Free · self-hosted · your data stays on your disk · 677 tests, every metric defined in the open</div>
+      <div class="fine" style="margin-top:8px">Brand owner → <a href="#scan">run the free scan</a> &nbsp;·&nbsp;
+      Developer → <a href="https://github.com/arronyounging/fastergeo">npx fastergeo</a> &nbsp;·&nbsp;
+      Agency → <a href="/agency/">the 90-day playbook</a></div>
     </div>
     <figure class="exhibit reveal" style="margin:0">
       <div class="tab"><span style="white-space:nowrap">Exhibit A · verbatim</span><span style="text-align:right">recognition judge — first field run</span></div>
@@ -301,7 +306,8 @@ footer .links{margin-left:auto;display:flex;gap:18px}
     <div class="secno">§ 00 · First check</div>
     <h2>What do AI crawlers see on <em>your</em> site?</h2>
     <p class="lead">The scan is the product, not a teaser — the same six-dimension audit the CLI runs,
-    on one page of yours, free, no sign-up.</p>
+    on one page of yours, free, no sign-up. Two failure modes dominate the sites we've scanned: pages that
+    render <em>empty</em> to non-JavaScript crawlers, and robots rules that silently ban the wrong bots.</p>
     <form class="scanbox" id="scanForm">
       <input id="scanUrl" type="text" inputmode="url" placeholder="yoursite.com" autocomplete="off" spellcheck="false">
       <button type="submit" id="scanBtn">Scan</button>
@@ -345,15 +351,15 @@ footer .links{margin-left:auto;display:flex;gap:18px}
   <div class="wrap">
     <div class="secno">§ 02 · The Brand Entity Funnel</div>
     <h2>Dashboards measure the tail.<br>Most brands break at the head.</h2>
-    <p class="lead">Monitoring tools count mentions and citations. For most brands the problem starts far
-    earlier: AI has never heard of you — or thinks you're someone else. FasterGEO measures every stage,
-    with a judge that must quote its evidence.</p>
+    <p class="lead">Monitoring tools count mentions. But five questions decide whether AI sells
+    <em>for</em> you or <em>against</em> you — and for most brands, the answer breaks at question one.
+    FasterGEO measures all five, with a judge that must quote its evidence.</p>
     <div class="funnel reveal">
-      <div class="stage broken"><span class="st">✕ broke here</span><b>Knows you</b><span>Probe questions, LLM-judged — never name-echo counting</span></div>
-      <div class="stage broken"><span class="st">✕ broke here</span><b>Doesn't confuse you</b><span>Confusion = P0 alert with the quote attached</span></div>
-      <div class="stage"><span class="st">measured</span><b>Considers you</b><span>Unprompted mention rate, with 95% intervals</span></div>
-      <div class="stage"><span class="st">measured</span><b>Ranks you</b><span>Position among registered competitors</span></div>
-      <div class="stage"><span class="st">measured</span><b>Cites you</b><span>Your domain in the sources — plus whose domains AI does trust</span></div>
+      <div class="stage broken"><span class="st">✕ broke here</span><b>1 · Does AI know you?</b><span>Probe questions, LLM-judged — never name-echo counting</span></div>
+      <div class="stage broken"><span class="st">✕ broke here</span><b>2 · Does it confuse you?</b><span>Mistaken identity = P0 alert with the quote attached</span></div>
+      <div class="stage"><span class="st">measured</span><b>3 · Does it mention you?</b><span>Unprompted mention rate, with 95% intervals</span></div>
+      <div class="stage"><span class="st">measured</span><b>4 · Does it rank you?</b><span>Your position when buyers ask "which one?"</span></div>
+      <div class="stage"><span class="st">measured</span><b>5 · Does it cite you?</b><span>Your domain in the sources — plus whose domains AI does trust</span></div>
     </div>
     <p class="funnel-note">✕ marks where our own first scan broke. Where does yours?</p>
   </div>
@@ -377,6 +383,10 @@ footer .links{margin-left:auto;display:flex;gap:18px}
   <div class="wrap">
     <div class="secno">§ 04 · Against the field</div>
     <h2>Monitoring is becoming free.<br>The loop is the product.</h2>
+    <p class="lead">Google Search Console and Bing Webmaster Tools now publish official AI-performance
+    reports; HubSpot sells monitoring for $50 a month.<a class="fn" href="#fn-6">6</a> Counting mentions is
+    a commodity on an 18-month clock. What survives: knowing <em>why</em> you lose, fixing it, and
+    proving the fix — in the open.</p>
     <table class="ruled reveal">
       <thead><tr><th></th><th>Monitoring SaaS</th><th>FasterGEO</th></tr></thead>
       <tbody>
@@ -439,6 +449,7 @@ footer .links{margin-left:auto;display:flex;gap:18px}
       <li id="fn-3"><b>+35% / +91%</b> CTR when cited — AirOps. <a href="https://www.airops.com/blog/featured-snippets-ai-overviews-position-zero">airops.com</a></li>
       <li id="fn-4"><b>41%</b> unknowing blocks — Digital Strategy Force crawler audit. <a href="https://digitalstrategyforce.com/journal/why-ai-crawlers-skip-most-of-your-website/">digitalstrategyforce.com</a></li>
       <li id="fn-5"><b>14%</b> measuring — AIThinkerLab, 2026. <a href="https://aithinkerlab.com/generative-engine-optimization-2026/">aithinkerlab.com</a></li>
+      <li id="fn-6">Official AI reports — Google Search Console Gen-AI performance (<a href="https://developers.google.com/search/blog/2026/06/gen-ai-performance-reports">developers.google.com</a>), Bing Webmaster Tools AI Performance; HubSpot AEO pricing (<a href="https://www.hubspot.com/products/aeo">hubspot.com</a>).</li>
     </ol>
   </div>
 </section>
@@ -461,6 +472,12 @@ footer .links{margin-left:auto;display:flex;gap:18px}
     <details><summary>Do I need API keys?</summary>
       <p>No. Site auditing needs none at all. Sampling works with any keys you have; engines without keys
       fall back to manual sheets that import into the same metrics pipeline.</p></details>
+    <details><summary>Why should I trust these numbers?</summary>
+      <p>Because you don't have to take them on faith. Every metric is publicly defined and traceable to
+      the code that computes it — see the <a href="https://github.com/arronyounging/fastergeo/blob/main/METHODOLOGY.md">methodology</a>.
+      Unmeasured values render as <em>unmeasured</em>, never as zero. Verdicts ship with verbatim quotes.
+      And every statistic on this page is footnoted to its source — the same fabrication gate the product
+      enforces on your content applies to our marketing.</p></details>
     <details><summary>How is this different from AI visibility monitoring tools?</summary>
       <p>Three ways. It measures the head of the funnel — whether AI even knows your brand or confuses it
       with another company — with quoted evidence. It closes the loop: findings become tickets with
