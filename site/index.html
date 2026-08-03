@@ -129,6 +129,11 @@ section{padding:88px max(24px,calc(50vw - 580px));position:relative}
   border-radius:3px;transition:width .8s cubic-bezier(.2,.8,.2,1)}
 .sdim.low .bar i{background:var(--red)}
 .sdim .v{text-align:right;font-variant-numeric:tabular-nums}
+.scan-verdict{margin:2px 0 12px;padding:11px 14px;border-radius:10px;font-size:14px;font-weight:600}
+.scan-verdict.v-bad{background:var(--red-soft);color:var(--red)}
+.scan-verdict.v-mid{background:rgba(240,178,74,.12);color:var(--amber)}
+.scan-verdict.v-good{background:var(--green-soft);color:var(--green)}
+.scan-cta b{color:var(--tx)}
 .scan-blocker{margin-top:10px;padding:11px 14px;background:var(--red-soft);
   border:1px solid rgba(244,83,110,.25);border-radius:10px;font-size:13px}
 .scan-checks{margin-top:10px;font-size:12.5px;color:var(--dim)}
@@ -274,6 +279,7 @@ footer .links{margin-left:auto;display:flex;gap:18px}
     <a href="#funnel">Entity Funnel</a>
     <a href="#loop">The Loop</a>
     <a href="#faq">FAQ</a>
+    <a href="/zh/">中文</a>
     <a href="https://github.com/arronyounging/fastergeo">GitHub</a>
     <a class="btn" href="#top">Scan free</a>
   </nav>
@@ -583,9 +589,11 @@ form.addEventListener('submit', async e => {
       <div class="scan-head"><div class="scan-grade ${p.grade}">${p.grade}</div>
         <div><div class="scan-score"><span id="scoreNum" class="num">0</span><small> /100 · ${p.wordCount} visible word-equivalents</small></div>
         <div style="font-size:12px;color:var(--faint)">${esc(p.url)}</div></div></div>
+      <div class="scan-verdict v-${verdict(p)[0]}">${verdict(p)[1]}</div>
       <div class="scan-dims">${dims}</div>${blockers}${site}
-      <div class="scan-cta">This is one page, no API keys. The full loop — engine sampling, entity funnel, machine-verified tickets — is one command:
-        <span class="mono" onclick="navigator.clipboard.writeText('npx fastergeo bootstrap --root ${esc(p.url)}')">npx fastergeo</span> (free, self-hosted)</div>
+      <div class="scan-cta"><b>This was gate zero: can AI read you at all?</b> Gates 1–5 — does AI know you,
+        confuse you with someone else, recommend you, rank you, cite you — need answer sampling across 18 engines.
+        One command, free: <span class="mono" onclick="navigator.clipboard.writeText('npx fastergeo bootstrap --root ${esc(p.url)}')">npx fastergeo</span></div>
     </div>`;
     requestAnimationFrame(() => {
       out.querySelectorAll('.bar i').forEach(i => { i.style.width = i.dataset.w + '%'; });
@@ -605,6 +613,14 @@ form.addEventListener('submit', async e => {
     btn.disabled = false; btn.textContent = 'Scan';
   }
 });
+function verdict(p){
+  if (p.blockers.length) return ['bad', 'Your page is essentially invisible to AI — fix rendering before anything else.'];
+  const gaps = p.dimensions.find(x=>x.key==='blocks')?.issues.length ?? 0;
+  if (p.score < 40) return ['bad', 'AI can fetch this page, but there is very little worth quoting.'];
+  if (gaps >= 3) return ['mid', 'AI can read you — but you are missing most of the content blocks AI likes to quote.'];
+  if (p.grade === 'B' || p.grade === 'C') return ['mid', 'Solid foundation. A few gaps keep you from grade A.'];
+  return ['good', 'Strong page. Your next lever is off-site: mentions and citations across the web.'];
+}
 function chk(ok){ return ok ? '<span style="color:var(--green)">✓</span>' : '<span style="color:var(--red)">✗</span>'; }
 function esc(s){ return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 </script>

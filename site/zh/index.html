@@ -1,0 +1,103 @@
+<!doctype html><html lang="zh-CN"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FasterGEO — 看见 AI 怎么说你的品牌，然后修好它</title>
+<meta name="description" content="FasterGEO 是开源 GEO（生成式引擎优化）平台：检测豆包、DeepSeek、通义、文心 + ChatGPT、Claude 等 18 个中外 AI 引擎怎么回答关于你的问题——认不认识你、有没有认错你、推不推荐你——然后给出机器自动验收的修复清单。免费自托管，数据在你自己电脑上。">
+<link rel="canonical" href="https://fastergeo.co/zh/">
+<link rel="stylesheet" href="/tools/tools.css">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"SoftwareApplication","name":"FasterGEO","applicationCategory":"DeveloperApplication","operatingSystem":"macOS, Linux","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"url":"https://fastergeo.co/zh/","inLanguage":"zh-CN","description":"开源 GEO 平台：18 个中外 AI 引擎的品牌认知检测（AI 认知五关）、机器自动验收的修复工单、编造门禁的内容生成。"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"什么是 GEO（生成式引擎优化）？","acceptedAnswer":{"@type":"Answer","text":"GEO 是让豆包、DeepSeek、ChatGPT 这些 AI 引擎在回答用户问题时主动提到并引用你的品牌的方法。和 SEO 优化链接排名不同，GEO 优化的是成为 AI 答案本身的一部分。"}},
+{"@type":"Question","name":"FasterGEO 免费吗？","acceptedAnswer":{"@type":"Answer","text":"免费。Apache-2.0 开源、自托管，用你自己的 API Key——或者一个 Key 都不配，走人工采样表。数据不出你的电脑。"}},
+{"@type":"Question","name":"覆盖哪些 AI 引擎？","acceptedAnswer":{"@type":"Answer","text":"18 个引擎：国内豆包、DeepSeek、智谱GLM、Kimi、MiniMax、通义千问、文心一言、讯飞星火走 API，纳米AI、百度AI 走人工采样表；海外 ChatGPT、Claude、Gemini、Grok、Perplexity 等。国内海外分开出题分开计算。"}},
+{"@type":"Question","name":"和市面上的 GEO 监测工具有什么区别？","acceptedAnswer":{"@type":"Answer","text":"三点：一、测漏斗头部——AI 到底认不认识你、有没有把你认成别的公司，判定必须引用 AI 原话作证据；二、闭环——发现变成带验收标准的工单，机器重抓自动判定修没修好；三、唯一同时覆盖中国和海外引擎。"}}]}]}
+</script>
+<style>
+.qgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-top:26px}
+.qgrid .card b{display:block;font-size:15px;margin-bottom:6px}
+.qgrid .card small{color:var(--faint);font-size:12px;display:block;margin-top:8px}
+.gate-num{display:inline-flex;width:24px;height:24px;border-radius:8px;background:var(--acc-soft);color:var(--acc);align-items:center;justify-content:center;font-weight:800;font-size:13px;margin-right:8px}
+.pullzh{margin:40px 0;padding:24px 28px;background:var(--surface);border:1px solid rgba(244,83,110,.25);border-radius:14px}
+.pullzh p{font-size:clamp(19px,2.6vw,26px);font-weight:700;line-height:1.5;margin:0 0 10px}
+.pullzh mark{background:var(--red-soft);color:var(--red);padding:0 6px;border-radius:6px}
+.pullzh footer{border:none;padding:0;margin:0;color:var(--dim);font-size:14px;display:block;max-width:none}
+</style>
+</head><body>
+<header><a class="logo" href="/">Faster<b>GEO</b></a>
+<nav><a href="/tools/">免费工具</a><a href="/">English</a><a href="https://github.com/arronyounging/fastergeo">GitHub</a></nav></header>
+<main>
+<h1>AI 每天都在替你回答客户。<br><em>看见它说了什么</em>，然后修好它。</h1>
+<p class="lead">越来越多的用户直接问 AI「XX 哪家好」。FasterGEO 检测 <b style="color:var(--tx)">豆包、DeepSeek、通义、文心 + ChatGPT、Claude</b> 等
+18 个中外引擎怎么回答关于你的问题——然后给出<b style="color:var(--tx)">机器自动验收</b>的修复清单。开源免费，数据在你自己电脑上。</p>
+<form class="toolform" id="f"><input id="u" placeholder="输入你的网址，看看 AI 眼中的你" autocomplete="off" spellcheck="false"><button id="b">免费检测</button></form>
+<div class="result" id="r"></div>
+
+<h2>AI 认知五关 —— 你的品牌卡在第几关？</h2>
+<p class="prose">市面工具都在数“被提了几次”。但对大多数品牌，问题出在更前面：AI 根本不认识你——或者更糟，把你认成了别人。</p>
+<div class="qgrid">
+  <div class="card"><b><span class="gate-num">1</span>AI 认识我吗？</b>点名问 AI 你是谁，用裁判模型判定它是真认识、不认识、还是在硬编。<small>探测采样 · LLM 裁判判定</small></div>
+  <div class="card"><b><span class="gate-num">2</span>有没有认错我？</b>AI 把你说成别的公司时，逐字引用它的原话给你看——可以直接拿去开会。<small>张冠李戴检测 · P0 告警</small></div>
+  <div class="card"><b><span class="gate-num">3</span>它推荐我还是对手？</b>不点名地问品类问题，统计你和竞品各被提了多少次、排第几。<small>无提示提及率 · 竞品对比</small></div>
+  <div class="card"><b><span class="gate-num">4</span>差在哪、怎么修？</b>六维体检 + 修复工单，每条写明“怎么算修好”。<small>体检 · 工单生成</small></div>
+  <div class="card"><b><span class="gate-num">5</span>修完怎么证明？</b>机器重新检查自动打勾，返工自动打回；下期对比图说明哪些动作真的让 AI 改了口。<small>自动验收 · 期对比</small></div>
+</div>
+
+<div class="pullzh">
+<p>“该品牌主要以<mark>汽车改装外观件</mark>——前后包围、中网、内饰件为主……”</p>
+<footer>—— 一个 AI 引擎对某<b style="color:var(--tx)">定制商品平台</b>的真实回答，被认知裁判抓获，证据逐字引用。这就是第 2 关的失守现场。</footer>
+</div>
+
+<h2>和监测型工具的区别</h2>
+<p class="prose">
+<b>它们给建议，我们给闭环</b>——发现 → 工单 → 重抓验收 → 回归打回，修没修好机器说了算，不靠口头汇报。<br>
+<b>它们是黑箱，我们可复现</b>——算不出的显示「未测」绝不编数；单期波动只算观察，连续两期同向才算趋势。<b>不吓唬你的数据，本身就是稀缺品。</b><br>
+<b>它们只测海外，我们中外全覆盖</b>——国内 10 个引擎 + 海外 8 个，分开出题分开计算。</p>
+
+<h2>快速开始（技术同学 3 分钟）</h2>
+<p class="prose"><span class="mono">npx fastergeo bootstrap --root 你的网址</span> 一条命令从官网自动推导品牌事实、竞品和问题库；
+<span class="mono">cycle</span> 一条命令跑完采样→指标→体检→工单→报告。给老板的一页纸报告直接生成。零 Key 也能用（人工采样表）。</p>
+
+<h2>常见问题</h2>
+<div class="faq">
+<details open><summary>什么是 GEO（生成式引擎优化）？</summary><p>让豆包、DeepSeek、ChatGPT 这些 AI 在回答用户问题时主动提到并引用你的品牌的方法。SEO 优化链接排名；GEO 优化的是成为答案本身。</p></details>
+<details><summary>真的免费？</summary><p>Apache-2.0 开源、自托管。用你自己的 API Key，或者一个都不配走人工采样表。数据不出你的电脑，没有订阅。</p></details>
+<details><summary>不懂技术能用吗？</summary><p>上面的免费检测框不需要任何技术。完整闭环目前需要会用命令行的同事花 10 分钟装好；托管版在路线图上。</p></details>
+<details><summary>能保证 AI 一定引用我吗？</summary><p>不能，任何这样承诺的服务都值得警惕。GEO 提高的是概率不是保证——这句话我们也写给每一个客户。</p></details>
+</div>
+</main>
+<footer><span>© 2026 FasterGEO · Apache-2.0</span><a href="/">English →</a></footer>
+<script>
+const f=document.getElementById('f'),r=document.getElementById('r'),b=document.getElementById('b');
+const DIMS={crawlability:'可抓取性',length:'内容长度',structure:'结构',blocks:'可引用块',authority:'权威信号',relevance:'对题性'};
+function verdict(p){
+  if(p.blockers.length)return['bad','你的页面对 AI 基本不可见——先修渲染，其他都免谈。'];
+  const gaps=p.dimensions.find(x=>x.key==='blocks')?.issues.length??0;
+  if(p.score<40)return['bad','AI 能打开这个页面，但几乎没有值得引用的内容。'];
+  if(gaps>=3)return['mid','AI 能读到你——但缺少它爱引用的内容块（定义/数据/对比）。'];
+  if(p.grade==='B'||p.grade==='C')return['mid','底子不错，离 A 级还差几处。'];
+  return['good','页面很强。下一步的杠杆在站外：外部阵地的提及与引用。'];
+}
+f.addEventListener('submit',async e=>{e.preventDefault();
+const url=document.getElementById('u').value.trim();if(!url)return;
+b.disabled=true;b.textContent='检测中…';r.innerHTML='';
+try{const res=await fetch('/api/scan?url='+encodeURIComponent(url));const d=await res.json();
+if(!res.ok)throw new Error(d.error||'检测失败');const p=d.page,v=verdict(p);
+const dims=p.dimensions.map(x=>{const k=x.score===null?0:x.score/x.max;
+return `<div style="display:grid;grid-template-columns:110px 1fr 56px;gap:10px;align-items:center;font-size:13px;color:var(--dim);margin:7px 0">
+<span>${DIMS[x.key]??x.key}</span><span style="height:6px;background:var(--well);border-radius:3px;overflow:hidden">
+<i style="display:block;height:100%;width:${Math.round(k*100)}%;background:${x.score!==null&&k<0.4?'var(--red)':'linear-gradient(90deg,var(--acc),var(--acc-2))'};border-radius:3px"></i></span>
+<span class="num" style="text-align:right">${x.score===null?'未测':x.score+'/'+x.max}</span></div>`}).join('');
+const blockers=p.blockers.map(x=>`<div style="margin-top:10px;padding:10px 14px;background:var(--red-soft);border:1px solid rgba(244,83,110,.25);border-radius:10px;font-size:13px">🔴 ${esc(x)}</div>`).join('');
+r.innerHTML=`<div class="card"><div style="display:flex;align-items:center;gap:14px;margin-bottom:10px">
+<div style="width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:21px;background:${p.grade==='D'?'var(--red-soft)':p.grade==='C'?'rgba(240,178,74,.12)':'var(--green-soft)'};color:${p.grade==='D'?'var(--red)':p.grade==='C'?'var(--amber)':'var(--green)'}">${p.grade}</div>
+<div><div style="font-size:22px;font-weight:800" class="num">${p.score}<small style="font-size:13px;color:var(--faint);font-weight:400"> /100 · ${p.wordCount} 词等效可见正文</small></div>
+<div style="font-size:12px;color:var(--faint)">${esc(p.url)}</div></div></div>
+<div style="padding:10px 14px;border-radius:10px;font-size:14px;font-weight:600;margin-bottom:10px;background:${v[0]==='bad'?'var(--red-soft)':v[0]==='mid'?'rgba(240,178,74,.12)':'var(--green-soft)'};color:${v[0]==='bad'?'var(--red)':v[0]==='mid'?'var(--amber)':'var(--green)'}">${v[1]}</div>
+${dims}${blockers}
+<div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--line);font-size:13px;color:var(--dim)"><b style="color:var(--tx)">这只是第 0 关：AI 能不能读到你。</b>第 1–5 关（认识你吗/认错了吗/推荐你吗）需要真实采样 18 个引擎——<span class="mono" style="color:var(--acc)">npx fastergeo</span> 一条命令，免费。</div></div>`;
+}catch(err){r.innerHTML=`<div class="err">${esc(err.message)}</div>`}
+finally{b.disabled=false;b.textContent='免费检测'}});
+function esc(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+</script>
+</body></html>

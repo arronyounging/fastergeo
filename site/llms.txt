@@ -19,5 +19,7 @@
 - [GEO Score Checker](https://fastergeo.co/tools/geo-score-checker/): six-dimension page audit, graded A-D
 - [AI Crawler Access Checker](https://fastergeo.co/tools/ai-crawler-checker/): per-crawler robots.txt verdict for 9 AI bots
 - [llms.txt Generator](https://fastergeo.co/tools/llms-txt-generator/): drafts llms.txt from real site content
+- [For agencies](https://fastergeo.co/agency/): GEO service delivery with machine-verified acceptance
+- [中文页面](https://fastergeo.co/zh/): Chinese landing page — AI 认知五关
 - [GitHub](https://github.com/arronyounging/fastergeo): source code, Apache-2.0
 - [npm](https://www.npmjs.com/package/fastergeo): package, CLI

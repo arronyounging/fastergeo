@@ -28,6 +28,12 @@ knows you → doesn't confuse you → considers you → ranks you → cites you
 
 Monitoring dashboards measure the tail. Most brands break at the head.
 
+## Who is this for
+
+- **Brand owners / marketers** — paste your URL into [the free scan](https://fastergeo.co) and see what AI crawlers see; no technical setup.
+- **Developers / technical founders** — `npx fastergeo` runs the full loop on your machine: sampling, funnel metrics, verified tickets.
+- **Agencies / consultants** — deliver GEO services clients can verify: diagnosis reports, ticket backlogs, machine-generated verification sheets. See [fastergeo.co/agency](https://fastergeo.co/agency/).
+
 ## Quickstart
 
 ```bash
