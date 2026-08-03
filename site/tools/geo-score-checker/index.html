@@ -54,7 +54,7 @@ return `<div style="display:grid;grid-template-columns:130px 1fr 56px;gap:10px;a
 <span>${DIMS[x.key]??x.key}</span><span style="height:6px;background:var(--well);border-radius:3px;overflow:hidden">
 <i style="display:block;height:100%;width:${Math.round(k*100)}%;background:${x.score!==null&&k<0.4?'var(--red)':'linear-gradient(90deg,var(--acc),var(--acc-2))'};border-radius:3px"></i></span>
 <span class="num" style="text-align:right">${x.score===null?'n/a':x.score+'/'+x.max}</span></div>`}).join('');
-const blockers=p.blockers.map(x=>`<div style="margin-top:10px;padding:10px 14px;background:var(--red-soft);border:1px solid rgba(244,83,110,.25);border-radius:10px;font-size:13px">🔴 ${esc(x)}</div>`).join('');
+const blockers=p.blockers.map(x=>`<div style="margin-top:10px;padding:10px 14px;background:var(--red-soft);border:1px solid var(--red);font-size:13px;color:var(--red)">■ ${esc(x)}</div>`).join('');
 r.innerHTML=`<div class="card"><div style="display:flex;align-items:center;gap:14px;margin-bottom:12px">
 <div style="width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:21px;background:${p.grade==='D'?'var(--red-soft)':p.grade==='C'?'rgba(240,178,74,.12)':'var(--green-soft)'};color:${p.grade==='D'?'var(--red)':p.grade==='C'?'var(--amber)':'var(--green)'}">${p.grade}</div>
 <div><div style="font-size:22px;font-weight:800" class="num">${p.score}<small style="font-size:13px;color:var(--faint);font-weight:400"> /100 · ${p.wordCount} visible word-equivalents</small></div>

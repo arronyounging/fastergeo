@@ -55,7 +55,7 @@ r.innerHTML=`<div class="card">
 robots.txt ${d.robotsTxtFound?'<span class="ok">found</span>':'<span class="bad">missing</span>'} ·
 sitemap ${d.sitemapFound?'<span class="ok">✓</span>':'<span class="bad">✗</span>'} ·
 llms.txt ${d.llmsTxtFound?'<span class="ok">✓</span>':'<span class="bad">✗</span>'}</div>${rows}
-${(d.blockedSearchCrawlers||[]).length?`<div style="margin-top:12px;padding:10px 14px;background:var(--red-soft);border:1px solid rgba(244,83,110,.25);border-radius:10px;font-size:13px">🔴 ${d.blockedSearchCrawlers.join(', ')} blocked — these serve AI <b>search answers</b>; blocking them removes this site from those answers.</div>`:''}
+${(d.blockedSearchCrawlers||[]).length?`<div style="margin-top:12px;padding:10px 14px;background:var(--red-soft);border:1px solid var(--red);font-size:13px;color:var(--red)">■ ${d.blockedSearchCrawlers.join(', ')} blocked — these serve AI <b>search answers</b>; blocking them removes this site from those answers.</div>`:''}
 ${(d.blockedTrainingCrawlers||[]).length&&!(d.blockedSearchCrawlers||[]).length?`<div style="margin-top:12px;padding:10px 14px;background:var(--well);border:1px solid var(--line);border-radius:10px;font-size:13px;color:var(--dim)">Training-only crawlers blocked (${d.blockedTrainingCrawlers.join(', ')}) — a legitimate policy choice, not an error. AI search crawlers can still read this site.</div>`:''}</div>`;
 }catch(err){r.innerHTML=`<div class="err">${err.message}</div>`}
 finally{b.disabled=false;b.textContent='Check'}});
