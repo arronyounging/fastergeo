@@ -34,6 +34,50 @@ acceptance criterion a program can check. Your team (or the client's devs) work 
 done — or back to regressed. Next-period sampling shows which answers actually changed. When the client asks
 "did it work?", you hand them machine output, not a slide.</p></div>
 
+<h2>The 90-day delivery playbook</h2>
+<p class="prose" style="margin-bottom:12px">The industry has converged on a 90-day GEO engagement shape
+(baseline → entity &amp; technical fixes → knowledge base → distribution → measurement). Every phase of it maps
+to a FasterGEO command with a machine-checkable exit — so each invoice line has evidence behind it.</p>
+
+<div class="card" style="margin-bottom:12px"><b>Weeks 1–2 · Baseline &amp; diagnosis</b>
+<p class="prose" style="margin:6px 0 0">Fix a 30–50 question bank, sample every engine, audit the site.
+Purpose-aware crawler check included — 41% of sites block GPTBot without knowing it
+<a class="dim" href="https://digitalstrategyforce.com/journal/why-ai-crawlers-skip-most-of-your-website/">(Digital Strategy Force)</a>,
+and blocking a <em>search</em> crawler is the accident that matters.<br>
+<span class="mono">bootstrap → sample --repeat 5 → audit → report</span><br>
+<b>Exit:</b> baseline report delivered; blocker list signed off.</p></div>
+
+<div class="card" style="margin-bottom:12px"><b>Weeks 2–4 · Entity &amp; technical fixes</b>
+<p class="prose" style="margin:6px 0 0">Unblock search crawlers, fix shells, wire Organization JSON-LD + sameAs —
+entity inconsistency is the leading cause of AI misdescribing a brand, and ChatGPT Search misattributes sources
+in 76.5% of tested answers <a class="dim" href="https://ziptie.dev/blog/how-does-chatgpt-search-work/">(Tow Center)</a>.<br>
+<span class="mono">plan → fix → verify</span><br>
+<b>Exit:</b> P0 tickets flipped to done by re-crawl, not by claim.</p></div>
+
+<div class="card" style="margin-bottom:12px"><b>Weeks 3–8 · Knowledge base &amp; content</b>
+<p class="prose" style="margin:6px 0 0">Answer-first pages that pass the island test, facts that trace to sources.
+Drafts run through the fabrication gate before the client ever sees them.<br>
+<span class="mono">expand → outline → draft → fabcheck</span><br>
+<b>Exit:</b> issue tickets (answer-below-fold, block gaps, staleness) trending to zero.</p></div>
+
+<div class="card" style="margin-bottom:12px"><b>Weeks 8–12 · Distribution</b>
+<p class="prose" style="margin:6px 0 0">~84% of AI citations come from earned media, not brand sites
+<a class="dim" href="https://machinerelations.ai/research/earned-vs-owned-ai-citation-rates-2026">(Muck Rack, 25M citations)</a>.
+The client's own samples name which domains AI already trusts in their category — that list is the outreach plan.<br>
+<span class="mono">sources → publish (gate-checked) → off-site tickets</span><br>
+<b>Exit:</b> presence earned on at least one cited domain per market.</p></div>
+
+<div class="card" style="margin-bottom:12px"><b>Week 12 → ongoing · Measurement</b>
+<p class="prose" style="margin:6px 0 0">Weekly deltas, monthly share-of-voice, official-data reconciliation
+(GSC Gen-AI / Bing AI Performance). Single-period changes stay labeled observations — two consecutive
+same-direction periods make a trend. That restraint is why your numbers survive procurement review.<br>
+<span class="mono">cycle --repeat 5 → trends → official</span><br>
+<b>Exit:</b> delta report against baseline; regressed tickets reopened automatically.</p></div>
+
+<p class="prose" style="font-size:13px;color:var(--dim)">Only ~14% of marketers measure the AI channel at all
+<a class="dim" href="https://aithinkerlab.com/generative-engine-optimization-2026/">(AIThinkerLab)</a> —
+agencies that can <em>prove</em> this work are early.</p>
+
 <h2>Why agencies pick it</h2>
 <p class="prose">
 <b>Client trust:</b> open-source metrics — clients can audit the methodology, so your numbers aren't "vendor numbers".<br>

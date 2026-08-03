@@ -255,6 +255,13 @@ tr:last-child td{border-bottom:none}
 .faq summary::after{content:"+";float:right;color:var(--faint)}
 .faq details[open] summary::after{content:"–"}
 .faq p{color:var(--dim);margin:12px 0 4px;font-size:15px;max-width:720px}
+.evidence{padding:56px max(24px,calc(50vw - 580px));border-top:1px solid var(--line)}
+.evidence .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-top:26px}
+.evidence .stat{background:var(--well);border:1px solid var(--line);border-radius:13px;padding:20px 22px}
+.evidence .stat b{display:block;font-size:30px;font-variant-numeric:tabular-nums;letter-spacing:-.02em;color:var(--acc-bright,#B7AAFF)}
+.evidence .stat span{display:block;margin-top:6px;font-size:13.5px;color:var(--dim);line-height:1.55}
+.evidence .stat a{color:var(--faint);font-size:12px;text-decoration:none}
+.evidence .stat a:hover{color:var(--acc)}
 .cta-final{text-align:center;padding:96px max(24px,calc(50vw - 580px));position:relative;overflow:hidden}
 .cta-final::before{content:"";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
   width:700px;height:400px;background:radial-gradient(closest-side,rgba(139,124,246,.16),transparent);pointer-events:none}
@@ -348,7 +355,9 @@ footer .links{margin-left:auto;display:flex;gap:18px}
   <div class="label reveal">Exhibit A</div>
   <blockquote class="pull reveal">
     <p>“…mainly known for aftermarket <mark>car exterior parts</mark> — bumpers, grilles, interior trim…”</p>
-    <footer>— a real AI answer about a <b>custom-merch platform</b>, caught by the recognition judge. Evidence is always quoted verbatim.</footer>
+    <footer>— a real AI answer about a <b>custom-merch platform</b>, caught by the recognition judge. Evidence is always quoted verbatim.
+    Not an outlier: independent testing found ChatGPT Search misattributes sources in <b>76.5%</b> of answers — and flags uncertainty in only 4.6% of the wrong ones
+    <a href="https://ziptie.dev/blog/how-does-chatgpt-search-work/" style="color:var(--faint)">(Columbia Tow Center)</a>.</footer>
   </blockquote>
 </section>
 
@@ -470,8 +479,23 @@ footer .links{margin-left:auto;display:flex;gap:18px}
   <h2 class="reveal">Single pages of the engine, free forever.</h2>
   <div class="cards" style="margin-top:36px">
     <div class="card reveal"><h3><a href="/tools/geo-score-checker/">GEO Score Checker</a></h3><p>Six-dimension audit of any page, graded A–D — exactly what AI crawlers see.</p></div>
-    <div class="card reveal"><h3><a href="/tools/ai-crawler-checker/">AI Crawler Access Checker</a></h3><p>Is robots.txt blocking GPTBot, ClaudeBot or PerplexityBot? Per-crawler verdict.</p></div>
+    <div class="card reveal"><h3><a href="/tools/ai-crawler-checker/">AI Crawler Access Checker</a></h3><p>Purpose-aware per-crawler verdicts: blocking a search crawler is an accident; blocking a training crawler is a choice. Know which is which.</p></div>
     <div class="card reveal"><h3><a href="/tools/llms-txt-generator/">llms.txt Generator</a></h3><p>Draft a spec-shaped llms.txt from your real content — nothing invented.</p></div>
+  </div>
+</section>
+
+<section class="evidence">
+  <div class="label reveal">Why now</div>
+  <h2 class="reveal">The evidence, sourced. Like everything here.</h2>
+  <div class="grid">
+    <div class="stat reveal"><b>84%</b><span>of AI citations come from earned media, not brand sites — the third-party domains AI already cites are your target list. FasterGEO extracts them from your own samples.
+      <a href="https://machinerelations.ai/research/earned-vs-owned-ai-citation-rates-2026">Muck Rack, 25M citations</a></span></div>
+    <div class="stat reveal"><b>+35%</b><span>higher organic CTR for brands cited inside AI Overviews (+91% on paid). Being cited is the new page one.
+      <a href="https://www.airops.com/blog/featured-snippets-ai-overviews-position-zero">AirOps</a></span></div>
+    <div class="stat reveal"><b>41%</b><span>of sites block GPTBot without knowing it — and blocking a <em>search</em> crawler removes you from AI answers entirely. Our checker tells the two apart.
+      <a href="https://digitalstrategyforce.com/journal/why-ai-crawlers-skip-most-of-your-website/">Digital Strategy Force</a></span></div>
+    <div class="stat reveal"><b>14%</b><span>of marketers measure the AI channel at all. The window where measuring it is an advantage is open — and it won't stay open.
+      <a href="https://aithinkerlab.com/generative-engine-optimization-2026/">AIThinkerLab</a></span></div>
   </div>
 </section>
 
@@ -485,7 +509,7 @@ footer .links{margin-left:auto;display:flex;gap:18px}
 </div>
 
 <footer>
-  <span>© 2026 FasterGEO · Apache-2.0 · <time datetime="2026-08-02">Updated Aug 2, 2026</time></span>
+  <span>© 2026 FasterGEO · Apache-2.0 · <time datetime="2026-08-03">Updated Aug 3, 2026</time></span>
   <span>Built on the shoulders of the GEO research community.</span>
   <div class="links">
     <a href="https://github.com/arronyounging/fastergeo">GitHub</a>
