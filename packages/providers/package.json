@@ -1,6 +1,6 @@
 {
   "name": "@fastergeo/providers",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "FasterGEO engine adapters — unified provider layer for CN + global AI engines (API / gateway / manual sampling modes) with key health checks.",
   "license": "Apache-2.0",
   "type": "module",
