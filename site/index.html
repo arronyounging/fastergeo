@@ -123,6 +123,10 @@ font-family:var(--mono);font-size:14px;text-decoration:none;letter-spacing:.02em
 .scan-note{font-family:var(--mono);font-size:12px;color:var(--faint);margin-top:10px}
 .scan-steps{font-family:var(--mono);font-size:13px;color:var(--ink2);margin-top:18px;line-height:2}
 #scanResult{max-width:760px}
+.scan-focus{margin-top:14px;padding:12px 14px;border-left:3px solid var(--red);
+background:var(--red-wash);border-radius:0 6px 6px 0;font-size:13.5px;line-height:1.65}
+.scan-na{margin-top:10px;font-size:12px;color:var(--faint)}
+.scan-raw{margin-top:5px;font:11.5px var(--mono);color:var(--faint);font-weight:400}
 .scan-card{margin-top:22px;border:1px solid var(--rule2);background:var(--panel)}
 .scan-head{display:flex;gap:18px;align-items:center;padding:18px 22px;border-bottom:1px solid var(--rule)}
 .scan-grade{width:52px;height:52px;border:2px solid var(--ink);display:flex;align-items:center;
@@ -136,7 +140,7 @@ font-family:var(--mono);font-size:14px;text-decoration:none;letter-spacing:.02em
 .scan-verdict.v-bad{color:var(--red)}
 .scan-verdict.v-good{color:var(--green)}
 .scan-dims{padding:14px 22px 18px}
-.sdim{display:grid;grid-template-columns:150px 1fr 64px;gap:12px;align-items:center;
+.sdim{display:grid;grid-template-columns:minmax(200px,240px) 1fr 88px;gap:12px;align-items:center;
   font:13px var(--mono);padding:4px 0;color:var(--ink2)}
 .sdim .bar{height:6px;background:var(--paper2);position:relative}
 .sdim .bar i{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--ink);transition:width .7s ease}
@@ -574,7 +578,23 @@ async function runTerm() {
 const form = document.getElementById('scanForm');
 const out = document.getElementById('scanResult');
 const btn = document.getElementById('scanBtn');
-const DIMS = { crawlability: 'Crawlability', length: 'Length', structure: 'Structure', blocks: 'Extractable blocks', authority: 'Authority', relevance: 'Relevance' };
+/* The reader here is a brand owner, not an engineer. "Extractable blocks 15/25"
+   is a number they cannot act on and cannot rank against the other five. Each
+   dimension states what it is in plain words, and what a low score costs. */
+const DIMS = {
+  crawlability: { label: 'Can AI read it',
+    why: 'AI crawlers cannot get the text on this page. Nothing else on this list matters until that is fixed.' },
+  length: { label: 'Is there enough here',
+    why: 'Too little text for AI to have anything to work with.' },
+  structure: { label: 'Is it clearly organised',
+    why: 'The headings do not tell AI what is on the page, so it cannot find the part that answers a question.' },
+  blocks: { label: 'Anything worth quoting',
+    why: 'AI quotes definitions, numbers, comparisons, steps and Q&A. This page carries few of them — so even when AI reads you, there is nothing to lift.' },
+  authority: { label: 'Who wrote it, and when',
+    why: 'No author and no date. AI weighs both when deciding what to trust.' },
+  relevance: { label: 'Does it match what people ask',
+    na: 'Not measured in this scan — it needs your own question bank.' },
+};
 const STEPS = [
   'fetching raw HTML — exactly what AI crawlers receive…',
   'extracting visible text, headings, JSON-LD…',
@@ -605,17 +625,43 @@ form.addEventListener('submit', async e => {
     const dims = p.dimensions.map(x => {
       const ratio = x.score === null ? 0 : x.score / x.max;
       const low = x.score !== null && ratio < 0.4 ? 'low' : '';
-      const val = x.score === null ? 'n/a' : `${x.score}/${x.max}`;
-      return `<div class="sdim ${low}"><span>${DIMS[x.key] ?? x.key}</span><span class="bar"><i data-w="${Math.round(ratio*100)}"></i></span><span class="v">${val}</span></div>`;
+      const val = x.score === null ? 'not measured' : `${x.score}/${x.max}`;
+      const label = (DIMS[x.key]?.label) ?? x.key;
+      return `<div class="sdim ${low}"><span>${label}</span><span class="bar"><i data-w="${Math.round(ratio*100)}"></i></span><span class="v">${val}</span></div>`;
     }).join('');
-    const blockers = p.blockers.map(b => `<div class="scan-blocker">■ ${esc(b)}</div>`).join('');
+    /* Six bars with no ranking leaves the reader to guess which one to act on.
+       Name the weakest measured dimension and say what it costs. */
+    /* A blocker outranks any low score. Saying "fix rendering first" in the
+       verdict and then pointing somewhere else here would have the card
+       contradict itself — and "nothing else matters until this is fixed" is the
+       whole argument. */
+    const weakest = p.blockers.length
+      ? p.dimensions.find(x => x.key === 'crawlability')
+      : p.dimensions
+        .filter(x => x.score !== null && DIMS[x.key]?.why)
+        .sort((a, b) => (a.score / a.max) - (b.score / b.max))[0];
+    const focus = weakest && DIMS[weakest.key]?.why && (p.blockers.length || (weakest.score / weakest.max) < 0.75)
+      ? `<div class="scan-focus"><b>Start here — ${DIMS[weakest.key].label.toLowerCase()}:</b> ${DIMS[weakest.key].why}</div>`
+      : '';
+    const naDim = p.dimensions.find(x => x.score === null && DIMS[x.key]?.na);
+    const naNote = naDim ? `<div class="scan-na">${DIMS[naDim.key].na}</div>` : '';
+    /* Blocker codes are written for an operator. Lead with what it means, keep
+       the raw finding underneath — the evidence is the point, but it should not
+       be the first thing a brand owner has to decode. */
+    const blockers = p.blockers.map(b => {
+      const plain = /spa-shell/i.test(b)
+        ? 'This page is drawn by JavaScript. AI crawlers do not run it, so they see almost nothing.'
+        : /noindex/i.test(b) ? 'This page tells search engines not to index it.'
+          : /block/i.test(b) ? 'Your robots rules are turning AI crawlers away from this page.' : '';
+      return `<div class="scan-blocker">■ ${plain ? `<b>${plain}</b><div class="scan-raw">${esc(b)}</div>` : esc(b)}</div>`;
+    }).join('');
     const site = d.site ? `<div class="scan-checks">${chk(d.site.robotsTxtFound)} robots.txt · ${chk(!(d.site.blockedSearchCrawlers ?? d.site.blockedAiCrawlers)?.length)} AI search crawlers allowed · ${chk(d.site.sitemapFound)} sitemap · ${chk(d.site.llmsTxtFound)} llms.txt</div>` : '';
     out.innerHTML = `<div class="scan-card">
       <div class="scan-head"><div class="scan-grade ${p.grade}">${p.grade}</div>
-        <div><div class="scan-score"><span id="scoreNum" class="num">0</span><small> /100 · ${p.wordCount} visible word-equivalents</small></div>
+        <div><div class="scan-score"><span id="scoreNum" class="num">0</span><small> /100 · AI reads ${p.wordCount.toLocaleString()} words on this page</small></div>
         <div style="font:12px var(--mono);color:var(--faint)">${esc(p.url)}</div></div></div>
       <div class="scan-verdict v-${verdict(p)[0]}">${verdict(p)[1]}</div>
-      <div class="scan-dims">${dims}</div>${blockers}${site}
+      <div class="scan-dims">${dims}</div>${naNote}${focus}${blockers}${site}
       <div class="scan-cta"><b>This was gate zero: can AI read you at all?</b> Gates 1–5 — does AI know you,
         confuse you with someone else, recommend you, rank you, cite you — need answer sampling across 18 engines.
         One command, free: <span class="mono" onclick="navigator.clipboard.writeText('npx fastergeo bootstrap --root ${esc(p.url)}')">npx fastergeo</span></div>
