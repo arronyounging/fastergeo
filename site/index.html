@@ -127,6 +127,13 @@ font-family:var(--mono);font-size:14px;text-decoration:none;letter-spacing:.02em
 background:var(--red-wash);border-radius:0 6px 6px 0;font-size:13.5px;line-height:1.65}
 .scan-na{margin-top:10px;font-size:12px;color:var(--faint)}
 .scan-raw{margin-top:5px;font:11.5px var(--mono);color:var(--faint);font-weight:400}
+.scan-said{background:var(--panel);border:1px solid var(--rule2);border-left:4px solid var(--rule2);
+padding:20px 24px;margin-bottom:18px}
+.scan-said.v-bad{border-left-color:var(--red);background:var(--red-wash)}
+.scan-said.v-good{border-left-color:var(--green);background:var(--green-wash)}
+.scan-said .said-q{font:12px var(--mono);color:var(--faint);margin-bottom:12px}
+.scan-said blockquote{margin:0;font-size:18px;line-height:1.7;font-style:italic}
+.scan-said .said-foot{margin-top:14px;font:12px var(--mono);color:var(--ink2);line-height:1.7}
 .scan-card{margin-top:22px;border:1px solid var(--rule2);background:var(--panel)}
 .scan-head{display:flex;gap:18px;align-items:center;padding:18px 22px;border-bottom:1px solid var(--rule)}
 .scan-grade{width:52px;height:52px;border:2px solid var(--ink);display:flex;align-items:center;
@@ -617,7 +624,7 @@ form.addEventListener('submit', async e => {
     }
   }, 650);
   try {
-    const r = await fetch('/api/scan?url=' + encodeURIComponent(url));
+    const r = await fetch('/api/scan?lang=en&url=' + encodeURIComponent(url));
     const d = await r.json();
     clearInterval(stepTimer);
     if (!r.ok) throw new Error(d.error || 'scan failed');
@@ -656,7 +663,21 @@ form.addEventListener('submit', async e => {
       return `<div class="scan-blocker">■ ${plain ? `<b>${plain}</b><div class="scan-raw">${esc(b)}</div>` : esc(b)}</div>`;
     }).join('');
     const site = d.site ? `<div class="scan-checks">${chk(d.site.robotsTxtFound)} robots.txt · ${chk(!(d.site.blockedSearchCrawlers ?? d.site.blockedAiCrawlers)?.length)} AI search crawlers allowed · ${chk(d.site.sitemapFound)} sitemap · ${chk(d.site.llmsTxtFound)} llms.txt</div>` : '';
-    out.innerHTML = `<div class="scan-card">
+    /* The quote goes above the score, for the same reason the report leads with
+       it: a number is an abstraction the reader has to be taught to care about,
+       and an engine describing them as a different company is not. */
+    const q = d.probe;
+    const V = { confused: ['bad', 'It has you mixed up with a different company'],
+      unknown: ['bad', 'It does not know who you are'],
+      knows: ['good', 'It knows who you are'],
+      unverified: ['mid', 'Read it yourself — we would not call this one for you'] };
+    const said = q ? `<div class="scan-said v-${V[q.verdict][0]}">
+        <div class="said-q">${esc(q.question)}</div>
+        <blockquote>${esc(q.answer.length > 600 ? q.answer.slice(0, 600) + '…' : q.answer)}</blockquote>
+        <div class="said-foot"><b>${V[q.verdict][1]}</b> · asked of DeepSeek just now · one question, one engine —
+          it says nothing yet about whether AI <i>recommends</i> you</div>
+      </div>` : '';
+    out.innerHTML = `${said}<div class="scan-card">
       <div class="scan-head"><div class="scan-grade ${p.grade}">${p.grade}</div>
         <div><div class="scan-score"><span id="scoreNum" class="num">0</span><small> /100 · AI reads ${p.wordCount.toLocaleString()} words on this page</small></div>
         <div style="font:12px var(--mono);color:var(--faint)">${esc(p.url)}</div></div></div>
