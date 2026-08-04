@@ -87,3 +87,18 @@ export function segmentCjkWords(text: string): string[] {
       (countCjkChars(w) >= 2 || /^[a-z0-9][a-z0-9-]{2,}$/.test(w)),
     );
 }
+
+/**
+ * Canonical sentence splitter, decimal-safe by construction: Latin
+ * terminators split only when followed by whitespace ("$54.99" is never cut
+ * into 54 + 99), CJK terminators split anywhere. The one splitter every
+ * package must use — private re-implementations are how the commerce and
+ * sentiment layers once drifted apart.
+ */
+export function splitSentences(text: string): string[] {
+  return text
+    .split(/\n+/)
+    .flatMap(line => line.split(SENTENCE_SPLIT_PATTERN))
+    .map(s => s.trim())
+    .filter(Boolean);
+}

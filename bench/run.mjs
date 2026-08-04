@@ -177,6 +177,87 @@ async function runMatching() {
   }
 }
 
+async function runPages() {
+  const { gunzipSync } = await import('node:zlib');
+  const { extractFeatures, detectBlocks, scorePage } = await import('../packages/audit/dist/index.js');
+  const labels = JSON.parse(readFileSync(new URL('./pages/labels.json', import.meta.url), 'utf8')).slice(0, limit);
+  const fuzzN = Number(flag('fuzz') ?? 0);
+  console.log(`pages golden · ${labels.length} snapshots${fuzzN ? ` · fuzz ${fuzzN}` : ''}\n`);
+
+  const audit = (id, status, html) => {
+    const f = extractFeatures(`https://bench.local/${id}`, status, html);
+    const blocks = detectBlocks(f);
+    const earlyBlocks = detectBlocks({ ...f, text: f.text.slice(0, Math.ceil(f.text.length * 0.3)) });
+    return scorePage(f, blocks, undefined, { earlyBlocks });
+  };
+
+  let pass = 0;
+  const misses = [];
+  const htmls = new Map();
+  for (const L of labels) {
+    const html = gunzipSync(readFileSync(new URL(`./pages/snapshots/${L.file}`, import.meta.url))).toString('utf8');
+    htmls.set(L.id, { html, status: L.status });
+    let page;
+    try {
+      page = audit(L.id, L.status, html);
+    } catch (err) {
+      misses.push({ id: L.id, why: `CRASH: ${err.message}` });
+      continue;
+    }
+    const issues = new Set(page.dimensions.flatMap((d) => d.issues));
+    const problems = [];
+    const hasBlocker = page.blockers.length > 0;
+    if (L.blocker !== hasBlocker) problems.push(`blocker expect=${L.blocker} got=${hasBlocker} [${page.blockers[0] ?? ''}]`);
+    if (L.blocker && L.blockerCode && !page.blockers.some((b) => b.startsWith(L.blockerCode))) {
+      problems.push(`blocker code ≠ ${L.blockerCode} [${page.blockers.join(' | ')}]`);
+    }
+    for (const m of L.mustIssues) if (!issues.has(m)) problems.push(`missing issue ${m}`);
+    for (const m of L.mustNotIssues) if (issues.has(m)) problems.push(`false issue ${m}`);
+    const order = { A: 4, B: 3, C: 2, D: 1 };
+    if (L.gradeAtLeast && order[page.grade] < order[L.gradeAtLeast]) {
+      problems.push(`grade ${page.grade} < ${L.gradeAtLeast} (score ${page.score})`);
+    }
+    if (problems.length) misses.push({ id: L.id, why: problems.join(' · '), note: L.note });
+    else pass++;
+  }
+  console.log(`labels pass: ${pass}/${labels.length}`);
+  const blockerCases = labels.filter((l) => l.blocker !== undefined);
+  const blockerRight = blockerCases.length - misses.filter((m) => m.why.startsWith('blocker')).length;
+  console.log(`blocker accuracy: ${blockerRight}/${blockerCases.length}`);
+  if (misses.length) {
+    console.log('\nmisses:');
+    for (const m of misses) console.log(`  ${m.id.padEnd(22)} ${m.why}${m.note ? `\n${' '.repeat(24)}(${m.note})` : ''}`);
+  }
+
+  if (fuzzN > 0) {
+    // deterministic LCG so fuzz failures are reproducible
+    let seed = 42;
+    const rnd = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+    const ids = [...htmls.keys()];
+    const JUNK = ['<div', '</p>', '<<<<', '&#xD800;', ' ', '<script>', '"', '<style>', '<!--', ']]>', '<a href="', '￾', '𝕏'.repeat(50)];
+    let crashes = 0;
+    for (let i = 0; i < fuzzN; i++) {
+      const { html, status } = htmls.get(ids[Math.floor(rnd() * ids.length)]);
+      let mut = html;
+      const op = Math.floor(rnd() * 4);
+      if (op === 0) mut = html.slice(0, Math.floor(rnd() * html.length));            // truncate
+      else if (op === 1) {                                                           // splice junk
+        const at = Math.floor(rnd() * html.length);
+        mut = html.slice(0, at) + JUNK[Math.floor(rnd() * JUNK.length)] + html.slice(at);
+      } else if (op === 2) mut = html.replace(/</g, (c) => (rnd() < 0.02 ? '<<' : c)); // tag noise
+      else mut = '<div>'.repeat(5000) + html.slice(0, 2000) + '<p>' + 'x'.repeat(100000); // nesting+huge
+      try {
+        audit('fuzz', status, mut);
+      } catch (err) {
+        crashes++;
+        if (crashes <= 3) console.log(`fuzz crash #${crashes} (iter ${i}, op ${op}): ${err.message}`);
+      }
+    }
+    console.log(`\nfuzz: ${fuzzN - crashes}/${fuzzN} survived${crashes ? ` — ${crashes} CRASHES` : ''}`);
+  }
+}
+
 if (suite === 'recognition') await runRecognition();
 else if (suite === 'matching') await runMatching();
+else if (suite === 'pages') await runPages();
 else { console.error(`unknown suite: ${suite}`); process.exit(1); }

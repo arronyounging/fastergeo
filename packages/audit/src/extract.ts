@@ -73,12 +73,16 @@ export function extractFeatures(url: string, status: number, html: string): Page
   return {
     url,
     status,
-    htmlBytes: html.length,
+    // Real bytes, not UTF-16 code units — "429KB of HTML" must mean bytes.
+    // TextEncoder keeps this workers-safe (no Buffer).
+    htmlBytes: new TextEncoder().encode(html).length,
     title: titleMatch ? stripTags(titleMatch[1]) : '',
     metaDescription: metaContent(html, 'description') ?? '',
     canonical: /<link[^>]+rel=["']canonical["'][^>]+href=["']([^"']+)["']/i.exec(html)?.[1]
       ?? /<link[^>]+href=["']([^"']+)["'][^>]+rel=["']canonical["']/i.exec(html)?.[1] ?? null,
-    noindex: /noindex/i.test(robotsMeta),
+    // "none" is the robots shorthand for noindex,nofollow — missing it
+    // reports an invisible page as healthy.
+    noindex: /noindex/i.test(robotsMeta) || /(^|[\s,])none($|[\s,])/i.test(robotsMeta),
     lang: /<html[^>]+lang=["']([^"']+)["']/i.exec(html)?.[1] ?? null,
     text,
     wordCount: countWords(text),

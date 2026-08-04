@@ -1,0 +1,309 @@
+[
+ {
+  "id": "custyle-products",
+  "file": "custyle-products.html.gz",
+  "status": 200,
+  "blocker": true,
+  "blockerCode": "spa-shell",
+  "mustIssues": [],
+  "mustNotIssues": [],
+  "note": "423KB / ~20 indep words — the original field shell"
+ },
+ {
+  "id": "custyle-home",
+  "file": "custyle-home.html.gz",
+  "status": 200,
+  "blocker": false,
+  "mustIssues": [],
+  "mustNotIssues": [
+   "spa-shell"
+  ],
+  "note": "594KB but ~116 indep words — thin, not a shell per spec"
+ },
+ {
+  "id": "crafted-shell",
+  "file": "crafted-shell.html.gz",
+  "status": 200,
+  "blocker": true,
+  "blockerCode": "spa-shell",
+  "mustIssues": [],
+  "mustNotIssues": [],
+  "note": "127KB, 1 word"
+ },
+ {
+  "id": "crafted-noindex",
+  "file": "crafted-noindex.html.gz",
+  "status": 200,
+  "blocker": true,
+  "blockerCode": "noindex",
+  "mustIssues": [],
+  "mustNotIssues": [],
+  "note": ""
+ },
+ {
+  "id": "crafted-robots-none",
+  "file": "crafted-robots-none.html.gz",
+  "status": 200,
+  "blocker": true,
+  "blockerCode": "noindex",
+  "mustIssues": [],
+  "mustNotIssues": [],
+  "note": "meta robots \"none\" ≡ noindex — the gap this case exists to catch"
+ },
+ {
+  "id": "npm-pkg",
+  "file": "npm-pkg.html.gz",
+  "status": 403,
+  "blocker": true,
+  "blockerCode": "noindex",
+  "mustIssues": [
+   "http-error"
+  ],
+  "mustNotIssues": [],
+  "note": "real 403 page with noindex"
+ },
+ {
+  "id": "crafted-pronoun",
+  "file": "crafted-pronoun.html.gz",
+  "status": 200,
+  "blocker": false,
+  "mustIssues": [
+   "context-dependent-paragraphs"
+  ],
+  "mustNotIssues": [],
+  "note": "15/20 pronoun-start paragraphs"
+ },
+ {
+  "id": "crafted-stale",
+  "file": "crafted-stale.html.gz",
+  "status": 200,
+  "blocker": false,
+  "mustIssues": [
+   "stale-content"
+  ],
+  "mustNotIssues": [],
+  "note": ""
+ },
+ {
+  "id": "crafted-belowfold",
+  "file": "crafted-belowfold.html.gz",
+  "status": 200,
+  "blocker": false,
+  "mustIssues": [
+   "answer-below-fold"
+  ],
+  "mustNotIssues": [],
+  "note": "definition+statistics only in the last 10% of text"
+ },
+ {
+  "id": "crafted-perfect",
+  "file": "crafted-perfect.html.gz",
+  "status": 200,
+  "blocker": false,
+  "mustIssues": [],
+  "mustNotIssues": [
+   "spa-shell",
+   "thin-text",
+   "no-h1",
+   "no-jsonld",
+   "no-date",
+   "stale-content",
+   "answer-below-fold",
+   "context-dependent-paragraphs"
+  ],
+  "gradeAtLeast": "A",
+  "note": "designed to earn A — failing this is a scorer bug"
+ },
+ {
+  "id": "crafted-broken",
+  "file": "crafted-broken.html.gz",
+  "status": 200,
+  "blocker": false,
+  "mustIssues": [],
+  "mustNotIssues": [],
+  "note": "tag soup — must not crash; no assertions beyond survival"
+ },
+ {
+  "id": "example",
+  "file": "example.html.gz",
+  "status": 200,
+  "blocker": false,
+  "mustIssues": [
+   "thin-text"
+  ],
+  "mustNotIssues": [
+   "spa-shell"
+  ],
+  "note": "559B/19 words — thin page must NOT be labeled a JS shell (issue-code semantics)"
+ },
+ {
+  "id": "fastergeo-home",
+  "file": "fastergeo-home.html.gz",
+  "status": 200,
+  "blocker": false,
+  "mustIssues": [],
+  "mustNotIssues": [
+   "spa-shell"
+  ],
+  "gradeAtLeast": "B",
+  "note": ""
+ },
+ {
+  "id": "fastergeo-docs",
+  "file": "fastergeo-docs.html.gz",
+  "status": 200,
+  "blocker": false,
+  "mustIssues": [],
+  "mustNotIssues": [
+   "spa-shell"
+  ],
+  "gradeAtLeast": "B",
+  "note": ""
+ },
+ {
+  "id": "fastergeo-agency",
+  "file": "fastergeo-agency.html.gz",
+  "status": 200,
+  "blocker": false,
+  "mustIssues": [],
+  "mustNotIssues": [
+   "spa-shell"
+  ],
+  "note": ""
+ },
+ {
+  "id": "mdn-html",
+  "file": "mdn-html.html.gz",
+  "status": 200,
+  "blocker": false,
+  "mustIssues": [],
+  "mustNotIssues": [
+   "spa-shell",
+   "noindex"
+  ],
+  "note": ""
+ },
+ {
+  "id": "wikipedia-seo",
+  "file": "wikipedia-seo.html.gz",
+  "status": 200,
+  "blocker": false,
+  "mustIssues": [],
+  "mustNotIssues": [
+   "spa-shell",
+   "noindex"
+  ],
+  "note": "robots max-image-preview must not read as noindex"
+ },
+ {
+  "id": "vercel",
+  "file": "vercel.html.gz",
+  "status": 200,
+  "blocker": false,
+  "mustIssues": [],
+  "mustNotIssues": [
+   "spa-shell",
+   "noindex"
+  ],
+  "note": "robots \"index, max-image-preview\" — substring trap for noindex detection"
+ },
+ {
+  "id": "astro",
+  "file": "astro.html.gz",
+  "status": 200,
+  "blocker": false,
+  "mustIssues": [],
+  "mustNotIssues": [
+   "spa-shell",
+   "noindex"
+  ],
+  "note": ""
+ },
+ {
+  "id": "react-dev",
+  "file": "react-dev.html.gz",
+  "status": 200,
+  "blocker": false,
+  "mustIssues": [
+   "multiple-h1"
+  ],
+  "mustNotIssues": [
+   "spa-shell"
+  ],
+  "note": "2 h1s (indep measured)"
+ },
+ {
+  "id": "github-repo",
+  "file": "github-repo.html.gz",
+  "status": 200,
+  "blocker": false,
+  "mustIssues": [
+   "multiple-h1"
+  ],
+  "mustNotIssues": [
+   "spa-shell"
+  ],
+  "note": "4 h1s"
+ },
+ {
+  "id": "hn",
+  "file": "hn.html.gz",
+  "status": 200,
+  "blocker": false,
+  "mustIssues": [
+   "no-h1"
+  ],
+  "mustNotIssues": [
+   "spa-shell"
+  ],
+  "note": ""
+ },
+ {
+  "id": "sspai",
+  "file": "sspai.html.gz",
+  "status": 200,
+  "blocker": false,
+  "mustIssues": [
+   "no-h1"
+  ],
+  "mustNotIssues": [
+   "spa-shell"
+  ],
+  "note": ""
+ },
+ {
+  "id": "ruanyifeng",
+  "file": "ruanyifeng.html.gz",
+  "status": 200,
+  "blocker": false,
+  "mustIssues": [],
+  "mustNotIssues": [
+   "spa-shell",
+   "noindex"
+  ],
+  "note": ""
+ },
+ {
+  "id": "tailwind",
+  "file": "tailwind.html.gz",
+  "status": 200,
+  "blocker": false,
+  "mustIssues": [],
+  "mustNotIssues": [
+   "spa-shell",
+   "noindex"
+  ],
+  "note": "900KB HTML, ~1090 words — heavy but not a shell"
+ },
+ {
+  "id": "baidu",
+  "file": "baidu.html.gz",
+  "status": 200,
+  "blocker": false,
+  "mustIssues": [],
+  "mustNotIssues": [
+   "spa-shell"
+  ],
+  "note": "696KB, huge hidden text — adversarially messy"
+ }
+]

@@ -93,6 +93,9 @@ importers:
       '@fastergeo/metrics':
         specifier: workspace:^
         version: link:../metrics
+      '@fastergeo/rules':
+        specifier: workspace:^
+        version: link:../rules
     devDependencies:
       '@types/node':
         specifier: ^20.0.0
@@ -170,6 +173,10 @@ importers:
         version: 3.2.7(@types/node@20.19.43)(jiti@2.7.0)
 
   packages/metrics:
+    dependencies:
+      '@fastergeo/rules':
+        specifier: workspace:^
+        version: link:../rules
     devDependencies:
       '@types/node':
         specifier: ^20.0.0

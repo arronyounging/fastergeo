@@ -11,6 +11,7 @@
  *    never guessed. A negative verdict must carry quoted evidence.
  */
 
+import { splitSentences } from '@fastergeo/rules/text';
 import { mentions } from './matching.js';
 import type { SentimentJudge, SentimentResult } from './types.js';
 
@@ -27,9 +28,6 @@ const NEGATIVE_PATTERNS: RegExp[] = [
   /(?<![\w-])poor (quality|service|experience)(?![\w-])/i,
 ];
 
-/** Split into sentences across CJK and Latin terminators. */
-const SENTENCE_RE = /[^。！？.!?\n]+[。！？.!?]?/g;
-
 /**
  * Classify sentiment of an answer's brand mentions. Call only for answers
  * that mention the brand; returns 'unverified' otherwise.
@@ -39,7 +37,7 @@ export async function classifySentiment(
   brandNames: string[],
   opts: { judge?: SentimentJudge } = {},
 ): Promise<SentimentResult> {
-  const brandSentences = (answer.match(SENTENCE_RE) ?? [])
+  const brandSentences = splitSentences(answer)
     .filter(s => mentions(s, brandNames));
   if (brandSentences.length === 0) {
     return { verdict: 'unverified', method: 'heuristic' };

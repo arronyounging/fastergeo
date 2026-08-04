@@ -32,5 +32,8 @@
     "access": "public",
     "registry": "https://registry.npmjs.org"
   },
-  "homepage": "https://fastergeo.co"
+  "homepage": "https://fastergeo.co",
+  "dependencies": {
+    "@fastergeo/rules": "workspace:^"
+  }
 }

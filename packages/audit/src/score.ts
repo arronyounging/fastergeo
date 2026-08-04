@@ -29,7 +29,10 @@ function scoreCrawlability(f: PageFeatures): DimensionScore {
   if (!f.noindex) score += 3; else issues.push('noindex');
   if (f.canonical) score += 2; else issues.push('no-canonical');
   if (f.wordCount >= 120) score += 4;
-  else issues.push(f.wordCount < SHELL_WORD_COUNT ? 'spa-shell' : 'thin-text');
+  // 'spa-shell' names a specific pathology (big HTML, no visible text). A
+  // 500-byte page with 19 words is thin, not a JS shell — issue codes must
+  // not misname the disease or the ticket prescribes the wrong fix.
+  else issues.push(f.wordCount < SHELL_WORD_COUNT && f.htmlBytes > 50_000 ? 'spa-shell' : 'thin-text');
   if (f.lang) score += 2; else issues.push('no-lang');
   return { key: 'crawlability', score, max: 15, issues };
 }

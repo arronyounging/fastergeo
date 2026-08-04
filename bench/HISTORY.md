@@ -21,3 +21,10 @@ rulebook is the spec), but field cases will keep being added as they arrive; 100
 |---|---|---|---|---|---|
 | 2026-08-04 | baseline (135 cases) | 99.1% | 100% | 134/135 | found real spec split: mentions() lacked the <2-char guard matchRanges has — metrics vs display could disagree |
 | 2026-08-04 | unified guard · expanded corpus | **100%** | **100%** | **241/241** | targets (P≥99/R≥95) exceeded; spec decisions codified in matching/RULES.md (M1–M5); field adjacency survey confirmed boundary design |
+
+## pages (pages/labels.json · 26 snapshots: 17 fetched real sites + 8 crafted pathologies + 1 real 403, gz in repo)
+
+| date | config | labels pass | blocker accuracy | fuzz | notes |
+|---|---|---|---|---|---|
+| 2026-08-04 | baseline | 24/26 | 25/26 | 300/300 survive | two planted gaps confirmed: meta robots "none" missed as noindex; 559B page mislabeled 'spa-shell' instead of 'thin-text' |
+| 2026-08-04 | fixed (robots-none, issue-code split, htmlBytes→true bytes) | **26/26** | **26/26** | **300/300** | labels adjudicated from independent html.parser measurement, never from the tool under test; splitter consolidated into rules/text (sentiment gains decimal safety) |

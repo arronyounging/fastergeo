@@ -9,23 +9,12 @@
  * price (AI often quotes ranges or sale prices alongside).
  */
 
+import { splitSentences } from '@fastergeo/rules/text';
 import { matchRanges } from '@fastergeo/metrics';
 import type { Sample } from '@fastergeo/metrics';
 import type {
   Product, ProductPlatformStats, ProductSampleCheck, ShoppingPlatform, ShoppingReport,
 } from './types.js';
-
-/**
- * Decimal-safe sentence split: CJK terminators split anywhere; Latin .!?
- * only split when followed by whitespace/end — "$54.99" must never be cut
- * into "$54" + "99" (that would fabricate wrong-price findings).
- */
-function splitSentences(text: string): string[] {
-  return text
-    .split(/(?<=[。！？])|(?<=[.!?])(?=\s|$)|\n/)
-    .map(s => s.trim())
-    .filter(Boolean);
-}
 
 /** Currency amounts in a sentence: ¥1,299 / $49.99 / 1299元 / USD 49. */
 const AMOUNT_RE = /(?:[¥￥$€£]|USD|CNY|RMB|EUR|GBP)\s?(\d[\d,]*(?:\.\d{1,2})?)|(\d[\d,]*(?:\.\d{1,2})?)\s?(?:元|美元|欧元|英镑)/g;
