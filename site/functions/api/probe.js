@@ -50,7 +50,7 @@ export async function onRequestGet({ request, env }) {
     }
     const asked = await probe({ hostname: parsed.hostname, features, lang, env });
     if (asked?.error) {
-      return new Response(JSON.stringify({ probe: null, reason: asked.error }), { headers });
+      return new Response(JSON.stringify({ probe: null, reason: asked.error, timing: asked.timing }), { headers });
     }
     if (asked && id && kv(env)) {
       // Best-effort: a failed write must not lose the answer we already have.

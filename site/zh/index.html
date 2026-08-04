@@ -557,6 +557,17 @@ async function runTerm() {
 }
 
 /* ── Scan ── */
+/* The point is the quote, not the essay. Live, a 700-char answer in raw
+   markdown pushed the audit card below the fold and showed ** as literal
+   characters. Cut to a sentence boundary and strip the markers. */
+function excerpt(s, max) {
+  const t = String(s || '').replace(/[*_`#]+/g, '').replace(/\s+/g, ' ').trim();
+  if (t.length <= max) return t;
+  const cut = t.slice(0, max);
+  const at = Math.max(cut.lastIndexOf('。'), cut.lastIndexOf('. '), cut.lastIndexOf('！'), cut.lastIndexOf('？'));
+  return (at > max * 0.45 ? cut.slice(0, at + 1) : cut) + '…';
+}
+
 const form = document.getElementById('scanForm');
 const out = document.getElementById('scanResult');
 const btn = document.getElementById('scanBtn');
@@ -672,7 +683,7 @@ form.addEventListener('submit', async e => {
       unverified: ['mid', '你自己看 —— 这条我们不替你下结论'] };
         slot.innerHTML = `<div class="scan-said v-${V[q.verdict][0]}">
           <div class="said-q">${esc(q.question)}</div>
-          <blockquote>${esc(q.answer.length > 700 ? q.answer.slice(0, 700) + '…' : q.answer)}</blockquote>
+          <blockquote>${esc(excerpt(q.answer, 260))}</blockquote>
           <div class="said-foot"><b>${V[q.verdict][1]}</b> · 刚刚问的 DeepSeek · 一个问题、一个引擎 —— 它还说明不了 AI 会不会<i>推荐</i>你</div></div>`;
       } catch { slot.innerHTML = ''; }
     })();

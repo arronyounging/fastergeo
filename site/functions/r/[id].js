@@ -13,6 +13,10 @@
  */
 import { loadScan } from '../api/_store.js';
 
+/* Same treatment as the scan card: strip markdown markers so the quote reads
+   as a quote rather than as source. The full answer stays in the record. */
+const clean = s => String(s ?? '').replace(/[*_`#]+/g, '').replace(/[ \t]+/g, ' ').trim();
+
 const esc = s => String(s ?? '')
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
@@ -68,11 +72,11 @@ export async function onRequestGet({ params, env, request }) {
   const title = t.title(brand);
   // The preview card carries the finding itself — this link's whole job is to
   // survive being forwarded, and the quote is what makes someone open it.
-  const desc = q ? q.answer.replace(/\s+/g, ' ').slice(0, 180) : `${p.score}/100 · ${t.reads(p.wordCount)}`;
+  const desc = q ? clean(q.answer).slice(0, 180) : `${p.score}/100 · ${t.reads(p.wordCount)}`;
 
   const said = q ? `<section class="said v-${q.verdict === 'knows' ? 'good' : q.verdict === 'unverified' ? 'mid' : 'bad'}">
       <div class="q">${esc(q.question)}</div>
-      <blockquote>${esc(q.answer)}</blockquote>
+      <blockquote>${esc(clean(q.answer))}</blockquote>
       <div class="foot"><b>${esc(t.verdict[q.verdict] ?? '')}</b> · ${t.asked} · ${esc(rec.createdAt.slice(0, 10))}</div>
       <div class="fine">${t.one}</div>
     </section>` : '';
