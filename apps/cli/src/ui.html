@@ -149,27 +149,47 @@ const NA = '<span style="color:var(--faint)">—</span>';
  * and an unwired tab that says what it will cover and what backs it reads as a
  * roadmap rather than a dead link.
  */
+/**
+ * Three states, and the third one is the honest one:
+ *   live — wired into this panel
+ *   cli  — the capability exists as a fastergeo command; the panel has not
+ *          caught up yet
+ *   none — we do not do this. Said plainly rather than implied by an empty tab.
+ *
+ * An earlier version named third-party marketplace skills here as "backed by".
+ * Two problems: users could not obtain them, and the names are not ours to
+ * depend on — half of them were renamed upstream overnight. Everything listed
+ * now is a command in this repo or an honest "not covered".
+ */
 const DOMAINS = [
-  { id: 'demand', zh: '需求', en: 'Demand',
+  { id: 'demand', zh: '需求', en: 'Demand', state: 'cli',
     d: T('谁在找你、用什么词找。', 'Who is looking, and in whose words.'),
-    caps: 'keyword-research · serp-analysis · content-gap-analysis · expand' },
-  { id: 'visible', zh: '可见', en: 'Visible', live: true },
-  { id: 'content', zh: '内容', en: 'Content',
-    d: T('写什么、写得够不够好、值不值得被引用。', 'What to write, whether it is good enough, whether it is quotable.'),
-    caps: 'content-quality-auditor（CORE-EEAT 80） · geo-content-optimizer · content-refresher' },
-  { id: 'convert', zh: '转化', en: 'Convert',
-    d: T('人来了留不留得下。流量涨而注册不动，问题在这一栏，不在可见性。', 'Whether arrivals turn into anything. Traffic up but signups flat is a problem here, not in visibility.'),
-    caps: 'page-cro · signup-flow-cro · pricing-strategy · design-review' },
-  { id: 'author', zh: '权威', en: 'Authority',
-    d: T('别人怎么看你，以及 AI 在你的品类里信任谁。', 'Who vouches for you, and who AI trusts in your category.'),
-    caps: 'domain-authority-auditor（CITE 40） · backlink-analyzer · ' + T('引用源靶单', 'citation-source targets') },
-  { id: 'dist', zh: '分发', en: 'Distribute',
+    cmds: ['fastergeo expand --seed "…"   ' + T('百度下拉 + Google 补全挖真实搜索需求', 'mines real demand from Baidu/Google autocomplete'),
+      'questions.json                ' + T('AI 上正在被问的题库', 'the question bank actually asked of AI')] },
+  { id: 'visible', zh: '可见', en: 'Visible', state: 'live' },
+  { id: 'content', zh: '内容', en: 'Content', state: 'cli',
+    d: T('写什么，以及写出来的东西敢不敢发。', 'What to write, and whether what came out is safe to publish.'),
+    cmds: ['fastergeo outline / draft    ' + T('只用已确认事实生成', 'generated from confirmed facts only'),
+      'fastergeo fabcheck           ' + T('编造门禁：无来源的数字一律拦下', 'fabrication gate: unsourced numbers are refused')] },
+  { id: 'convert', zh: '转化', en: 'Convert', state: 'none',
+    d: T('人来了留不留得下。', 'Whether arrivals turn into anything.'),
+    why: T('我们不做落地页和注册流的优化。这是真话，不是「还没做」—— 它需要你的分析数据和产品内部，跟我们「看 AI 怎么说你」的能力不搭。',
+      'We do not optimise landing pages or signup flows. That is a decision, not a backlog item: it needs your analytics and your product internals, and it does not share anything with measuring what AI says about you.'),
+    note: T('但有一件事我们能替你判断：<b>流量涨而注册不动，问题就在这一栏，不在可见性</b> —— 别拿这个去买更多流量。',
+      'One thing we can tell you: <b>traffic up with signups flat is a problem here, not in visibility</b> — do not answer it by buying more traffic.') },
+  { id: 'author', zh: '权威', en: 'Authority', state: 'cli',
+    d: T('AI 在你的品类里信任谁。', 'Who AI trusts in your category.'),
+    cmds: ['fastergeo sources            ' + T('AI 实际引用了哪些域名 → 你的公关靶单', 'domains AI actually cited → your PR target list')],
+    note: T('外链分析我们不做 —— 市面上做得好的工具很多，我们只给你「AI 信任谁」这份别处拿不到的清单。',
+      'We do not analyse backlinks — plenty of tools do that well. We give you the one list they cannot: who AI trusts.') },
+  { id: 'dist', zh: '分发', en: 'Distribute', state: 'cli',
     d: T('写完发到哪里去。', 'Where the work goes once it is written.'),
-    caps: 'publish · medium/linkedin/substack · wechat-format · email-sequence' },
-  { id: 'watch', zh: '监测', en: 'Watch', live: true },
-  { id: 'social', zh: '社交', en: 'Social',
+    cmds: ['fastergeo publish            ' + T('WordPress / GitHub / 签名 webhook，发布前强制过门禁', 'WordPress / GitHub / signed webhook, gated before it ships')] },
+  { id: 'watch', zh: '监测', en: 'Watch', state: 'live' },
+  { id: 'social', zh: '社交', en: 'Social', state: 'none',
     d: T('谁在公开场合问同类问题。', 'Who is asking about this in public.'),
-    caps: T('HN（Algolia 公开 API）→ Reddit（官方 API）', 'HN (Algolia public API) → Reddit (official API)') },
+    why: T('还没做。HN 走 Algolia 公开 API 是免费的，Reddit 官方 API 有免费层 —— 成本不是障碍，只是还没排上。X 不做（官方 API 太贵），达人不做（需要真达人库）。',
+      'Not built. HN via the public Algolia API is free and Reddit has a free tier — cost is not the obstacle, it simply has not been scheduled. X is out (the API is expensive) and influencers are out (needs a real creator database).') },
 ];
 
 let S = null, tab = 'visible';
@@ -234,9 +254,10 @@ function profile() {
 }
 
 function evidence() {
+  const suffix = { live: '', cli: ' · ' + T('命令行', 'CLI'), none: ' · ' + T('不做', 'not covered') };
   const strip = DOMAINS.map(d =>
-    `<span class="tab ${d.id === tab ? 'on' : ''} ${d.live ? '' : 'soon'}" data-tab="${d.id}">` +
-    `${ZH ? d.zh : d.en}${d.live ? '' : ' · ' + T('未接', 'not wired')}</span>`).join('');
+    `<span class="tab ${d.id === tab ? 'on' : ''} ${d.state === 'live' ? '' : 'soon'}" data-tab="${d.id}">` +
+    `${ZH ? d.zh : d.en}${suffix[d.state]}</span>`).join('');
   document.getElementById('pEvidence').innerHTML = `
     <div class="ph"><b>${T('证据', 'Evidence')}</b><span class="mono">${samplesLine()}</span></div>
     <div class="tabs">${strip}</div>
@@ -255,13 +276,27 @@ function samplesLine() {
 
 function soonTab(id) {
   const d = DOMAINS.find(x => x.id === id);
-  return `<div class="soonbox">
-      <h3>${ZH ? d.zh : d.en} · ${T('未接', 'not wired yet')}</h3>
+  if (d.state === 'cli') {
+    return `<div class="soonbox">
+        <h3>${ZH ? d.zh : d.en} · ${T('命令行里已经能用', 'available in the CLI')}</h3>
+        <p>${esc(d.d)}</p>
+        <div class="caps"><b>${T('现在就能跑：', 'Run it now:')}</b>
+          <pre style="margin:8px 0 0;font:12px/1.9 ui-monospace,Menlo,monospace;white-space:pre-wrap">${d.cmds.map(esc).join('\n')}</pre></div>
+        ${d.note ? `<div class="caps" style="margin-top:12px">${d.note}</div>` : ''}
+      </div>
+      <div class="cap" style="margin-top:14px">${T('能力有了，这个面板还没接上它。',
+        'The capability exists; this panel has not caught up to it yet.')}</div>`;
+  }
+  // "We do not do this" is a legitimate answer and gets said in plain words.
+  // An empty tab that implies "coming soon" forever is the dishonest version.
+  return `<div class="soonbox" style="border-color:var(--line);background:var(--well)">
+      <h3>${ZH ? d.zh : d.en} · ${T('我们不做这个', 'we do not do this')}</h3>
       <p>${esc(d.d)}</p>
-      <div class="caps"><b>${T('将由这些能力支撑：', 'Backed by:')}</b><br><span class="mono">${esc(d.caps)}</span></div>
+      <div class="caps">${d.why}</div>
+      ${d.note ? `<div class="caps" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--line)">${d.note}</div>` : ''}
     </div>
-    <div class="cap" style="margin-top:14px">${T('这一栏还没接上。<b>空着并写清楚，比藏起来假装这个域不存在诚实。</b>',
-      'Not wired yet. <b>Saying so beats hiding the tab and pretending the domain does not exist.</b>')}</div>`;
+    <div class="cap" style="margin-top:14px">${T('说清楚不做，比无限期挂个「即将推出」诚实。',
+      'Saying we do not do it beats an indefinite “coming soon”.')}</div>`;
 }
 
 function watchTab() {
