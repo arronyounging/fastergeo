@@ -257,7 +257,56 @@ async function runPages() {
   }
 }
 
+async function runEngines() {
+  const { writeFileSync, mkdirSync } = await import('node:fs');
+  const providersArg = flag('providers');
+  if (!providersArg) { console.error('usage: run.mjs engines --providers glm,deepseek [--reps 10]'); process.exit(1); }
+  const reps = Number(flag('reps') ?? 10);
+  const date = flag('date') ?? 'run';
+  const questions = JSON.parse(readFileSync(new URL('./engines/questions.json', import.meta.url), 'utf8'));
+
+  for (const id of providersArg.split(',')) {
+    const p = resolveProvider(id);
+    const qs = questions.filter((q) => q.market === p.market);
+    console.log(`\n── ${id} (${p.resolvedModel ?? p.model} · ${p.gatewayRouted ? 'gateway' : 'api'}) · ${qs.length} questions × ${reps} reps ──`);
+    const rows = [];
+    for (const q of qs) {
+      for (let r = 0; r < reps; r++) {
+        const t0 = Date.now();
+        try {
+          const res = await ask(p, { question: q.text, questionId: q.id });
+          rows.push({ q: q.id, intent: q.intent, ok: true, ms: Date.now() - t0,
+            chars: res.answer.length, cites: res.citations.length, model: res.model, channel: res.channel });
+          process.stdout.write('.');
+        } catch (err) {
+          rows.push({ q: q.id, intent: q.intent, ok: false, ms: Date.now() - t0,
+            kind: err?.kind ?? 'unknown', status: err?.status, msg: String(err?.message ?? err).slice(0, 120) });
+          process.stdout.write('x');
+        }
+      }
+    }
+    console.log('');
+    const oks = rows.filter((r) => r.ok);
+    const lat = oks.map((r) => r.ms).sort((a, b) => a - b);
+    const pct = (arr, p2) => arr.length ? arr[Math.min(arr.length - 1, Math.floor(arr.length * p2))] : null;
+    const cited = oks.filter((r) => r.cites > 0);
+    const models = [...new Set(oks.map((r) => r.model))];
+    const fails = rows.filter((r) => !r.ok);
+    console.log(`success ${oks.length}/${rows.length} = ${(oks.length / rows.length * 100).toFixed(1)}%`);
+    console.log(`latency p50 ${pct(lat, .5)}ms · p95 ${pct(lat, .95)}ms · answer chars mean ${Math.round(oks.reduce((a, r) => a + r.chars, 0) / (oks.length || 1))}`);
+    console.log(`citation rate ${(cited.length / (oks.length || 1) * 100).toFixed(0)}% (${cited.length}/${oks.length}) · mean cites ${(oks.reduce((a, r) => a + r.cites, 0) / (oks.length || 1)).toFixed(1)}`);
+    const byIntent = {};
+    for (const r of oks) { (byIntent[r.intent] ??= { n: 0, c: 0 }); byIntent[r.intent].n++; if (r.cites > 0) byIntent[r.intent].c++; }
+    console.log('citation by intent: ' + Object.entries(byIntent).map(([k, v]) => `${k} ${v.c}/${v.n}`).join(' · '));
+    console.log(`models seen: ${models.join(', ')}`);
+    if (fails.length) console.log(`failures: ${fails.map((f) => `${f.kind}${f.status ? ':' + f.status : ''}`).join(', ')}`);
+    mkdirSync(new URL('./engines/runs/', import.meta.url), { recursive: true });
+    writeFileSync(new URL(`./engines/runs/${date}-${id}.json`, import.meta.url), JSON.stringify(rows, null, 1));
+  }
+}
+
 if (suite === 'recognition') await runRecognition();
+else if (suite === 'engines') await runEngines();
 else if (suite === 'matching') await runMatching();
 else if (suite === 'pages') await runPages();
 else { console.error(`unknown suite: ${suite}`); process.exit(1); }

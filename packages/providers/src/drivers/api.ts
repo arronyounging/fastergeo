@@ -109,6 +109,7 @@ function buildResult(
     channel: p.gatewayRouted ? 'gateway' : 'api',
     sampledAt: new Date().toISOString(),
     tokens,
+    ...(req.temperature !== undefined ? { temperature: req.temperature } : {}),
   };
 }
 
@@ -167,44 +168,100 @@ async function askAnthropic(p: ResolvedProvider, req: SampleRequest): Promise<Sa
   });
 }
 
-async function askArk(p: ResolvedProvider, req: SampleRequest): Promise<SampleResult> {
+/**
+ * Responses-API grounded attempt (web_search tool). Shared by Ark (default
+ * try, needs 内容插件 enabled in the console) and any openai-compatible
+ * provider opted in via ${ID}_WEB_SEARCH=1 (probe-verified against OpenAI:
+ * output_text annotations carry url_citation entries). Returns null on any
+ * failure — callers degrade to plain chat, never abort a cycle.
+ */
+async function tryResponsesGrounded(
+  p: ResolvedProvider, req: SampleRequest, t0: number,
+): Promise<SampleResult | null> {
   const { key, model, base } = requireKeyAndModel(p);
-  const t0 = Date.now();
-  // Try the Responses API with web_search (needs 内容插件 enabled in console)
   const grounded = await post(
     `${base}/responses`,
     { Authorization: `Bearer ${key}` },
-    { model, input: req.question, tools: [{ type: 'web_search' }] },
+    {
+      model,
+      input: req.question,
+      tools: [{ type: 'web_search' }],
+      ...(req.temperature !== undefined ? { temperature: req.temperature } : {}),
+    },
     req.timeoutMs ?? DEFAULT_TIMEOUT_MS,
     p.id,
   ).catch(() => null);
+  if (!grounded || grounded.status !== 200) return null;
+  const out = grounded.json.output ?? [];
+  const answer = out
+    .flatMap((o: any) => o.content ?? [])
+    .filter((c: any) => c.type === 'output_text')
+    .map((c: any) => c.text)
+    .join('');
+  const citations = out
+    .flatMap((o: any) => o.content ?? [])
+    .flatMap((c: any) => c.annotations ?? [])
+    .map((a: any) => a.url)
+    .filter(Boolean);
+  return answer ? buildResult(p, req, grounded.json.model ?? model, answer, citations, t0) : null;
+}
 
-  if (grounded && grounded.status === 200) {
-    const out = grounded.json.output ?? [];
-    const answer = out
-      .flatMap((o: any) => o.content ?? [])
-      .filter((c: any) => c.type === 'output_text')
-      .map((c: any) => c.text)
-      .join('');
-    const citations = out
-      .flatMap((o: any) => o.content ?? [])
-      .flatMap((c: any) => c.annotations ?? [])
-      .map((a: any) => a.url)
-      .filter(Boolean);
-    if (answer) return buildResult(p, req, model, answer, citations, t0);
-  }
+async function askArk(p: ResolvedProvider, req: SampleRequest): Promise<SampleResult> {
+  const t0 = Date.now();
+  const grounded = await tryResponsesGrounded(p, req, t0);
+  if (grounded) return grounded;
   // Degrade to plain chat (parameterized-knowledge sampling) — never abort a
   // cycle. Pass t0 so latencyMs includes the failed grounded attempt.
   return askOpenAICompatible(p, req, t0);
 }
 
-/** Ask one question through the provider's protocol. */
-export async function ask(p: ResolvedProvider, req: SampleRequest): Promise<SampleResult> {
+async function askOpenAICompatMaybeGrounded(
+  p: ResolvedProvider, req: SampleRequest,
+): Promise<SampleResult> {
+  if (p.webSearchEnabled) {
+    const t0 = Date.now();
+    const grounded = await tryResponsesGrounded(p, req, t0);
+    if (grounded) return grounded;
+    return askOpenAICompatible(p, req, t0);
+  }
+  return askOpenAICompatible(p, req);
+}
+
+function askOnce(p: ResolvedProvider, req: SampleRequest): Promise<SampleResult> {
   switch (p.protocol) {
     case 'anthropic': return askAnthropic(p, req);
     case 'ark': return askArk(p, req);
-    case 'openai-compatible': return askOpenAICompatible(p, req);
+    case 'openai-compatible': return askOpenAICompatMaybeGrounded(p, req);
     default:
-      throw new ProviderError(`provider ${p.id} has no API protocol (driver: ${p.driver})`, p.id, 'http');
+      return Promise.reject(
+        new ProviderError(`provider ${p.id} has no API protocol (driver: ${p.driver})`, p.id, 'http'),
+      );
   }
+}
+
+/** Transient failures worth retrying: network hiccups, throttling, 5xx. */
+function isTransient(err: unknown): boolean {
+  if (!(err instanceof ProviderError)) return false;
+  if (err.kind === 'network') return true;
+  return err.status === 429 || (err.status !== undefined && err.status >= 500);
+}
+
+/**
+ * Ask one question through the provider's protocol, with exponential backoff
+ * on transient failures (default 2 extra attempts). Auth/model errors never
+ * retry — they will not heal by waiting.
+ */
+export async function ask(p: ResolvedProvider, req: SampleRequest): Promise<SampleResult> {
+  const retries = req.retries ?? 2;
+  let lastErr: unknown;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await askOnce(p, req);
+    } catch (err) {
+      lastErr = err;
+      if (attempt === retries || !isTransient(err)) throw err;
+      await new Promise(r => setTimeout(r, 1000 * 2 ** attempt + Math.floor(Math.random() * 250)));
+    }
+  }
+  throw lastErr;
 }

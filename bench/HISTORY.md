@@ -28,3 +28,16 @@ rulebook is the spec), but field cases will keep being added as they arrive; 100
 |---|---|---|---|---|---|
 | 2026-08-04 | baseline | 24/26 | 25/26 | 300/300 survive | two planted gaps confirmed: meta robots "none" missed as noindex; 559B page mislabeled 'spa-shell' instead of 'thin-text' |
 | 2026-08-04 | fixed (robots-none, issue-code split, htmlBytes→true bytes) | **26/26** | **26/26** | **300/300** | labels adjudicated from independent html.parser measurement, never from the tool under test; splitter consolidated into rules/text (sentiment gains decimal safety) |
+
+
+## engines (engines/questions.json · standard set ×10 reps · live keys: glm/doubao/deepseek/openai)
+
+| date | engine · mode | success | p50 / p95 | citation rate | notes |
+|---|---|---|---|---|---|
+| 2026-08-04 | deepseek · chat | 50/50 | 16.2s / 31.6s | 0% | no retrieval by implementation |
+| 2026-08-04 | openai · chat | 50/50 | 5.8s / 9.8s | 0% | |
+| 2026-08-04 | openai · grounded (OPENAI_WEB_SEARCH=1) | 50/50 | 6.3s / 13.3s | **62%** | intent split: recommendation/recency/stat 10/10 · definition 1/10 · howto 0/10 — the two-games thesis, measured |
+| 2026-08-04 | glm(gateway, glm-5-2) · chat | 50/50 | 70.2s / 102.5s | 0% | reasoning-heavy tier |
+| 2026-08-04 | doubao(2.0-pro) · grounded-try | 50/50 | 75.2s / 107.6s | 0% | grounded silently degraded on this console/model — ops note recorded |
+
+Failure rate across 250 live calls (retry policy active): **0/250 = 0%** (target <2% ✓).

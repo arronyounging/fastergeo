@@ -1,0 +1,502 @@
+[
+ {
+  "q": "std-en-1",
+  "intent": "definition",
+  "ok": true,
+  "ms": 7083,
+  "chars": 1296,
+  "cites": 0,
+  "model": "gpt-4o-mini-2024-07-18",
+  "channel": "api"
+ },
+ {
+  "q": "std-en-1",
+  "intent": "definition",
+  "ok": true,
+  "ms": 5846,
+  "chars": 1518,
+  "cites": 0,
+  "model": "gpt-4o-mini-2024-07-18",
+  "channel": "api"
+ },
+ {
+  "q": "std-en-1",
+  "intent": "definition",
+  "ok": true,
+  "ms": 6160,
+  "chars": 1488,
+  "cites": 0,
+  "model": "gpt-4o-mini-2024-07-18",
+  "channel": "api"
+ },
+ {
+  "q": "std-en-1",
+  "intent": "definition",
+  "ok": true,
+  "ms": 5798,
+  "chars": 1644,
+  "cites": 0,
+  "model": "gpt-4o-mini-2024-07-18",
+  "channel": "api"
+ },
+ {
+  "q": "std-en-1",
+  "intent": "definition",
+  "ok": true,
+  "ms": 6754,
+  "chars": 1962,
+  "cites": 0,
+  "model": "gpt-4o-mini-2024-07-18",
+  "channel": "api"
+ },
+ {
+  "q": "std-en-1",
+  "intent": "definition",
+  "ok": true,
+  "ms": 4840,
+  "chars": 1430,
+  "cites": 0,
+  "model": "gpt-4o-mini-2024-07-18",
+  "channel": "api"
+ },
+ {
+  "q": "std-en-1",
+  "intent": "definition",
+  "ok": true,
+  "ms": 5915,
+  "chars": 1539,
+  "cites": 0,
+  "model": "gpt-4o-mini-2024-07-18",
+  "channel": "api"
+ },
+ {
+  "q": "std-en-1",
+  "intent": "definition",
+  "ok": true,
+  "ms": 5170,
+  "chars": 1593,
+  "cites": 0,
+  "model": "gpt-4o-mini-2024-07-18",
+  "channel": "api"
+ },
+ {
+  "q": "std-en-1",
+  "intent": "definition",
+  "ok": true,
+  "ms": 5905,
+  "chars": 1903,
+  "cites": 0,
+  "model": "gpt-4o-mini-2024-07-18",
+  "channel": "api"
+ },
+ {
+  "q": "std-en-1",
+  "intent": "definition",
+  "ok": true,
+  "ms": 5002,
+  "chars": 1289,
+  "cites": 0,
+  "model": "gpt-4o-mini-2024-07-18",
+  "channel": "api"
+ },
+ {
+  "q": "std-en-2",
+  "intent": "recommendation",
+  "ok": true,
+  "ms": 6415,
+  "chars": 2705,
+  "cites": 0,
+  "model": "gpt-4o-mini-2024-07-18",
+  "channel": "api"
+ },
+ {
+  "q": "std-en-2",
+  "intent": "recommendation",
+  "ok": true,
+  "ms": 5653,
+  "chars": 2554,
+  "cites": 0,
+  "model": "gpt-4o-mini-2024-07-18",
+  "channel": "api"
+ },
+ {
+  "q": "std-en-2",
+  "intent": "recommendation",
+  "ok": true,
+  "ms": 5622,
+  "chars": 2395,
+  "cites": 0,
+  "model": "gpt-4o-mini-2024-07-18",
+  "channel": "api"
+ },
+ {
+  "q": "std-en-2",
+  "intent": "recommendation",
+  "ok": true,
+  "ms": 6989,
+  "chars": 2688,
+  "cites": 0,
+  "model": "gpt-4o-mini-2024-07-18",
+  "channel": "api"
+ },
+ {
+  "q": "std-en-2",
+  "intent": "recommendation",
+  "ok": true,
+  "ms": 6264,
+  "chars": 2746,
+  "cites": 0,
+  "model": "gpt-4o-mini-2024-07-18",
+  "channel": "api"
+ },
+ {
+  "q": "std-en-2",
+  "intent": "recommendation",
+  "ok": true,
+  "ms": 6717,
+  "chars": 2903,
+  "cites": 0,
+  "model": "gpt-4o-mini-2024-07-18",
+  "channel": "api"
+ },
+ {
+  "q": "std-en-2",
+  "intent": "recommendation",
+  "ok": true,
+  "ms": 5855,
+  "chars": 2113,
+  "cites": 0,
+  "model": "gpt-4o-mini-2024-07-18",
+  "channel": "api"
+ },
+ {
+  "q": "std-en-2",
+  "intent": "recommendation",
+  "ok": true,
+  "ms": 7660,
+  "chars": 2514,
+  "cites": 0,
+  "model": "gpt-4o-mini-2024-07-18",
+  "channel": "api"
+ },
+ {
+  "q": "std-en-2",
+  "intent": "recommendation",
+  "ok": true,
+  "ms": 6778,
+  "chars": 3076,
+  "cites": 0,
+  "model": "gpt-4o-mini-2024-07-18",
+  "channel": "api"
+ },
+ {
+  "q": "std-en-2",
+  "intent": "recommendation",
+  "ok": true,
+  "ms": 6006,
+  "chars": 2358,
+  "cites": 0,
+  "model": "gpt-4o-mini-2024-07-18",
+  "channel": "api"
+ },
+ {
+  "q": "std-en-3",
+  "intent": "recency",
+  "ok": true,
+  "ms": 1575,
+  "chars": 407,
+  "cites": 0,
+  "model": "gpt-4o-mini-2024-07-18",
+  "channel": "api"
+ },
+ {
+  "q": "std-en-3",
+  "intent": "recency",
+  "ok": true,
+  "ms": 1428,
+  "chars": 373,
+  "cites": 0,
+  "model": "gpt-4o-mini-2024-07-18",
+  "channel": "api"
+ },
+ {
+  "q": "std-en-3",
+  "intent": "recency",
+  "ok": true,
+  "ms": 4219,
+  "chars": 2058,
+  "cites": 0,
+  "model": "gpt-4o-mini-2024-07-18",
+  "channel": "api"
+ },
+ {
+  "q": "std-en-3",
+  "intent": "recency",
+  "ok": true,
+  "ms": 4799,
+  "chars": 2404,
+  "cites": 0,
+  "model": "gpt-4o-mini-2024-07-18",
+  "channel": "api"
+ },
+ {
+  "q": "std-en-3",
+  "intent": "recency",
+  "ok": true,
+  "ms": 1069,
+  "chars": 273,
+  "cites": 0,
+  "model": "gpt-4o-mini-2024-07-18",
+  "channel": "api"
+ },
+ {
+  "q": "std-en-3",
+  "intent": "recency",
+  "ok": true,
+  "ms": 1306,
+  "chars": 316,
+  "cites": 0,
+  "model": "gpt-4o-mini-2024-07-18",
+  "channel": "api"
+ },
+ {
+  "q": "std-en-3",
+  "intent": "recency",
+  "ok": true,
+  "ms": 1437,
+  "chars": 336,
+  "cites": 0,
+  "model": "gpt-4o-mini-2024-07-18",
+  "channel": "api"
+ },
+ {
+  "q": "std-en-3",
+  "intent": "recency",
+  "ok": true,
+  "ms": 1653,
+  "chars": 555,
+  "cites": 0,
+  "model": "gpt-4o-mini-2024-07-18",
+  "channel": "api"
+ },
+ {
+  "q": "std-en-3",
+  "intent": "recency",
+  "ok": true,
+  "ms": 1286,
+  "chars": 346,
+  "cites": 0,
+  "model": "gpt-4o-mini-2024-07-18",
+  "channel": "api"
+ },
+ {
+  "q": "std-en-3",
+  "intent": "recency",
+  "ok": true,
+  "ms": 5311,
+  "chars": 2483,
+  "cites": 0,
+  "model": "gpt-4o-mini-2024-07-18",
+  "channel": "api"
+ },
+ {
+  "q": "std-en-4",
+  "intent": "stat-citation",
+  "ok": true,
+  "ms": 3393,
+  "chars": 1195,
+  "cites": 0,
+  "model": "gpt-4o-mini-2024-07-18",
+  "channel": "api"
+ },
+ {
+  "q": "std-en-4",
+  "intent": "stat-citation",
+  "ok": true,
+  "ms": 3023,
+  "chars": 1031,
+  "cites": 0,
+  "model": "gpt-4o-mini-2024-07-18",
+  "channel": "api"
+ },
+ {
+  "q": "std-en-4",
+  "intent": "stat-citation",
+  "ok": true,
+  "ms": 3968,
+  "chars": 1552,
+  "cites": 0,
+  "model": "gpt-4o-mini-2024-07-18",
+  "channel": "api"
+ },
+ {
+  "q": "std-en-4",
+  "intent": "stat-citation",
+  "ok": true,
+  "ms": 3775,
+  "chars": 1423,
+  "cites": 0,
+  "model": "gpt-4o-mini-2024-07-18",
+  "channel": "api"
+ },
+ {
+  "q": "std-en-4",
+  "intent": "stat-citation",
+  "ok": true,
+  "ms": 3531,
+  "chars": 1062,
+  "cites": 0,
+  "model": "gpt-4o-mini-2024-07-18",
+  "channel": "api"
+ },
+ {
+  "q": "std-en-4",
+  "intent": "stat-citation",
+  "ok": true,
+  "ms": 2732,
+  "chars": 923,
+  "cites": 0,
+  "model": "gpt-4o-mini-2024-07-18",
+  "channel": "api"
+ },
+ {
+  "q": "std-en-4",
+  "intent": "stat-citation",
+  "ok": true,
+  "ms": 4482,
+  "chars": 1625,
+  "cites": 0,
+  "model": "gpt-4o-mini-2024-07-18",
+  "channel": "api"
+ },
+ {
+  "q": "std-en-4",
+  "intent": "stat-citation",
+  "ok": true,
+  "ms": 4199,
+  "chars": 1486,
+  "cites": 0,
+  "model": "gpt-4o-mini-2024-07-18",
+  "channel": "api"
+ },
+ {
+  "q": "std-en-4",
+  "intent": "stat-citation",
+  "ok": true,
+  "ms": 4293,
+  "chars": 1792,
+  "cites": 0,
+  "model": "gpt-4o-mini-2024-07-18",
+  "channel": "api"
+ },
+ {
+  "q": "std-en-4",
+  "intent": "stat-citation",
+  "ok": true,
+  "ms": 4549,
+  "chars": 1518,
+  "cites": 0,
+  "model": "gpt-4o-mini-2024-07-18",
+  "channel": "api"
+ },
+ {
+  "q": "std-en-5",
+  "intent": "howto",
+  "ok": true,
+  "ms": 8151,
+  "chars": 3750,
+  "cites": 0,
+  "model": "gpt-4o-mini-2024-07-18",
+  "channel": "api"
+ },
+ {
+  "q": "std-en-5",
+  "intent": "howto",
+  "ok": true,
+  "ms": 10082,
+  "chars": 3751,
+  "cites": 0,
+  "model": "gpt-4o-mini-2024-07-18",
+  "channel": "api"
+ },
+ {
+  "q": "std-en-5",
+  "intent": "howto",
+  "ok": true,
+  "ms": 8095,
+  "chars": 4021,
+  "cites": 0,
+  "model": "gpt-4o-mini-2024-07-18",
+  "channel": "api"
+ },
+ {
+  "q": "std-en-5",
+  "intent": "howto",
+  "ok": true,
+  "ms": 8242,
+  "chars": 3383,
+  "cites": 0,
+  "model": "gpt-4o-mini-2024-07-18",
+  "channel": "api"
+ },
+ {
+  "q": "std-en-5",
+  "intent": "howto",
+  "ok": true,
+  "ms": 8818,
+  "chars": 3452,
+  "cites": 0,
+  "model": "gpt-4o-mini-2024-07-18",
+  "channel": "api"
+ },
+ {
+  "q": "std-en-5",
+  "intent": "howto",
+  "ok": true,
+  "ms": 9835,
+  "chars": 3737,
+  "cites": 0,
+  "model": "gpt-4o-mini-2024-07-18",
+  "channel": "api"
+ },
+ {
+  "q": "std-en-5",
+  "intent": "howto",
+  "ok": true,
+  "ms": 10612,
+  "chars": 3489,
+  "cites": 0,
+  "model": "gpt-4o-mini-2024-07-18",
+  "channel": "api"
+ },
+ {
+  "q": "std-en-5",
+  "intent": "howto",
+  "ok": true,
+  "ms": 8959,
+  "chars": 3691,
+  "cites": 0,
+  "model": "gpt-4o-mini-2024-07-18",
+  "channel": "api"
+ },
+ {
+  "q": "std-en-5",
+  "intent": "howto",
+  "ok": true,
+  "ms": 7650,
+  "chars": 3990,
+  "cites": 0,
+  "model": "gpt-4o-mini-2024-07-18",
+  "channel": "api"
+ },
+ {
+  "q": "std-en-5",
+  "intent": "howto",
+  "ok": true,
+  "ms": 6829,
+  "chars": 3456,
+  "cites": 0,
+  "model": "gpt-4o-mini-2024-07-18",
+  "channel": "api"
+ }
+]

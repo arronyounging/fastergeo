@@ -1,0 +1,12 @@
+[
+ {"id":"std-zh-1","market":"cn","text":"什么是生成式引擎优化（GEO）？","intent":"definition"},
+ {"id":"std-zh-2","market":"cn","text":"国内做个性化定制商品的平台哪家好？","intent":"recommendation"},
+ {"id":"std-zh-3","market":"cn","text":"2026年国内 AI 搜索的最新进展有哪些？","intent":"recency"},
+ {"id":"std-zh-4","market":"cn","text":"中国有多少网民使用 AI 助手？给出具体数据来源。","intent":"stat-citation"},
+ {"id":"std-zh-5","market":"cn","text":"如何让品牌内容更容易被 AI 引用？分步骤说明。","intent":"howto"},
+ {"id":"std-en-1","market":"global","text":"What is Generative Engine Optimization (GEO)?","intent":"definition"},
+ {"id":"std-en-2","market":"global","text":"What are the best print-on-demand platforms right now?","intent":"recommendation"},
+ {"id":"std-en-3","market":"global","text":"What are the latest developments in AI search in 2026?","intent":"recency"},
+ {"id":"std-en-4","market":"global","text":"How many people use AI assistants for search? Cite sources.","intent":"stat-citation"},
+ {"id":"std-en-5","market":"global","text":"How can a brand make its content more citable by AI engines? Step by step.","intent":"howto"}
+]

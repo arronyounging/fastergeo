@@ -158,3 +158,28 @@ describe('health checker', () => {
     expect(r.hint).toContain('开通管理'); // console UI is Chinese — hint keeps the exact menu name
   });
 });
+
+describe('ask retry semantics', () => {
+  it('never retries non-API providers (immediate protocol error)', async () => {
+    const p = resolveProvider('nano');
+    const t0 = Date.now();
+    await expect(ask(p, { question: 'x', retries: 2 })).rejects.toThrow(/no API protocol/);
+    expect(Date.now() - t0).toBeLessThan(500); // no backoff waits happened
+  });
+
+  it('does not retry auth errors (they will not heal by waiting)', async () => {
+    // No key configured → requireKeyAndModel throws kind 'no-key' — not transient.
+    const p = resolveProvider('grok', {}); // empty env: no XAI_API_KEY
+    const t0 = Date.now();
+    await expect(ask(p, { question: 'x', retries: 3 })).rejects.toThrow();
+    expect(Date.now() - t0).toBeLessThan(500);
+  });
+});
+
+describe('webSearchEnabled opt-in', () => {
+  it('is off by default and on with ${ID}_WEB_SEARCH=1', () => {
+    expect(resolveProvider('openai', {}).webSearchEnabled).toBe(false);
+    expect(resolveProvider('openai', { OPENAI_WEB_SEARCH: '1' }).webSearchEnabled).toBe(true);
+    expect(resolveProvider('baidu-ai', { BAIDU_AI_WEB_SEARCH: '1' }).webSearchEnabled).toBe(true); // hyphen id → underscore env
+  });
+});

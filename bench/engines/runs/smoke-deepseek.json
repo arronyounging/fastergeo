@@ -1,0 +1,102 @@
+[
+ {
+  "q": "std-zh-1",
+  "intent": "definition",
+  "ok": true,
+  "ms": 11545,
+  "chars": 665,
+  "cites": 0,
+  "model": "deepseek-v4-flash-260425",
+  "channel": "gateway"
+ },
+ {
+  "q": "std-zh-1",
+  "intent": "definition",
+  "ok": true,
+  "ms": 15741,
+  "chars": 1503,
+  "cites": 0,
+  "model": "deepseek-v4-flash-260425",
+  "channel": "gateway"
+ },
+ {
+  "q": "std-zh-2",
+  "intent": "recommendation",
+  "ok": true,
+  "ms": 20012,
+  "chars": 165,
+  "cites": 0,
+  "model": "deepseek-v4-flash-260425",
+  "channel": "gateway"
+ },
+ {
+  "q": "std-zh-2",
+  "intent": "recommendation",
+  "ok": true,
+  "ms": 37963,
+  "chars": 1601,
+  "cites": 0,
+  "model": "deepseek-v4-flash-260425",
+  "channel": "gateway"
+ },
+ {
+  "q": "std-zh-3",
+  "intent": "recency",
+  "ok": true,
+  "ms": 37614,
+  "chars": 1373,
+  "cites": 0,
+  "model": "deepseek-v4-flash-260425",
+  "channel": "gateway"
+ },
+ {
+  "q": "std-zh-3",
+  "intent": "recency",
+  "ok": true,
+  "ms": 20738,
+  "chars": 835,
+  "cites": 0,
+  "model": "deepseek-v4-flash-260425",
+  "channel": "gateway"
+ },
+ {
+  "q": "std-zh-4",
+  "intent": "stat-citation",
+  "ok": true,
+  "ms": 8240,
+  "chars": 397,
+  "cites": 0,
+  "model": "deepseek-v4-flash-260425",
+  "channel": "gateway"
+ },
+ {
+  "q": "std-zh-4",
+  "intent": "stat-citation",
+  "ok": true,
+  "ms": 11103,
+  "chars": 313,
+  "cites": 0,
+  "model": "deepseek-v4-flash-260425",
+  "channel": "gateway"
+ },
+ {
+  "q": "std-zh-5",
+  "intent": "howto",
+  "ok": true,
+  "ms": 6220,
+  "chars": 0,
+  "cites": 0,
+  "model": "deepseek-v4-flash-260425",
+  "channel": "gateway"
+ },
+ {
+  "q": "std-zh-5",
+  "intent": "howto",
+  "ok": true,
+  "ms": 24850,
+  "chars": 2049,
+  "cites": 0,
+  "model": "deepseek-v4-flash-260425",
+  "channel": "gateway"
+ }
+]

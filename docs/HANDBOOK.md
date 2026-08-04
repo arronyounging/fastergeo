@@ -147,6 +147,11 @@ Convention: `${ID}_API_KEY` unless the registry names otherwise (table below is 
 | `perplexity` | global | `PERPLEXITY_API_KEY` | sonar | citations |
 | ChatGPT web / Claude web / AI Overviews | global | — (manual sheets) | — | |
 
+**Grounded sampling (opt-in)**: `${ID}_WEB_SEARCH=1` makes openai-compatible engines with a
+Responses endpoint try `web_search` first (falling back to plain chat). Off by default — ungrounded
+sampling measures parametric memory, the other game; cost and latency are the operator's call.
+Doubao (Ark) tries grounded by default when the console plugin is enabled.
+
 Then run `fastergeo check`: it distinguishes *no key / auth failed / **authenticated-but-model-not-enabled** / network error*, each with an actionable hint.
 
 ### 4.3 Language & proxy

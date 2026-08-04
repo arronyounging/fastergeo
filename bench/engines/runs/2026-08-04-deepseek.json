@@ -1,0 +1,502 @@
+[
+ {
+  "q": "std-zh-1",
+  "intent": "definition",
+  "ok": true,
+  "ms": 12443,
+  "chars": 601,
+  "cites": 0,
+  "model": "deepseek-v4-flash-260425",
+  "channel": "gateway"
+ },
+ {
+  "q": "std-zh-1",
+  "intent": "definition",
+  "ok": true,
+  "ms": 33492,
+  "chars": 1909,
+  "cites": 0,
+  "model": "deepseek-v4-flash-260425",
+  "channel": "gateway"
+ },
+ {
+  "q": "std-zh-1",
+  "intent": "definition",
+  "ok": true,
+  "ms": 17042,
+  "chars": 1910,
+  "cites": 0,
+  "model": "deepseek-v4-flash-260425",
+  "channel": "gateway"
+ },
+ {
+  "q": "std-zh-1",
+  "intent": "definition",
+  "ok": true,
+  "ms": 21915,
+  "chars": 1939,
+  "cites": 0,
+  "model": "deepseek-v4-flash-260425",
+  "channel": "gateway"
+ },
+ {
+  "q": "std-zh-1",
+  "intent": "definition",
+  "ok": true,
+  "ms": 20280,
+  "chars": 2021,
+  "cites": 0,
+  "model": "deepseek-v4-flash-260425",
+  "channel": "gateway"
+ },
+ {
+  "q": "std-zh-1",
+  "intent": "definition",
+  "ok": true,
+  "ms": 17093,
+  "chars": 1939,
+  "cites": 0,
+  "model": "deepseek-v4-flash-260425",
+  "channel": "gateway"
+ },
+ {
+  "q": "std-zh-1",
+  "intent": "definition",
+  "ok": true,
+  "ms": 36246,
+  "chars": 1902,
+  "cites": 0,
+  "model": "deepseek-v4-flash-260425",
+  "channel": "gateway"
+ },
+ {
+  "q": "std-zh-1",
+  "intent": "definition",
+  "ok": true,
+  "ms": 22569,
+  "chars": 1926,
+  "cites": 0,
+  "model": "deepseek-v4-flash-260425",
+  "channel": "gateway"
+ },
+ {
+  "q": "std-zh-1",
+  "intent": "definition",
+  "ok": true,
+  "ms": 17693,
+  "chars": 1345,
+  "cites": 0,
+  "model": "deepseek-v4-flash-260425",
+  "channel": "gateway"
+ },
+ {
+  "q": "std-zh-1",
+  "intent": "definition",
+  "ok": true,
+  "ms": 27632,
+  "chars": 2025,
+  "cites": 0,
+  "model": "deepseek-v4-flash-260425",
+  "channel": "gateway"
+ },
+ {
+  "q": "std-zh-2",
+  "intent": "recommendation",
+  "ok": true,
+  "ms": 25397,
+  "chars": 0,
+  "cites": 0,
+  "model": "deepseek-v4-flash-260425",
+  "channel": "gateway"
+ },
+ {
+  "q": "std-zh-2",
+  "intent": "recommendation",
+  "ok": true,
+  "ms": 12986,
+  "chars": 323,
+  "cites": 0,
+  "model": "deepseek-v4-flash-260425",
+  "channel": "gateway"
+ },
+ {
+  "q": "std-zh-2",
+  "intent": "recommendation",
+  "ok": true,
+  "ms": 21679,
+  "chars": 1708,
+  "cites": 0,
+  "model": "deepseek-v4-flash-260425",
+  "channel": "gateway"
+ },
+ {
+  "q": "std-zh-2",
+  "intent": "recommendation",
+  "ok": true,
+  "ms": 31612,
+  "chars": 1756,
+  "cites": 0,
+  "model": "deepseek-v4-flash-260425",
+  "channel": "gateway"
+ },
+ {
+  "q": "std-zh-2",
+  "intent": "recommendation",
+  "ok": true,
+  "ms": 17852,
+  "chars": 1755,
+  "cites": 0,
+  "model": "deepseek-v4-flash-260425",
+  "channel": "gateway"
+ },
+ {
+  "q": "std-zh-2",
+  "intent": "recommendation",
+  "ok": true,
+  "ms": 10913,
+  "chars": 456,
+  "cites": 0,
+  "model": "deepseek-v4-flash-260425",
+  "channel": "gateway"
+ },
+ {
+  "q": "std-zh-2",
+  "intent": "recommendation",
+  "ok": true,
+  "ms": 13421,
+  "chars": 674,
+  "cites": 0,
+  "model": "deepseek-v4-flash-260425",
+  "channel": "gateway"
+ },
+ {
+  "q": "std-zh-2",
+  "intent": "recommendation",
+  "ok": true,
+  "ms": 29339,
+  "chars": 1744,
+  "cites": 0,
+  "model": "deepseek-v4-flash-260425",
+  "channel": "gateway"
+ },
+ {
+  "q": "std-zh-2",
+  "intent": "recommendation",
+  "ok": true,
+  "ms": 16228,
+  "chars": 675,
+  "cites": 0,
+  "model": "deepseek-v4-flash-260425",
+  "channel": "gateway"
+ },
+ {
+  "q": "std-zh-2",
+  "intent": "recommendation",
+  "ok": true,
+  "ms": 21103,
+  "chars": 1733,
+  "cites": 0,
+  "model": "deepseek-v4-flash-260425",
+  "channel": "gateway"
+ },
+ {
+  "q": "std-zh-3",
+  "intent": "recency",
+  "ok": true,
+  "ms": 14816,
+  "chars": 1145,
+  "cites": 0,
+  "model": "deepseek-v4-flash-260425",
+  "channel": "gateway"
+ },
+ {
+  "q": "std-zh-3",
+  "intent": "recency",
+  "ok": true,
+  "ms": 11657,
+  "chars": 792,
+  "cites": 0,
+  "model": "deepseek-v4-flash-260425",
+  "channel": "gateway"
+ },
+ {
+  "q": "std-zh-3",
+  "intent": "recency",
+  "ok": true,
+  "ms": 14146,
+  "chars": 801,
+  "cites": 0,
+  "model": "deepseek-v4-flash-260425",
+  "channel": "gateway"
+ },
+ {
+  "q": "std-zh-3",
+  "intent": "recency",
+  "ok": true,
+  "ms": 5932,
+  "chars": 0,
+  "cites": 0,
+  "model": "deepseek-v4-flash-260425",
+  "channel": "gateway"
+ },
+ {
+  "q": "std-zh-3",
+  "intent": "recency",
+  "ok": true,
+  "ms": 15966,
+  "chars": 1332,
+  "cites": 0,
+  "model": "deepseek-v4-flash-260425",
+  "channel": "gateway"
+ },
+ {
+  "q": "std-zh-3",
+  "intent": "recency",
+  "ok": true,
+  "ms": 9238,
+  "chars": 604,
+  "cites": 0,
+  "model": "deepseek-v4-flash-260425",
+  "channel": "gateway"
+ },
+ {
+  "q": "std-zh-3",
+  "intent": "recency",
+  "ok": true,
+  "ms": 11155,
+  "chars": 1099,
+  "cites": 0,
+  "model": "deepseek-v4-flash-260425",
+  "channel": "gateway"
+ },
+ {
+  "q": "std-zh-3",
+  "intent": "recency",
+  "ok": true,
+  "ms": 15463,
+  "chars": 1139,
+  "cites": 0,
+  "model": "deepseek-v4-flash-260425",
+  "channel": "gateway"
+ },
+ {
+  "q": "std-zh-3",
+  "intent": "recency",
+  "ok": true,
+  "ms": 16796,
+  "chars": 1224,
+  "cites": 0,
+  "model": "deepseek-v4-flash-260425",
+  "channel": "gateway"
+ },
+ {
+  "q": "std-zh-3",
+  "intent": "recency",
+  "ok": true,
+  "ms": 31232,
+  "chars": 734,
+  "cites": 0,
+  "model": "deepseek-v4-flash-260425",
+  "channel": "gateway"
+ },
+ {
+  "q": "std-zh-4",
+  "intent": "stat-citation",
+  "ok": true,
+  "ms": 9599,
+  "chars": 516,
+  "cites": 0,
+  "model": "deepseek-v4-flash-260425",
+  "channel": "gateway"
+ },
+ {
+  "q": "std-zh-4",
+  "intent": "stat-citation",
+  "ok": true,
+  "ms": 8114,
+  "chars": 876,
+  "cites": 0,
+  "model": "deepseek-v4-flash-260425",
+  "channel": "gateway"
+ },
+ {
+  "q": "std-zh-4",
+  "intent": "stat-citation",
+  "ok": true,
+  "ms": 14221,
+  "chars": 488,
+  "cites": 0,
+  "model": "deepseek-v4-flash-260425",
+  "channel": "gateway"
+ },
+ {
+  "q": "std-zh-4",
+  "intent": "stat-citation",
+  "ok": true,
+  "ms": 14350,
+  "chars": 540,
+  "cites": 0,
+  "model": "deepseek-v4-flash-260425",
+  "channel": "gateway"
+ },
+ {
+  "q": "std-zh-4",
+  "intent": "stat-citation",
+  "ok": true,
+  "ms": 12174,
+  "chars": 219,
+  "cites": 0,
+  "model": "deepseek-v4-flash-260425",
+  "channel": "gateway"
+ },
+ {
+  "q": "std-zh-4",
+  "intent": "stat-citation",
+  "ok": true,
+  "ms": 12103,
+  "chars": 477,
+  "cites": 0,
+  "model": "deepseek-v4-flash-260425",
+  "channel": "gateway"
+ },
+ {
+  "q": "std-zh-4",
+  "intent": "stat-citation",
+  "ok": true,
+  "ms": 8591,
+  "chars": 164,
+  "cites": 0,
+  "model": "deepseek-v4-flash-260425",
+  "channel": "gateway"
+ },
+ {
+  "q": "std-zh-4",
+  "intent": "stat-citation",
+  "ok": true,
+  "ms": 14574,
+  "chars": 328,
+  "cites": 0,
+  "model": "deepseek-v4-flash-260425",
+  "channel": "gateway"
+ },
+ {
+  "q": "std-zh-4",
+  "intent": "stat-citation",
+  "ok": true,
+  "ms": 6523,
+  "chars": 260,
+  "cites": 0,
+  "model": "deepseek-v4-flash-260425",
+  "channel": "gateway"
+ },
+ {
+  "q": "std-zh-4",
+  "intent": "stat-citation",
+  "ok": true,
+  "ms": 15565,
+  "chars": 642,
+  "cites": 0,
+  "model": "deepseek-v4-flash-260425",
+  "channel": "gateway"
+ },
+ {
+  "q": "std-zh-5",
+  "intent": "howto",
+  "ok": true,
+  "ms": 17424,
+  "chars": 873,
+  "cites": 0,
+  "model": "deepseek-v4-flash-260425",
+  "channel": "gateway"
+ },
+ {
+  "q": "std-zh-5",
+  "intent": "howto",
+  "ok": true,
+  "ms": 15547,
+  "chars": 1824,
+  "cites": 0,
+  "model": "deepseek-v4-flash-260425",
+  "channel": "gateway"
+ },
+ {
+  "q": "std-zh-5",
+  "intent": "howto",
+  "ok": true,
+  "ms": 16152,
+  "chars": 1043,
+  "cites": 0,
+  "model": "deepseek-v4-flash-260425",
+  "channel": "gateway"
+ },
+ {
+  "q": "std-zh-5",
+  "intent": "howto",
+  "ok": true,
+  "ms": 13363,
+  "chars": 1925,
+  "cites": 0,
+  "model": "deepseek-v4-flash-260425",
+  "channel": "gateway"
+ },
+ {
+  "q": "std-zh-5",
+  "intent": "howto",
+  "ok": true,
+  "ms": 19964,
+  "chars": 1944,
+  "cites": 0,
+  "model": "deepseek-v4-flash-260425",
+  "channel": "gateway"
+ },
+ {
+  "q": "std-zh-5",
+  "intent": "howto",
+  "ok": true,
+  "ms": 18128,
+  "chars": 1942,
+  "cites": 0,
+  "model": "deepseek-v4-flash-260425",
+  "channel": "gateway"
+ },
+ {
+  "q": "std-zh-5",
+  "intent": "howto",
+  "ok": true,
+  "ms": 19325,
+  "chars": 762,
+  "cites": 0,
+  "model": "deepseek-v4-flash-260425",
+  "channel": "gateway"
+ },
+ {
+  "q": "std-zh-5",
+  "intent": "howto",
+  "ok": true,
+  "ms": 20124,
+  "chars": 1146,
+  "cites": 0,
+  "model": "deepseek-v4-flash-260425",
+  "channel": "gateway"
+ },
+ {
+  "q": "std-zh-5",
+  "intent": "howto",
+  "ok": true,
+  "ms": 13155,
+  "chars": 1451,
+  "cites": 0,
+  "model": "deepseek-v4-flash-260425",
+  "channel": "gateway"
+ },
+ {
+  "q": "std-zh-5",
+  "intent": "howto",
+  "ok": true,
+  "ms": 17517,
+  "chars": 1894,
+  "cites": 0,
+  "model": "deepseek-v4-flash-260425",
+  "channel": "gateway"
+ }
+]

@@ -47,6 +47,11 @@ export interface ResolvedProvider extends ProviderSpec {
   apiKey?: string;
   /** True when base URL was overridden — sample must be labeled gateway. */
   gatewayRouted: boolean;
+  /** Opt-in grounded sampling via ${ID}_WEB_SEARCH=1: openai-compatible
+   * providers with a Responses endpoint try web_search first and fall back
+   * to plain chat. Default off — cost/latency is the operator's call, and
+   * ungrounded sampling measures parametric memory (the other game). */
+  webSearchEnabled?: boolean;
 }
 
 export interface SampleRequest {
@@ -58,6 +63,9 @@ export interface SampleRequest {
   /** Sampling temperature. Omit → engine default (recorded as unset).
    * Judges pin 0 for verdict stability. */
   temperature?: number;
+  /** Extra attempts on transient failures (network / 429 / 5xx) with
+   * exponential backoff. Default 2. Set 0 to disable. */
+  retries?: number;
 }
 
 export interface SampleResult {
@@ -74,6 +82,9 @@ export interface SampleResult {
   channel: 'api' | 'gateway';
   sampledAt: string;
   tokens?: { input?: number; output?: number };
+  /** Recorded only when explicitly set on the request — engine defaults are
+   * never guessed at and never invented. */
+  temperature?: number;
 }
 
 /**

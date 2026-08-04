@@ -154,6 +154,7 @@ export function resolveProvider(
     resolvedBaseUrl: norm(baseOverride ?? spec.baseUrl),
     resolvedModel: env[envName(id, 'MODEL')] ?? legacyModel ?? spec.model,
     apiKey: spec.keyEnv ? env[spec.keyEnv] : undefined,
+    webSearchEnabled: env[`${id.toUpperCase().replace(/-/g, '_')}_WEB_SEARCH`] === '1',
     gatewayRouted: Boolean(baseOverride && norm(baseOverride) !== norm(spec.baseUrl)),
   };
 }
