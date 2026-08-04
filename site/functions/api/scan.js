@@ -5,6 +5,7 @@
  */
 import { auditPage, checkSite, fetchPage } from '@fastergeo/audit';
 import { probe } from './_probe.js';
+import { saveScan } from './_store.js';
 
 const BAD_HOSTS = /^(localhost|127\.|0\.|10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|\[|.*\.(local|internal)$)/i;
 
@@ -43,7 +44,11 @@ export async function onRequestGet({ request, env }) {
     const asked = features
       ? await probe({ hostname: parsed.hostname, features, lang, env }).catch(() => null)
       : null;
-    return new Response(JSON.stringify({ page, site, probe: asked }), { headers });
+    // Kept for 30 days so the result has a URL that can be revisited and
+    // forwarded. Attaching an email later drops the expiry. Storage is
+    // optional: without the binding the scan behaves exactly as it did before.
+    const id = await saveScan(env, { url: parsed.href, lang, page, site, probe: asked }).catch(() => null);
+    return new Response(JSON.stringify({ page, site, probe: asked, id }), { headers });
   } catch (err) {
     return new Response(JSON.stringify({ error: String(err?.message ?? err) }), { status: 500, headers });
   }
