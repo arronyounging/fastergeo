@@ -64,3 +64,23 @@ Shipped: `fixHint` + `pages` fields on Ticket, per-code fix-manual fragments (en
 branches for Next.js/Nuxt/WordPress/Shopify/static, copy-pasteable JSON-LD/robots snippets),
 real brand/domain/competitor substitution, empirically-weighted impact ordering within priority,
 rendering in CLI (`plan`) and HTML report (collapsible "how to fix" per ticket).
+
+
+## report (60-second comprehension proxy · 5 personas × 3 scenarios, judge=deepseek, temp 0)
+
+Question: after a 60-second scan (text extract, char budget), can the reader name the right
+first fix? Scenario ground truth = impact-ordered ticket #1 (S1 robots-unblock / S2 entity
+disambiguation / S3 earned media), keyword-matched in code.
+
+| date | config | score | note |
+|---|---|---|---|
+| 2026-08-04 | baseline report (pre-Pass-6), budget 1800 | **15/15 = 100%** | headline + blocker banner already communicate the answer |
+| 2026-08-04 | + fix-first card, budget 1800 | 14/15 | single miss = empty judge response (transient), all 3 scenarios otherwise 5/5 |
+| 2026-08-04 | + fix-first card, budget 800 (~30s stress) | **15/15 = 100%** | |
+| 2026-08-04 | ablation: card stripped, budget 800 | 15/15 = 100% | card adds no measurable comprehension lift — kept for actionability: it names the ONE ticket, its acceptance, and where the instructions are, turning "what's wrong" into "what do I do" |
+
+Honest reading: the comprehension target was already met by the existing headline/blocker
+design; Pass 6's measurable additions are the **period-comparison section** (computeTrends now
+renders in-report: prev→curr per metric with observation/trend/insufficient chips under the
+two-period rule, P0 alerts inline) and **print/PDF styles** (paper palette, page-break rules,
+beforeprint expands all collapsed evidence). Human 5-user test still pending (Pass 10).

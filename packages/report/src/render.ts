@@ -17,6 +17,7 @@ import type { SiteAudit } from '@fastergeo/audit';
 import { matchRanges, mentions, wilsonInterval } from '@fastergeo/metrics';
 import type { MetricsReport, PlatformMetrics, Sample } from '@fastergeo/metrics';
 import type { Ticket } from '@fastergeo/tickets';
+import type { TrendReport, MetricDelta } from '@fastergeo/trends';
 
 export type ReportLang = 'en' | 'zh';
 
@@ -30,6 +31,8 @@ export interface ReportInput {
   /** Brand aliases, for mention highlighting in the replay. */
   brandAliases?: string[];
   generatedAt?: string;
+  /** Period-over-period comparison (from @fastergeo/trends computeTrends). */
+  trend?: TrendReport;
   lang?: ReportLang;
 }
 
@@ -74,6 +77,13 @@ const MSG = {
     ticketsTitle: (n: number, a: number) => `Action Tickets (${n} · ${a} machine-verifiable)`,
     thTicket: 'ticket', thAcceptance: 'acceptance', thStatus: 'status',
     accAuto: '⚙ auto', accManual: '👤 manual', fixHow: 'How to fix',
+    startTitle: '▶ Start here — the one thing to fix first',
+    startWhy: 'why', startAcc: 'done when', startThen: 'then',
+    startMore: (id: string) => `full instructions in ticket ${id} below`,
+    trendTitle: 'Period Comparison',
+    trendTip: 'This period vs the previous one. Discipline: a single-period change is an OBSERVATION, never a conclusion; only two consecutive same-direction changes count as a TREND. Deterministic events (new confusion, blockers rising) alert immediately.',
+    thMetric: 'metric', thPrev: 'previous', thCurr: 'current', thVerdict: 'reading',
+    vTrendUp: '↑ trend', vTrendDown: '↓ trend', vObs: 'observation', vInsuff: 'needs more periods',
     replayTitle: (n: number) => `Answer Replay (${n} samples, verbatim)`,
     replayTip: 'Every sampled answer, unedited, with brand mentions and confusion evidence highlighted. Every number above can be checked against this record — that is the point. Samples that named the brand are tagged "probe" and are excluded from visibility metrics.',
     rpProbe: 'probe', rpMention: 'mentions brand', rpNoMention: 'no mention',
@@ -127,6 +137,13 @@ const MSG = {
     ticketsTitle: (n: number, a: number) => `行动工单（${n} 条 · ${a} 条机器自动验收）`,
     thTicket: '工单', thAcceptance: '验收', thStatus: '状态',
     accAuto: '⚙ 自动', accManual: '👤 人工', fixHow: '怎么修',
+    startTitle: '▶ 先修这个 — 本期最该先做的一件事',
+    startWhy: '为什么', startAcc: '做到什么算完成', startThen: '其次',
+    startMore: (id: string) => `完整操作指引见下方工单 ${id}`,
+    trendTitle: '期对比',
+    trendTip: '本期 vs 上期。纪律：单期变化只是观察，绝不下结论；连续两期同向才算趋势。确定性事件（新增混淆、blocker 上升）不受此限，立即告警。',
+    thMetric: '指标', thPrev: '上期', thCurr: '本期', thVerdict: '判读',
+    vTrendUp: '↑ 趋势', vTrendDown: '↓ 趋势', vObs: '观察', vInsuff: '期数不足',
     replayTitle: (n: number) => `答案回放（${n} 条采样原文，逐字留档）`,
     replayTip: '全部采样回答原文未经删改，品牌命中与混淆证据高亮。上面每个数字都可以对照这里的原文质证——这正是目的。点名品牌的样本标记为「探测」，不计入可见度指标。',
     rpProbe: '探测·点名', rpMention: '提及品牌', rpNoMention: '未提及',
@@ -171,6 +188,53 @@ function headline(input: ReportInput, m: M): string {
     parts.push(m.headlineScore(input.audit.avgScore));
   }
   return parts.length > 0 ? parts.join(m.sep) + m.period : m.headlineEmpty;
+}
+
+/**
+ * The 60-second answer: the single highest-impact ticket, stated plainly.
+ * Tickets arrive already impact-ordered (P0 first, empirical weights within
+ * priority), so tickets[0] IS the answer to "what do I fix first".
+ */
+function fixFirst(tickets: Ticket[] | undefined, m: M): string {
+  if (!tickets || tickets.length === 0) return '';
+  const t = tickets[0];
+  const next = tickets.slice(1, 3);
+  return `<section class="start"><h2>${m.startTitle}</h2>
+    <div class="start-main"><span class="start-pr">${t.priority}</span> ${esc(t.title)}</div>
+    <div class="start-why"><b>${m.startWhy}</b> ${esc(t.rationale.slice(0, 160))}</div>
+    <div class="start-why"><b>${m.startAcc}</b> ${esc(t.acceptance.desc)} · ${esc(m.startMore(t.id))}</div>
+    ${next.length > 0 ? `<div class="start-next"><b>${m.startThen}</b> ${next.map(n => `${n.id} ${esc(n.title)}`).join(' · ')}</div>` : ''}
+  </section>`;
+}
+
+function trendVerdictChip(d: MetricDelta, m: M): string {
+  const v = d.verdict;
+  if (v.kind === 'trend') {
+    return v.direction === 'up'
+      ? `<span class="chip c-ok">${m.vTrendUp}</span>`
+      : `<span class="chip c-bad">${m.vTrendDown}</span>`;
+  }
+  if (v.kind === 'observation') return `<span class="chip c-dim">${m.vObs}${v.direction === 'up' ? ' ↑' : v.direction === 'down' ? ' ↓' : ''}</span>`;
+  return `<span class="chip c-dim">${m.vInsuff}</span>`;
+}
+
+function trendSection(trend: TrendReport | undefined, m: M): string {
+  if (!trend || trend.periods.length < 2) return '';
+  const fmt = (v: number | null, key: string): string => {
+    if (v === null) return `<span class="na">${m.unmeasured}</span>`;
+    return key === 'site.avgScore' ? String(v) : `${(v * 100).toFixed(0)}%`;
+  };
+  const rows = trend.deltas
+    .filter(d => d.prev !== null || d.curr !== null)
+    .map(d => `<tr><td class="url">${esc(d.key)}${d.market ? ` <span class="comps">${d.market}</span>` : ''}</td>
+      <td>${fmt(d.prev, d.key)}</td><td>${fmt(d.curr, d.key)}</td>
+      <td>${trendVerdictChip(d, m)}</td></tr>`).join('');
+  const alerts = trend.alerts.map(a =>
+    `<li class="${a.level === 'P0' ? 'bad-t' : ''}">${a.level === 'P0' ? '🔴 ' : '⚠ '}${esc(a.message)}</li>`).join('');
+  return `<section><h2>${m.trendTitle} <span class="m" title="${esc(m.trendTip)}">${m.methodology}</span></h2>
+    ${alerts ? `<ul class="trend-alerts">${alerts}</ul>` : ''}
+    <table><thead><tr><th>${m.thMetric}</th><th>${m.thPrev}</th><th>${m.thCurr}</th><th>${m.thVerdict}</th></tr></thead>
+    <tbody>${rows}</tbody></table></section>`;
 }
 
 function blockerBanner(input: ReportInput, m: M): string {
@@ -529,7 +593,30 @@ mark.hl-ev{background:var(--red-soft);color:var(--red);border-radius:3px;padding
 .rp-meta{padding:0 16px 12px 28px;font-size:11px;color:var(--faint)}
 .rp-ev-note{border:1px solid rgba(244,83,110,.35);background:var(--red-soft);border-radius:10px;padding:10px 14px;margin:8px 0;font-size:12.5px;color:var(--red)}
 .rp-ev-q{color:var(--tx);font-size:12.5px;margin-top:4px}
-footer{color:var(--faint);font-size:12px;text-align:center;padding:16px 0 4px}`;
+footer{color:var(--faint);font-size:12px;text-align:center;padding:16px 0 4px}
+/* Start-here card */
+.start{border-color:rgba(139,124,246,.4);background:linear-gradient(135deg,var(--acc-soft),transparent 55%),var(--card)}
+.start h2{color:var(--acc)}
+.start-main{font-size:16px;font-weight:700;line-height:1.5}
+.start-pr{color:var(--red);font-family:ui-monospace,Menlo,monospace;font-size:13px;margin-right:4px}
+.start-why{color:var(--dim);font-size:13px;margin-top:8px}
+.start-why b{color:var(--tx);font-weight:600;margin-right:6px}
+.start-next{color:var(--faint);font-size:12.5px;margin-top:10px;border-top:1px solid var(--line);padding-top:10px}
+.trend-alerts{margin:0 0 14px;padding-left:18px}.trend-alerts li{margin:6px 0;font-size:13px}
+/* Print / PDF: paper-white, expanded, page-break aware */
+@media print{
+:root{--bg:#fff;--card:#fff;--well:#F4F4F2;--line:rgba(0,0,0,.15);
+--tx:#1C1A15;--dim:#444;--faint:#666;--acc:#5b46d4;--acc-soft:rgba(91,70,212,.08);
+--red:#B23A26;--red-soft:rgba(178,58,38,.07);--ok:#1c7a4c;--ok-soft:rgba(28,122,76,.08);
+--amber:#8a6100;--amber-soft:rgba(138,97,0,.08)}
+body{padding:0;font-size:12px}
+section{border:1px solid var(--line);break-inside:avoid;page-break-inside:avoid;margin-bottom:14px;padding:16px 18px}
+.headline{border:1px solid var(--line)}
+tr{break-inside:avoid}
+.m{display:none}
+details.rp,.fixhint{break-inside:avoid}
+a{color:var(--tx);text-decoration:none}
+}`;
 
 export function renderHtmlReport(input: ReportInput): string {
   const lang: ReportLang = input.lang === 'zh' ? 'zh' : 'en';
@@ -542,13 +629,20 @@ export function renderHtmlReport(input: ReportInput): string {
 <h1>${esc(input.brandName)} · ${m.reportTitle}</h1>
 <div class="meta">FasterGEO · ${esc(at.slice(0, 10))}${input.audit ? ` · ${esc(input.audit.root)}` : ''} · ${m.metaHint}</div>
 <div class="headline">${esc(headline(input, m))}</div>
+${fixFirst(input.tickets, m)}
 ${blockerBanner(input, m)}
 ${funnel(input.metrics, m)}
+${trendSection(input.trend, m)}
 ${engineTable(input.metrics, m)}
 ${auditSection(input.audit, m)}
 ${sourcesSection(input.metrics, m)}
 ${ticketSection(input.tickets, m)}
 ${replaySection(input, m)}
 <footer>${m.footer}</footer>
+<script>
+// Print: open every collapsed block so the PDF carries the full evidence.
+(function(){var st=[];addEventListener('beforeprint',function(){st=[];document.querySelectorAll('details').forEach(function(d){st.push(d.open);d.open=true;});});
+addEventListener('afterprint',function(){document.querySelectorAll('details').forEach(function(d,i){d.open=st[i];});});})();
+</script>
 </main></body></html>`;
 }

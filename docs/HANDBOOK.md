@@ -369,16 +369,18 @@ fastergeo sources --samples samples-*.jsonl --brand brand.json
 
 ## 9. Reading the report & dashboard
 
-Top to bottom (single-file HTML; `--lang zh` for Chinese):
+Top to bottom (single-file HTML; `--lang zh` for Chinese; **print/⌘P-to-PDF ships built-in**: paper palette, page-break-aware sections, all collapsed evidence auto-expands while printing):
 
 1. **Headline** — the worst findings first (confusions / shells / mention rate); never buried in an average.
-2. **Red banner** — blockers + verbatim confusion quotes + negative-sentiment evidence. Nothing else matters until these are fixed.
-3. **Entity funnel** — five stages per market. Reading rules: without a judge, the first two stages show *unmeasured* (grey — not red, not green); with 0% mentions the rank stage shows "— not in the candidate set" (no rank exists; that is not 0%).
-4. **Engine table** — per engine: samples, mention rate (Wilson-interval tooltip, ± mark), SoV, own-domain cites, sentiment (`+n =n −n ?n`), probe recognition, competitors seen.
-5. **Six-dimension audit** — site checks (robots / search crawlers / sitemap / llms.txt; training opt-outs as a grey note), unreachable pages named, per-page score bars.
-6. **Cited sources** — per-market top domains (citations / samples / engines), own domains tagged — your PR target list.
-7. **Tickets** — priority / acceptance type (⚙ auto, 👤 manual) / status.
-8. **Answer replay** — every sampled answer verbatim: brand hits highlighted (probe answers deliberately not — name echo isn't knowledge), confusion evidence in red; judge quotes that can't be located verbatim are listed explicitly, never silently dropped. Every number above can be cross-examined here — that's the point.
+2. **Start here card** — the single highest-impact ticket (tickets arrive impact-ordered), with its why, its done-when, and a pointer to the full instructions. The 60-second answer to "what do I fix first".
+3. **Red banner** — blockers + verbatim confusion quotes + negative-sentiment evidence. Nothing else matters until these are fixed.
+4. **Entity funnel** — five stages per market. Reading rules: without a judge, the first two stages show *unmeasured* (grey — not red, not green); with 0% mentions the rank stage shows "— not in the candidate set" (no rank exists; that is not 0%).
+5. **Period comparison** — appears from the second period on (needs `--history` / a `cycle` project): each metric prev → curr with a discipline chip — *observation* (single change), *trend* (two consecutive same-direction changes), *needs more periods*; deterministic P0 alerts (new confusion, blockers rising) listed inline.
+6. **Engine table** — per engine: samples, mention rate (Wilson-interval tooltip, ± mark), SoV, own-domain cites, sentiment (`+n =n −n ?n`), probe recognition, competitors seen.
+7. **Six-dimension audit** — site checks (robots / search crawlers / sitemap / llms.txt; training opt-outs as a grey note), unreachable pages named, per-page score bars.
+8. **Cited sources** — per-market top domains (citations / samples / engines), own domains tagged — your PR target list.
+9. **Tickets** — priority / affected pages / collapsible "how to fix" / acceptance type (⚙ auto, 👤 manual) / status.
+10. **Answer replay** — every sampled answer verbatim: brand hits highlighted (probe answers deliberately not — name echo isn't knowledge), confusion evidence in red; judge quotes that can't be located verbatim are listed explicitly, never silently dropped. Every number above can be cross-examined here — that's the point.
 
 **Dashboard** (`fastergeo ui`): the same report live, plus period list, trend alerts, and manual-ticket actions. Browser-language auto-detection (en/zh).
 

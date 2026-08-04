@@ -407,7 +407,127 @@ async function runTickets() {
   }
 }
 
+function reportFixtures() {
+  const basePage = (url, issues, blockers = []) => ({
+    url, score: 30, grade: 'D', wordCount: 50, blocks: {}, blockers,
+    dimensions: [{ key: 'crawlability', score: 4, max: 15, issues }],
+  });
+  const audit = (over = {}) => ({
+    root: 'https://acme-widgets.com', generatedAt: '2026-08-04',
+    site: { robotsTxtFound: true, blockedAiCrawlers: [], blockedSearchCrawlers: [], blockedTrainingCrawlers: [], sitemapFound: true, llmsTxtFound: true },
+    entity: { organizationSchema: true, sameAsCount: 2 },
+    failedUrls: [], avgScore: 75, gradeDistribution: { A: 1, B: 1, C: 0, D: 0 }, blockers: [],
+    pages: [], ...over,
+  });
+  const platform = (over = {}) => ({
+    providerId: 'doubao', market: 'cn', samples: 10, mentionRate: 0.05, top1Rate: 0, top3Rate: 0,
+    avgRank: null, earlyMentionRate: null, shareOfVoice: 0.05, ownDomainCiteRate: 0, citationShare: null,
+    competitorMentions: { CompetitorX: 6 }, sentiment: null,
+    probe: { samples: 2, recognition: { knows: 2, unknown: 0, confused: 0, unverified: 0 }, confusedEvidence: [] },
+    ...over,
+  });
+  const metrics = (platforms, extra = {}) => ({
+    generatedAt: '2026-08-04', brand: 'AcmeWidgets', totalSamples: 20, platforms,
+    citationSources: [
+      { market: 'cn', domain: 'zhihu.com', citations: 8, samples: 5, engines: ['doubao'], own: false },
+    ], ...extra,
+  });
+  return [
+    {
+      id: 'S1-robots-blocked',
+      audit: audit({
+        site: { robotsTxtFound: true, blockedAiCrawlers: ['OAI-SearchBot', 'PerplexityBot'], blockedSearchCrawlers: ['OAI-SearchBot', 'PerplexityBot'], blockedTrainingCrawlers: [], sitemapFound: true, llmsTxtFound: true },
+        avgScore: 40, blockers: ['ai-crawlers-blocked: OAI-SearchBot, PerplexityBot'],
+        pages: [basePage('https://acme-widgets.com/pricing', ['spa-shell'], ['spa-shell: 58KB HTML, 12 visible words'])],
+      }),
+      metrics: metrics([platform()]),
+      // the one right answer: unblock AI search crawlers in robots.txt
+      keywords: ['robots', '爬虫', 'OAI-SearchBot', '解除', '屏蔽', 'unblock', 'crawler'],
+    },
+    {
+      id: 'S2-confusion',
+      audit: audit(),
+      metrics: metrics([platform({
+        probe: { samples: 2, recognition: { knows: 0, unknown: 0, confused: 2, unverified: 0 }, confusedEvidence: ['AcmeWidgets 是一家汽车配件厂'] },
+      })]),
+      keywords: ['实体', '消歧', '张冠李戴', '认错', 'entity', 'disambiguation', 'confus', '档案', 'sameAs', 'Organization'],
+    },
+    {
+      id: 'S3-low-mention',
+      audit: audit(),
+      metrics: metrics([platform({ mentionRate: 0.05 })]),
+      keywords: ['阵地', '第三方', '知乎', 'zhihu', 'earned', '媒体', '提及率', 'mention', '站外'],
+    },
+  ];
+}
+
+const PERSONAS_ZH = [
+  '你是品牌创始人，不懂技术，日程很满',
+  '你是市场负责人，懂营销不懂开发',
+  '你是代理商顾问，要向客户转述结论',
+  '你是全栈工程师，刚接手这个站',
+  '你是 CEO，只想知道钱该花在哪',
+];
+
+async function runReport() {
+  const { generateTickets } = await import('../packages/tickets/dist/index.js');
+  const { renderHtmlReport } = await import('../packages/report/dist/index.js');
+  const lang = flag('lang') === 'en' ? 'en' : 'zh';
+  const budget = Number(flag('budget') ?? 1800); // ~chars readable in 60s
+  const fixtures = reportFixtures();
+  if (!judgeId) {
+    for (const fx of fixtures) {
+      const tickets = generateTickets(fx.audit, fx.metrics, lang);
+      console.log(`${fx.id}: top ticket = ${tickets[0]?.title}`);
+    }
+    console.log('(no --judge: listing ground truth only)');
+    return;
+  }
+  const jp = resolveProvider(judgeId);
+  const jobs = [];
+  const results = [];
+  for (const fx of fixtures) {
+    const tickets = generateTickets(fx.audit, fx.metrics, lang);
+    let html = renderHtmlReport({ brandName: 'AcmeWidgets', audit: fx.audit, metrics: fx.metrics, tickets, lang });
+    if (flag('nocard')) html = html.replace(/<section class="start">[\s\S]*?<\/section>/, '');
+    const text = html
+      .replace(/<style[\s\S]*?<\/style>/g, ' ')
+      .replace(/<script[\s\S]*?<\/script>/g, ' ')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&[a-z]+;/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, budget);
+    for (const persona of PERSONAS_ZH) {
+      jobs.push(async () => {
+        const prompt = [
+          `${persona}。下面是一份品牌的 AI 可见度诊断报告，你只扫读了 60 秒（以下就是你 60 秒内能看到的内容）。`,
+          '', text, '',
+          '问题：看完这一眼，你认为最该先修的一件事是什么？用一两句话回答，说具体动作。',
+        ].join('\n');
+        try {
+          const raw = (await ask(jp, { question: prompt, maxTokens: 400, temperature: 0 })).answer;
+          const hit = fx.keywords.some((k) => raw.toLowerCase().includes(k.toLowerCase()));
+          results.push({ fx: fx.id, persona: persona.slice(2, 8), hit, answer: raw.replace(/\s+/g, ' ').slice(0, 90) });
+          process.stdout.write('.');
+        } catch { results.push({ fx: fx.id, persona: persona.slice(2, 8), hit: null, answer: 'judge error' }); process.stdout.write('x'); }
+      });
+    }
+  }
+  await runPool(jobs, 4);
+  console.log('\n');
+  const valid = results.filter((r) => r.hit !== null);
+  const ok = valid.filter((r) => r.hit).length;
+  console.log(`comprehension (60s scan → names the right first fix): ${ok}/${valid.length} = ${(ok / valid.length * 100).toFixed(0)}%`);
+  for (const fx of fixtures) {
+    const fr = valid.filter((r) => r.fx === fx.id);
+    console.log(`  ${fx.id}: ${fr.filter((r) => r.hit).length}/${fr.length}`);
+    for (const r of fr.filter((x) => !x.hit)) console.log(`    MISS [${r.persona}] ${r.answer}`);
+  }
+}
+
 if (suite === 'recognition') await runRecognition();
+else if (suite === 'report') await runReport();
 else if (suite === 'tickets') await runTickets();
 else if (suite === 'engines') await runEngines();
 else if (suite === 'matching') await runMatching();

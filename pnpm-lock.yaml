@@ -262,6 +262,9 @@ importers:
       '@fastergeo/tickets':
         specifier: workspace:^
         version: link:../tickets
+      '@fastergeo/trends':
+        specifier: workspace:^
+        version: link:../trends
     devDependencies:
       '@types/node':
         specifier: ^20.0.0

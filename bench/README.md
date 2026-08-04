@@ -35,4 +35,9 @@ Suites:
   your own data is execution work, not a question. This is a PROXY for the human blind test
   (which needs a real engineer); rubric precedents live in the bench script.
 
+- `report` — 60-second comprehension proxy: 5 reader personas × 3 scenarios scan a text-extract
+  of the rendered report (char budget ≈ one minute of reading) and must name the right first fix;
+  scored by scenario keyword match. `--budget N` tightens the scan window, `--nocard 1` ablates
+  the fix-first card.
+
 Planned: catalogs, logs, official-csv — see 产品力打磨计划.

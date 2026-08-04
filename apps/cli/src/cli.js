@@ -396,9 +396,14 @@ async function cmdReport() {
   const brandName = flags.brand
     ? JSON.parse(readFileSync(flags.brand, 'utf8')).name
     : (flags.root ? new URL(flags.root).hostname : 'Brand');
+  let trend;
+  if (flags.history) {
+    const periods = loadPeriods(flags.history);
+    if (periods.length >= 2) trend = computeTrends(periods, LANG);
+  }
   const html = renderHtmlReport({
     brandName, audit: ctx.audit, metrics: ctx.metrics, tickets,
-    samples: ctx.samples, brandAliases: ctx.brandAliases, lang: LANG,
+    samples: ctx.samples, brandAliases: ctx.brandAliases, trend, lang: LANG,
   });
   const out = flags.out ?? 'fastergeo-report.html';
   writeFileSync(out, html);
@@ -896,18 +901,16 @@ async function cmdCycle() {
     console.log(`[4/5] first period: generated ${tickets.length} tickets → tickets.json`);
   }
 
-  // 5. 报告 + 趋势
+  // 5. 报告 + 趋势（期对比进报告本体）
+  const periods = loadPeriods(`${dir}/history`);
+  const trend = periods.length >= 2 ? computeTrends(periods, LANG) : undefined;
   const html = renderHtmlReport({
     brandName: brand.name, audit: auditReport, metrics: metricsReport, tickets,
-    samples, brandAliases: brand.aliases, lang: LANG,
+    samples, brandAliases: brand.aliases, trend, lang: LANG,
   });
   writeFileSync(`${dir}/report-${date}.html`, html);
-  const periods = loadPeriods(`${dir}/history`);
   console.log(`[5/5] report → ${dir}/report-${date}.html · ${periods.length} period(s) in history`);
-  if (periods.length >= 2) {
-    const t = computeTrends(periods, LANG);
-    for (const a of t.alerts) console.log(`  ${a.level === 'P0' ? '🔴' : '⚠'} ${a.message}`);
-  }
+  for (const a of trend?.alerts ?? []) console.log(`  ${a.level === 'P0' ? '🔴' : '⚠'} ${a.message}`);
   console.log('period complete.');
 }
 

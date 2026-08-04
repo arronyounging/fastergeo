@@ -249,3 +249,64 @@ describe('renderHtmlReport — zh locale', () => {
     expect(html).toContain('lang="zh-CN"');
   });
 });
+
+describe('renderHtmlReport — fix-first card (Pass 6)', () => {
+  const tickets = [
+    { id: 'T-001', title: 'Unblock AI SEARCH crawlers in robots.txt (OAI-SearchBot)', priority: 'P0' as const,
+      rationale: 'search-serving crawlers blocked — the site is removed from those AI answers',
+      fixHint: 'Where: robots.txt …', status: 'todo' as const, history: [],
+      acceptance: { type: 'auto' as const, check: 'site.no_ai_block', desc: 'robots.txt no longer blocks AI search crawlers' } },
+    { id: 'T-002', title: 'Fix empty shells', priority: 'P0' as const, rationale: 'shells', status: 'todo' as const,
+      history: [], acceptance: { type: 'auto' as const, check: 'pages.issue_lte:spa-shell:0', desc: 'shells gone' } },
+    { id: 'T-003', title: 'Add statistics blocks', priority: 'P1' as const, rationale: 'stats', status: 'todo' as const,
+      history: [], acceptance: { type: 'auto' as const, check: 'pages.issue_lte:block-gap:statistics:0', desc: 'stats' } },
+  ];
+  it('leads with the #1 ticket and points at the ticket table', () => {
+    const html = renderHtmlReport({ brandName: 'B', tickets });
+    expect(html).toContain('Start here');
+    expect(html).toContain('Unblock AI SEARCH crawlers');
+    expect(html).toContain('done when');
+    expect(html).toContain('full instructions in ticket T-001');
+    expect(html).toContain('T-002 Fix empty shells');
+  });
+  it('is absent with no tickets', () => {
+    const html = renderHtmlReport({ brandName: 'B' });
+    expect(html).not.toContain('class="start"');
+  });
+});
+
+describe('renderHtmlReport — period comparison (Pass 6)', () => {
+  const trend = {
+    periods: ['2026-07-28', '2026-08-04'],
+    deltas: [
+      { key: 'site.avgScore', prev: 42, curr: 55, direction: 'up' as const, verdict: { kind: 'observation' as const, direction: 'up' as const } },
+      { key: 'doubao.mentionRate', market: 'cn' as const, prev: 0.1, curr: 0.3, direction: 'up' as const, verdict: { kind: 'trend' as const, direction: 'up' as const } },
+      { key: 'doubao.ownDomainCiteRate', market: 'cn' as const, prev: null, curr: null, direction: 'flat' as const, verdict: { kind: 'insufficient' as const } },
+    ],
+    alerts: [{ level: 'P0' as const, message: 'New brand confusion: doubao started misattributing the brand this period' }],
+  };
+  it('renders deltas with discipline labels and P0 alerts', () => {
+    const html = renderHtmlReport({ brandName: 'B', trend });
+    expect(html).toContain('Period Comparison');
+    expect(html).toContain('observation');
+    expect(html).toContain('↑ trend');
+    expect(html).toContain('New brand confusion');
+    expect(html).toContain('30%');
+    expect(html).toContain('55');
+  });
+  it('all-null delta rows are dropped, section absent under 2 periods', () => {
+    const html = renderHtmlReport({ brandName: 'B', trend });
+    expect(html).not.toContain('ownDomainCiteRate');
+    const one = renderHtmlReport({ brandName: 'B', trend: { ...trend, periods: ['2026-08-04'] } });
+    expect(one).not.toContain('Period Comparison');
+  });
+});
+
+describe('renderHtmlReport — print styles (Pass 6)', () => {
+  it('ships @media print palette and a details-expanding print handler', () => {
+    const html = renderHtmlReport({ brandName: 'B' });
+    expect(html).toContain('@media print');
+    expect(html).toContain('beforeprint');
+    expect(html).toContain('afterprint');
+  });
+});
