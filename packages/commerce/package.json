@@ -1,6 +1,6 @@
 {
   "name": "@fastergeo/commerce",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "FasterGEO commerce — product-level GEO: ingest your catalog (Product JSON-LD / Shopify products.json), generate buying-intent question candidates, and check AI shopping answers deterministically — does AI recommend YOUR product, at the RIGHT price? Wrong prices are quoted with the evidence sentence: the commerce version of brand confusion.",
   "type": "module",
   "main": "./dist/index.js",
