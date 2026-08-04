@@ -82,6 +82,12 @@ const MSG = {
     execConfusions: 'brand confusions', execSamples: 'samples analyzed', execEngines: 'engines',
     execPages: 'pages audited', gradeWord: (g: string) => ({ A: 'Strong', B: 'Good', C: 'Weak', D: 'Critical' }[g] ?? g),
     printBtn: '⤓ Export PDF', vsPrev: 'vs previous period',
+    wallTitle: (n: number) => `What ${n} AI engine${n > 1 ? 's' : ''} said about you`,
+    wallTip: 'Quoted from this period\'s samples, unedited. A verdict without a locatable quote is downgraded to unverified and never shown here.',
+    wallConfused: 'mistaken identity', wallNegative: 'negative',
+    wallNoQuotes: 'No mistaken-identity or negative quotes found this period.',
+    wallReplay: 'Every sampled answer, verbatim, is at the bottom of this report.',
+    todayTitle: 'Today — fix these first',
     startTitle: 'What to fix first',
     startWhy: 'why', startAcc: 'done when', startThen: 'then',
     startMore: (id: string) => `full instructions in ticket ${id} below`,
@@ -147,6 +153,12 @@ const MSG = {
     execConfusions: '张冠李戴', execSamples: '分析样本', execEngines: '引擎',
     execPages: '体检页面', gradeWord: (g: string) => ({ A: '强', B: '良', C: '弱', D: '危' }[g] ?? g),
     printBtn: '⤓ 导出 PDF', vsPrev: '较上期',
+    wallTitle: (n: number) => `${n} 个 AI 引擎是这么说你的`,
+    wallTip: '原文摘自本期采样，未经编辑。定位不到原话的判定会降级为 unverified，不会出现在这里。',
+    wallConfused: '认错了', wallNegative: '负面',
+    wallNoQuotes: '本期没有发现认错或负面的原话。',
+    wallReplay: '全部采样回答的原文在报告最后。',
+    todayTitle: '今天先修这几件',
     startTitle: '先修什么',
     startWhy: '为什么', startAcc: '做到什么算完成', startThen: '其次',
     startMore: (id: string) => `完整操作指引见下方工单 ${id}`,
@@ -232,8 +244,64 @@ function deltaChip(d: MetricDelta | undefined, m: M): string {
   return `<span class="delta ${cls}" title="${esc(m.vsPrev)}">${pp > 0 ? '▲' : '▼'} ${Math.abs(pp).toFixed(0)}pp</span>`;
 }
 
-/** Executive summary: gauge + market visibility + key counts + verdict + top-3 actions. */
-function execSummary(input: ReportInput, m: M): string {
+/**
+ * The verbatim wall — the first thing in the report.
+ *
+ * A score is an abstraction the reader has to be taught to care about; an AI
+ * describing them as a different company is not. The quotes were always in the
+ * data (Answer Replay, last section), which meant the strongest evidence sat
+ * below everything a reader had to scroll past. This lifts it to the top,
+ * unedited and attributed, and every claim above it is checkable against the
+ * replay below. Renders nothing when there was no sampling — an empty wall
+ * would imply "nothing bad found" when the truth is "nothing was measured".
+ */
+function evidenceWall(input: ReportInput, m: M): string {
+  const metrics = input.metrics;
+  if (!metrics || metrics.totalSamples === 0) return '';
+  const quotes: { tag: string; cls: string; who: string; text: string }[] = [];
+  for (const p of metrics.platforms) {
+    const who = `${p.providerId} · ${p.market === 'cn' ? m.marketCn : m.marketGlobal}`;
+    for (const e of p.probe?.confusedEvidence ?? []) {
+      quotes.push({ tag: m.wallConfused, cls: 'q-bad', who, text: e });
+    }
+    for (const e of p.sentiment?.negativeEvidence ?? []) {
+      quotes.push({ tag: m.wallNegative, cls: 'q-warn', who, text: e });
+    }
+  }
+  const engines = new Set(metrics.platforms.map(p => p.providerId)).size;
+  const body = quotes.length > 0
+    ? `<div class="wall-qs">${quotes.slice(0, 4).map(q => `
+        <figure class="wall-q ${q.cls}">
+          <blockquote>“${esc(q.text.trim())}”</blockquote>
+          <figcaption><span class="wall-tag">${esc(q.tag)}</span> ${esc(q.who)}</figcaption>
+        </figure>`).join('')}</div>
+      ${quotes.length > 4 ? `<div class="wall-more">+${quotes.length - 4}</div>` : ''}`
+    : `<div class="wall-none">${m.wallNoQuotes}</div>`;
+  return `<section class="wall">
+    <h2>${m.wallTitle(engines)} <span class="m" title="${esc(m.wallTip)}">${m.methodology}</span></h2>
+    ${body}
+    <div class="wall-foot">${m.wallReplay}</div>
+  </section>`;
+}
+
+/** Plain-language verdict, promoted out of the score panel to sit under the wall. */
+function verdictBar(input: ReportInput, m: M): string {
+  return `<section class="verdict-bar"><div class="verdict">${esc(headline(input, m))}</div></section>`;
+}
+
+/** The three things to do today. Tickets arrive impact-ordered, so this is a slice. */
+function todaySection(input: ReportInput, m: M): string {
+  const actions = (input.tickets ?? []).slice(0, 3).map((t, i) => `
+    <div class="action"><div class="action-k"><span class="action-n">${i + 1}</span><span class="action-pr pr-${t.priority}">${t.priority}</span></div>
+      <div class="action-t">${esc(t.title)}</div>
+      <div class="action-why">${esc(t.rationale.slice(0, 120))}</div>
+      <div class="action-acc"><b>${m.startAcc}</b> ${esc(t.acceptance.desc.slice(0, 90))} · ${esc(t.id)}</div></div>`).join('');
+  if (!actions) return '';
+  return `<section class="exec today"><div class="actions-h">${m.todayTitle}</div><div class="actions">${actions}</div></section>`;
+}
+
+/** Score gauge + market visibility + key counts. Below the evidence, not above it. */
+function scorePanel(input: ReportInput, m: M): string {
   const audit = input.audit;
   const metrics = input.metrics;
   const score = audit?.avgScore ?? null;
@@ -253,22 +321,14 @@ function execSummary(input: ReportInput, m: M): string {
   if (metrics) kpis.push(`<div class="kpi"><div class="kpi-v">${metrics.totalSamples}</div><div class="kpi-l">${m.execSamples} · ${new Set(metrics.platforms.map(p => p.providerId)).size} ${m.execEngines}</div></div>`);
   if (audit) kpis.push(`<div class="kpi"><div class="kpi-v">${audit.pages.length}</div><div class="kpi-l">${m.execPages}</div></div>`);
 
-  const actions = (input.tickets ?? []).slice(0, 3).map((t, i) => `
-    <div class="action"><div class="action-k"><span class="action-n">${i + 1}</span><span class="action-pr pr-${t.priority}">${t.priority}</span></div>
-      <div class="action-t">${esc(t.title)}</div>
-      <div class="action-why">${esc(t.rationale.slice(0, 120))}</div>
-      <div class="action-acc"><b>${m.startAcc}</b> ${esc(t.acceptance.desc.slice(0, 90))} · ${esc(t.id)}</div></div>`).join('');
-
   return `<section class="exec">
     <div class="exec-grid">
       <div class="exec-gauge">${gaugeSvg(score, grade, score !== null ? m.gradeWord(grade) : '', m.unmeasured)}
         <div class="exec-gauge-l">${m.execReadiness} <span class="m" title="${esc(m.execReadinessTip)}">${m.methodology}</span></div></div>
       <div class="exec-main">
-        <div class="verdict">${esc(headline(input, m))}</div>
         <div class="kpis">${kpis.join('')}</div>
       </div>
     </div>
-    ${actions ? `<div class="actions-h">${m.startTitle}</div><div class="actions">${actions}</div>` : ''}
   </section>`;
 }
 
@@ -302,18 +362,25 @@ function trendSection(trend: TrendReport | undefined, m: M): string {
     <tbody>${rows}</tbody></table></section>`;
 }
 
-function blockerBanner(input: ReportInput, m: M): string {
+/**
+ * @param quotesShown the evidence wall already carried the verbatim quotes at
+ *   the top of the report; repeating them here would pad the blocker count and
+ *   make the same finding look like two.
+ */
+function blockerBanner(input: ReportInput, m: M, quotesShown = false): string {
   const items: string[] = [];
   for (const b of input.audit?.blockers ?? []) items.push(esc(b));
   for (const p of input.audit?.pages ?? []) {
     for (const b of p.blockers) items.push(`${esc(b)}<div class="ev-url">${esc(p.url)}</div>`);
   }
-  for (const p of input.metrics?.platforms ?? []) {
-    for (const e of p.probe?.confusedEvidence ?? []) {
-      items.push(esc(m.confusionItem(p.providerId, p.market, e.slice(0, 120))));
-    }
-    for (const e of p.sentiment?.negativeEvidence ?? []) {
-      items.push(esc(m.negativeItem(p.providerId, p.market, e.slice(0, 120))));
+  if (!quotesShown) {
+    for (const p of input.metrics?.platforms ?? []) {
+      for (const e of p.probe?.confusedEvidence ?? []) {
+        items.push(esc(m.confusionItem(p.providerId, p.market, e.slice(0, 120))));
+      }
+      for (const e of p.sentiment?.negativeEvidence ?? []) {
+        items.push(esc(m.negativeItem(p.providerId, p.market, e.slice(0, 120))));
+      }
     }
   }
   if (items.length === 0) return '';
@@ -602,6 +669,22 @@ border:1px solid var(--rule);border-radius:6px;padding:8px 14px;cursor:pointer;w
 /* Sections as paper cards */
 section{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:24px 26px;margin-bottom:18px;
 box-shadow:0 1px 2px rgba(28,26,21,.04)}
+/* Evidence wall — first screen. The quotes carry the weight, so they get the
+   display face and the size; everything around them stays out of the way. */
+.wall{padding:26px 28px}
+.wall-qs{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;margin-top:16px}
+.wall-q{margin:0;padding:18px 20px;border-radius:8px;background:var(--well);border-left:3px solid var(--rule)}
+.wall-q.q-bad{background:var(--red-soft);border-left-color:var(--red)}
+.wall-q.q-warn{background:var(--amber-soft);border-left-color:var(--amber)}
+.wall-q blockquote{margin:0;font-family:"Newsreader",Georgia,"Songti SC",serif;font-size:17px;line-height:1.55;font-style:italic}
+.wall-q figcaption{margin-top:10px;font:500 11px ui-monospace,"IBM Plex Mono",Menlo,monospace;color:var(--dim);letter-spacing:.04em}
+.wall-tag{display:inline-block;padding:1px 7px;border-radius:3px;background:var(--red);color:#fff;margin-right:7px;letter-spacing:.06em;text-transform:uppercase;font-size:9.5px}
+.q-warn .wall-tag{background:var(--amber)}
+.wall-more{margin-top:10px;font-size:12px;color:var(--dim)}
+.wall-none{margin-top:14px;padding:16px 18px;border-radius:8px;background:var(--well);color:var(--dim);font-size:13.5px}
+.wall-foot{margin-top:14px;font-size:11.5px;color:var(--faint)}
+.verdict-bar{padding:20px 28px}
+.verdict-bar .verdict{margin-bottom:0}
 /* Executive summary */
 .exec{padding:26px 28px}
 .exec-grid{display:flex;gap:30px;align-items:center;flex-wrap:wrap}
@@ -623,6 +706,9 @@ border-left:3px solid var(--red);padding-left:14px;margin-bottom:18px}
 .delta.up{color:var(--ok)}.delta.down{color:var(--red)}
 .actions-h{font-family:ui-monospace,"IBM Plex Mono",Menlo,monospace;font-size:11.5px;letter-spacing:.14em;
 text-transform:uppercase;color:var(--dim);margin:24px 0 12px;border-top:1px solid var(--rule);padding-top:18px}
+/* The action list now opens its own card, so the divider that separated it from
+   the gauge above has nothing left to separate. */
+.today .actions-h{margin-top:0;border-top:none;padding-top:0}
 .actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
 .action{background:var(--well);border:1px solid var(--line);border-radius:8px;padding:14px 16px}
 .action-k{display:flex;align-items:center;gap:8px;margin-bottom:8px}
@@ -730,6 +816,7 @@ export function renderHtmlReport(input: ReportInput): string {
   const lang: ReportLang = input.lang === 'zh' ? 'zh' : 'en';
   const m: M = MSG[lang];
   const at = input.generatedAt ?? new Date().toISOString();
+  const wall = evidenceWall(input, m);
   return `<!doctype html><html lang="${lang === 'zh' ? 'zh-CN' : 'en'}"><head><meta charset="utf-8">
 <title>${esc(input.brandName)} · ${m.reportTitle} · FasterGEO</title>
 <meta name="viewport" content="width=device-width,initial-scale=1"><style>${CSS}</style></head>
@@ -739,8 +826,11 @@ export function renderHtmlReport(input: ReportInput): string {
   <div class="rp-title"><h1>${esc(input.brandName)}</h1><div class="meta">${m.reportTitle} · ${esc(at.slice(0, 10))}${input.audit ? ` · ${esc(input.audit.root)}` : ''} · ${m.metaHint}</div></div>
   <button class="printbtn" onclick="print()">${m.printBtn}</button>
 </header>
-${execSummary(input, m)}
-${blockerBanner(input, m)}
+${wall}
+${verdictBar(input, m)}
+${todaySection(input, m)}
+${blockerBanner(input, m, wall !== '')}
+${scorePanel(input, m)}
 ${funnel(input.metrics, m)}
 ${trendSection(input.trend, m)}
 ${engineTable(input.metrics, m)}
