@@ -187,15 +187,31 @@ Here is what the company's own website says:
 ${truth}
 """
 
-Classify the answer. Be strict — these mean different things and get fixed differently:
-- "knows": describes the same company the website describes.
-- "confused": ASSERTS a specific different identity — names another parent company,
-  industry or product line as if it were this one. A guess from the name alone is NOT confusion.
-- "unknown": says it cannot find the company, or only speculates from what the name sounds like.
+Classify the answer. Be strict, and note that these three get fixed in completely different ways — a wrong verdict sends someone to fix the wrong thing:
 
-If the answer opens by saying no well-known company matches, it is "unknown" even if it then guesses.
+- "knows": it is describing THIS company. Individual details may be wrong — a
+  founding year, a headquarters, a funding number — and it is still "knows".
+  Getting a fact wrong about the right company is not mistaken identity.
+- "confused": the answer is about a DIFFERENT company. It names another parent
+  company, another industry, or another product line as the core of what this
+  company does. The identity itself is wrong, not a detail of it.
+- "unknown": it cannot find the company, says no well-known company matches, or
+  only restates the category with no specifics ("appears to be a data analytics
+  company; companies in this space typically…"). Vague agreement is not
+  knowledge — if you learned nothing about THIS company, it is unknown.
 
-Reply with JSON only: {"verdict":"knows|confused|unknown","quote":"<exact sentence asserting the wrong identity, empty otherwise>"}`;
+One more test, for answers that hedge and then guess. If the answer offers the
+reader a CHOICE ("it might be A, or it might be B — where did you see it?"), or
+invites them to supply more context, it has not identified anyone: that is
+"unknown", however confidently each option is phrased. It is "confused" only
+when the answer settles on ONE identity and leaves the reader believing it.
+
+Ask yourself: would a reader come away believing this is a different company?
+Only then is it confused. If they would come away knowing the right company
+with one wrong fact, it is knows. If they would come away knowing nothing
+specific, it is unknown.
+
+Reply with JSON only: {"verdict":"knows|confused|unknown","quote":"<the exact sentence that asserts the wrong identity — required for confused, empty otherwise>"}`;
 }
 
 /** Compared as a reader sees it: markdown punctuation is not part of the claim. */
