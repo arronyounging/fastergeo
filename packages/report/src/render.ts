@@ -73,7 +73,7 @@ const MSG = {
     thScore: 'score', thPage: 'page', thWords: 'word-eq', thDims: 'dimensions',
     ticketsTitle: (n: number, a: number) => `Action Tickets (${n} · ${a} machine-verifiable)`,
     thTicket: 'ticket', thAcceptance: 'acceptance', thStatus: 'status',
-    accAuto: '⚙ auto', accManual: '👤 manual',
+    accAuto: '⚙ auto', accManual: '👤 manual', fixHow: 'How to fix',
     replayTitle: (n: number) => `Answer Replay (${n} samples, verbatim)`,
     replayTip: 'Every sampled answer, unedited, with brand mentions and confusion evidence highlighted. Every number above can be checked against this record — that is the point. Samples that named the brand are tagged "probe" and are excluded from visibility metrics.',
     rpProbe: 'probe', rpMention: 'mentions brand', rpNoMention: 'no mention',
@@ -126,7 +126,7 @@ const MSG = {
     thScore: '分', thPage: '页面', thWords: '词等效', thDims: '维度',
     ticketsTitle: (n: number, a: number) => `行动工单（${n} 条 · ${a} 条机器自动验收）`,
     thTicket: '工单', thAcceptance: '验收', thStatus: '状态',
-    accAuto: '⚙ 自动', accManual: '👤 人工',
+    accAuto: '⚙ 自动', accManual: '👤 人工', fixHow: '怎么修',
     replayTitle: (n: number) => `答案回放（${n} 条采样原文，逐字留档）`,
     replayTip: '全部采样回答原文未经删改，品牌命中与混淆证据高亮。上面每个数字都可以对照这里的原文质证——这正是目的。点名品牌的样本标记为「探测」，不计入可见度指标。',
     rpProbe: '探测·点名', rpMention: '提及品牌', rpNoMention: '未提及',
@@ -432,7 +432,9 @@ function ticketSection(tickets: Ticket[] | undefined, m: M): string {
   if (!tickets || tickets.length === 0) return '';
   const row = (t: Ticket): string =>
     `<tr class="pr-${t.priority}"><td><b>${t.priority}</b></td><td>${t.id}</td><td>${esc(t.title)}
-      <div class="rationale">${esc(t.rationale.slice(0, 110))}</div></td>
+      <div class="rationale">${esc(t.rationale.slice(0, 110))}</div>${t.pages
+    ? `<div class="rationale">${t.pages.map(esc).join(' · ')}</div>` : ''}${t.fixHint
+    ? `<details class="fixhint"><summary>${m.fixHow}</summary><pre>${esc(t.fixHint)}</pre></details>` : ''}</td>
       <td>${t.acceptance.type === 'auto' ? m.accAuto : m.accManual}</td><td>${t.status}</td></tr>`;
   const auto = tickets.filter(t => t.acceptance.type === 'auto').length;
   return `<section><h2>${m.ticketsTitle(tickets.length, auto)}</h2>
@@ -502,6 +504,10 @@ margin-right:4px;position:relative;overflow:hidden;vertical-align:middle}
 .pr-P1 td:first-child b{color:var(--amber)}
 .pr-P2 td:first-child b{color:var(--faint)}
 .rationale{color:var(--dim);font-size:12px;margin-top:3px}
+.fixhint{margin-top:6px}
+.fixhint summary{cursor:pointer;color:var(--acc);font-size:12px;user-select:none}
+.fixhint pre{white-space:pre-wrap;color:var(--dim);font-size:12px;line-height:1.6;
+  background:var(--well);border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin:6px 0 0}
 .comps{color:var(--dim);font-size:12px}
 .m{font-size:11px;color:var(--faint);cursor:help;font-weight:400;letter-spacing:0;text-transform:none}
 /* Answer replay */

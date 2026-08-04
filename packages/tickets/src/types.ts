@@ -40,6 +40,14 @@ export interface Ticket {
   market?: 'cn' | 'global' | 'both';
   /** Why this ticket exists — issue codes / evidence quotes it traces to. */
   rationale: string;
+  /**
+   * How to actually fix it: where to change, what to write (with example),
+   * and the self-check that maps to the acceptance criterion. Written for an
+   * engineer with no GEO background.
+   */
+  fixHint?: string;
+  /** Affected page URLs (capped at 10) so the ticket names its targets. */
+  pages?: string[];
   acceptance: AutoAcceptance | ManualAcceptance;
   status: TicketStatus;
   /** Baseline measurement at generation time, for progress display. */

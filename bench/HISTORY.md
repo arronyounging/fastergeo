@@ -41,3 +41,26 @@ rulebook is the spec), but field cases will keep being added as they arrive; 100
 | 2026-08-04 | doubao(2.0-pro) · grounded-try | 50/50 | 75.2s / 107.6s | 0% | grounded silently degraded on this console/model — ops note recorded |
 
 Failure rate across 250 live calls (retry policy active): **0/250 = 0%** (target <2% ✓).
+
+## tickets (executability proxy blind-test · fixture triggers all 21 ticket sources · judge role-plays a non-GEO engineer)
+
+Method: judge scores each ticket 0–2 (2 = executable without asking the issuer anything). Rubric
+counts only information the ticket should have provided; writing your own copy / picking your own
+data / knowing your own stack is execution work, not a question. Proxy for the human blind test —
+human validation pending (custyle.ai end-to-end, Pass 10).
+
+| date | change | judge | zh score-2 | en score-2 | note |
+|---|---|---|---|---|---|
+| 2026-08-04 | baseline: no fixHint, no pages field | gpt-4o-mini | **0%** (12×1 · 9×0) | — | every complaint = "which file / what content / how verified" |
+| 2026-08-04 | + fixHint (all 21 sources, builder branches, snippets) + pages URLs + real brand/domain substitution + rubric v2 precedents | gpt-4o-mini | 33% | 43% | unreliable judge: complained about missing page lists that were present in the ticket — consistent with Pass 1 finding (weak judge misreads) |
+| 2026-08-04 | same | glm-5-2 | **100%** (21/21) | **100%** (21/21) | capable judge |
+| 2026-08-04 | same + competitor-fallback line + realistic fixture domain | deepseek | **95%** (19/20) | **95%** (18/19) | second capable judge; errors = transient JSON failures, excluded |
+| 2026-08-04 | ablation: hints stripped, same judge + rubric | glm-5-2 | 71% | — | lift attributable to hints: 71→100 |
+| 2026-08-04 | ablation: hints stripped, same judge + rubric | deepseek | 39% | — | 39→95 |
+
+Target ≥80% score-2 under a capable judge: **met** (glm 100/100, deepseek 95/95). Residual score-1s
+are organizational asks (who owns encyclopedia-profile creation) that a ticket cannot answer.
+Shipped: `fixHint` + `pages` fields on Ticket, per-code fix-manual fragments (en+zh, builder
+branches for Next.js/Nuxt/WordPress/Shopify/static, copy-pasteable JSON-LD/robots snippets),
+real brand/domain/competitor substitution, empirically-weighted impact ordering within priority,
+rendering in CLI (`plan`) and HTML report (collapsible "how to fix" per ticket).

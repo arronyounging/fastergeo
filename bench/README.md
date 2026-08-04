@@ -17,7 +17,22 @@ Run:
 node bench/run.mjs recognition                 # heuristic layer only, keyless
 node bench/run.mjs recognition --judge glm     # full pipeline (uses ZHIPUAI_API_KEY etc.)
 node bench/run.mjs recognition --judge glm --repeat 3   # + consistency
+node bench/run.mjs matching                    # 241 cases, deterministic, keyless
+node bench/run.mjs pages --fuzz 300            # 26 labeled snapshots + seeded mutation fuzz
+node bench/run.mjs engines --providers glm,openai --reps 10   # live engine profiling
+node bench/run.mjs tickets --lang zh --judge glm              # ticket executability proxy blind-test
 ```
 
-Suites: `recognition` (answers/golden.jsonl, 55 cases). Planned: matching, audit-pages, robots,
-catalogs, logs, official-csv — see 产品力打磨计划.
+Suites:
+- `recognition` — answers/golden.jsonl (55 cases), judge P/R + evidence location + consistency
+- `matching` — matching/golden.jsonl (241 cases), spec M1–M5
+- `pages` — pages/labels.json (26 snapshots) + seeded fuzz, blocker/issue accuracy
+- `engines` — engines/questions.json ×N reps, success/latency/citation-by-intent → PROFILES.md
+- `tickets` — executability proxy blind-test: a judge role-plays a non-GEO engineer who owns the
+  site (knows their own stack/brand/codebase, sees the whole ticket list) and scores each ticket
+  0–2; the target is ≥80% "executable without questions" (score 2). The rubric counts only
+  information the ticket should have provided as a question — writing your own copy or picking
+  your own data is execution work, not a question. This is a PROXY for the human blind test
+  (which needs a real engineer); rubric precedents live in the bench script.
+
+Planned: catalogs, logs, official-csv — see 产品力打磨计划.

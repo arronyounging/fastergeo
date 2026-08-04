@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { generateTickets } from '../src/generate.js';
 import { verifyTickets } from '../src/verify.js';
+import type { Ticket } from '../src/types.js';
 import type { SiteAudit } from '@fastergeo/audit';
 import type { MetricsReport } from '@fastergeo/metrics';
 
@@ -211,5 +212,74 @@ describe('entity-wiring ticket (confusion remedy)', () => {
     delete (old as { entity?: unknown }).entity;
     const summary = verifyTickets([{ ...t, history: [] }], { audit: old as SiteAudit });
     expect(summary.counts.unmeasurable).toBe(1);
+  });
+});
+
+describe('fix hints & impact ordering (Pass 5)', () => {
+  const fullAudit = {
+    root: 'https://a.com', generatedAt: '',
+    site: { robotsTxtFound: true, blockedAiCrawlers: ['OAI-SearchBot'], blockedSearchCrawlers: ['OAI-SearchBot'], sitemapFound: false, llmsTxtFound: false },
+    entity: { organizationSchema: false, sameAsCount: 0 },
+    failedUrls: [], avgScore: 40, gradeDistribution: { A: 0, B: 0, C: 1, D: 1 }, blockers: [],
+    pages: [{
+      url: 'https://a.com/x', score: 20, grade: 'D', wordCount: 30, blocks: {}, blockers: [],
+      dimensions: [
+        { key: 'crawlability', score: 4, max: 15, issues: ['spa-shell', 'thin-text'] },
+        { key: 'structure', score: 5, max: 20, issues: ['answer-below-fold', 'context-dependent-paragraphs'] },
+        { key: 'blocks', score: 0, max: 25, issues: ['block-gap:definition', 'block-gap:statistics', 'block-gap:comparison', 'block-gap:steps', 'block-gap:faq'] },
+        { key: 'authority', score: 2, max: 15, issues: ['no-jsonld', 'no-date', 'stale-content'] },
+        { key: 'length', score: 3, max: 15, issues: ['content-short'] },
+      ],
+    }],
+  } as unknown as SiteAudit;
+  const fullMetrics = {
+    generatedAt: '', brand: 'B', totalSamples: 10,
+    platforms: [{ providerId: 'doubao', market: 'cn', samples: 5, mentionRate: 0.1, top1Rate: 0, top3Rate: 0,
+      avgRank: null, earlyMentionRate: null, shareOfVoice: 0.1, ownDomainCiteRate: 0, citationShare: null,
+      competitorMentions: {}, sentiment: null,
+      probe: { samples: 2, recognition: { knows: 0, unknown: 0, confused: 1, unverified: 1 }, confusedEvidence: ['ev'] } }],
+    citationSources: [{ market: 'cn', domain: 'zhihu.com', citations: 3, samples: 2, engines: ['doubao'], own: false }],
+  } as unknown as MetricsReport;
+
+  for (const lang of ['en', 'zh'] as const) {
+    it(`every generated ticket carries a fixHint (${lang})`, () => {
+      const tickets = generateTickets(fullAudit, fullMetrics, lang);
+      expect(tickets.length).toBeGreaterThan(15);
+      const missing = tickets.filter(t => !t.fixHint || t.fixHint.length < 50);
+      expect(missing.map(t => t.title)).toEqual([]);
+    });
+
+    it(`fixHints answer where/what/check (${lang})`, () => {
+      const tickets = generateTickets(fullAudit, fullMetrics, lang);
+      // Every hint must reference the verification path (self-check maps to acceptance).
+      const noCheck = tickets.filter(t => t.fixHint && !/fastergeo verify|fastergeo cycle/.test(t.fixHint));
+      expect(noCheck.map(t => t.title)).toEqual([]);
+    });
+  }
+
+  it('orders within P1 by empirical impact: statistics before no-date before llms', () => {
+    const tickets = generateTickets(fullAudit, fullMetrics, 'en');
+    const idx = (pred: (t: Ticket) => boolean): number => tickets.findIndex(pred);
+    const stats = idx(t => t.acceptance.type === 'auto' && t.acceptance.check.includes('block-gap:statistics'));
+    const noDate = idx(t => t.acceptance.type === 'auto' && t.acceptance.check.includes('no-date'));
+    const llms = idx(t => t.acceptance.type === 'auto' && t.acceptance.check === 'site.llms_txt');
+    expect(stats).toBeGreaterThan(-1);
+    expect(noDate).toBeGreaterThan(stats);
+    expect(llms).toBeGreaterThan(noDate); // P2 sorts last
+  });
+
+  it('P0 tickets still sort before all P1 regardless of weight', () => {
+    const tickets = generateTickets(fullAudit, fullMetrics, 'en');
+    const firstP1 = tickets.findIndex(t => t.priority !== 'P0');
+    expect(tickets.slice(0, firstP1).every(t => t.priority === 'P0')).toBe(true);
+    expect(tickets.slice(firstP1).every(t => t.priority !== 'P0')).toBe(true);
+  });
+
+  it('hints include copy-pasteable snippets where the fix is code', () => {
+    const tickets = generateTickets(fullAudit, fullMetrics, 'en');
+    const jsonld = tickets.find(t => t.acceptance.type === 'auto' && t.acceptance.check.includes('no-jsonld'));
+    expect(jsonld!.fixHint).toContain('application/ld+json');
+    const entity = tickets.find(t => t.acceptance.type === 'auto' && t.acceptance.check === 'site.entity_schema');
+    expect(entity!.fixHint).toContain('sameAs');
   });
 });

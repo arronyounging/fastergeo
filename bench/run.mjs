@@ -305,7 +305,110 @@ async function runEngines() {
   }
 }
 
+async function runPool(jobs, width) {
+  let i = 0;
+  const worker = async () => {
+    while (i < jobs.length) { const job = jobs[i++]; await job(); }
+  };
+  await Promise.all(Array.from({ length: Math.min(width, jobs.length) }, worker));
+}
+
+async function runTickets() {
+  const { generateTickets } = await import('../packages/tickets/dist/index.js');
+  // Fixture engineered to trigger EVERY ticket source: all issue codes,
+  // site-level checks, confusion+entity, low mention + citation sources.
+  const audit = {
+    root: 'https://acme-widgets.com', generatedAt: '',
+    site: { robotsTxtFound: true, blockedAiCrawlers: ['OAI-SearchBot'], blockedSearchCrawlers: ['OAI-SearchBot'], blockedTrainingCrawlers: [], sitemapFound: false, llmsTxtFound: false },
+    entity: { organizationSchema: false, sameAsCount: 0 },
+    failedUrls: [], avgScore: 42, gradeDistribution: { A: 0, B: 1, C: 2, D: 3 },
+    blockers: [],
+    pages: [
+      { url: 'https://acme-widgets.com/pricing', score: 20, grade: 'D', wordCount: 30, blocks: {}, blockers: ['spa-shell: x'],
+        dimensions: [
+          { key: 'crawlability', score: 4, max: 15, issues: ['spa-shell'] },
+          { key: 'structure', score: 5, max: 20, issues: ['no-h1', 'answer-below-fold', 'context-dependent-paragraphs'] },
+          { key: 'blocks', score: 0, max: 25, issues: ['block-gap:definition', 'block-gap:statistics', 'block-gap:comparison', 'block-gap:steps', 'block-gap:faq'] },
+          { key: 'authority', score: 2, max: 15, issues: ['no-jsonld', 'no-date', 'stale-content'] },
+          { key: 'length', score: 3, max: 15, issues: ['content-short'] },
+        ] },
+      { url: 'https://acme-widgets.com/blog/guide', score: 55, grade: 'C', wordCount: 80, blocks: {}, blockers: [],
+        dimensions: [{ key: 'crawlability', score: 8, max: 15, issues: ['thin-text'] }] },
+    ],
+  };
+  const metrics = {
+    generatedAt: '', brand: 'ExBrand', totalSamples: 20,
+    platforms: [{ providerId: 'doubao', market: 'cn', samples: 10, mentionRate: 0.1, top1Rate: 0, top3Rate: 0,
+      avgRank: null, earlyMentionRate: null, shareOfVoice: 0.1, ownDomainCiteRate: 0, citationShare: null,
+      competitorMentions: {}, sentiment: null,
+      probe: { samples: 2, recognition: { knows: 0, unknown: 0, confused: 1, unverified: 1 }, confusedEvidence: ['把品牌说成汽车配件厂'] } }],
+    citationSources: [
+      { market: 'cn', domain: 'zhihu.com', citations: 8, samples: 5, engines: ['doubao'], own: false },
+      { market: 'cn', domain: 'csdn.net', citations: 3, samples: 2, engines: ['doubao'], own: false },
+    ],
+  };
+  const lang = flag('lang') === 'zh' ? 'zh' : 'en';
+  const tickets = generateTickets(audit, metrics, lang);
+  if (flag('nohints')) {
+    // Ablation: same fixture, same judge, same rubric — hints stripped.
+    for (const t of tickets) { delete t.fixHint; delete t.pages; }
+    console.log('(ablation: fixHint/pages stripped)');
+  }
+  console.log(`tickets generated: ${tickets.length} (lang=${lang})\n`);
+
+  if (!judgeId) {
+    for (const t of tickets) console.log(`${t.priority} ${t.id} ${t.title}\n   hint: ${t.fixHint ? t.fixHint.slice(0, 90) + '…' : '(none)'}`);
+    console.log('\n(no --judge: listing only; executability scoring needs a judge)');
+    return;
+  }
+  const jp = resolveProvider(judgeId);
+  const allTitles = tickets.map((t) => `${t.id} ${t.title}`).join('\n');
+  const scores = [];
+  const jobs = [];
+  for (const t of tickets) {
+    const text = [`标题: ${t.title}`, `理由: ${t.rationale}`,
+      t.pages ? `受影响页面: ${t.pages.join(', ')}` : '',
+      `验收: ${t.acceptance.desc}`,
+      t.fixHint ? `修复指引: ${t.fixHint}` : '（无修复指引）'].filter(Boolean).join('\n');
+    const prompt = [
+      '角色设定：你是某公司网站的负责工程师，不懂 GEO/SEO，但你当然熟悉自己网站的代码库、',
+      '技术栈和品牌信息（这些不算"缺失信息"）。你收到一份工单清单，正在逐条执行。',
+      '', '完整工单清单（可交叉引用）：', allTitles, '',
+      '当前要评估的工单全文：', text, '',
+      '问题：仅凭这条工单提供的信息（加上你对自己网站的了解），你能否不追问出单人、',
+      '直接动手做完并自信通过验收？',
+      '评分：2=能直接执行（知道改哪、写什么、怎么算完成）；1=需要追问出单人关键细节；0=看不懂要做什么。',
+      '"追问"的定义：向出单人索要工单本应提供而没提供的信息。以下都【不算】追问，不扣分：',
+      '- 工单要求你自己撰写定义句/FAQ/统计数字/对比表并给了格式示例——写文案、挑数据本来就是执行工作；',
+      '- 工单按技术栈给了分支做法（Next.js/Nuxt/WordPress…）——你知道自己网站用什么栈，照自己的分支做；',
+      '- 需要打开自己的代码库/报告文件/题集查细节——那些文件都在你手上；',
+      '- 日期类信息用当天日期或页面真实日期。',
+      '只有这些才算追问/看不懂：不知道该改哪些页面或文件；不知道做成什么样才算通过验收；',
+      '修复指引与验收标准对不上；关键名词完全无法理解。',
+      '只输出 JSON：{"score":0|1|2,"missing":"若非2分，最缺的一条信息"}',
+    ].join('\n');
+    jobs.push(async () => {
+      try {
+        const raw = (await ask(jp, { question: prompt, maxTokens: 600, temperature: 0 })).answer;
+        const j = JSON.parse(raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1));
+        scores.push({ t, score: j.score, missing: j.missing });
+        process.stdout.write('.');
+      } catch { scores.push({ t, score: -1, missing: 'judge error' }); process.stdout.write('x'); }
+    });
+  }
+  await runPool(jobs, 4);
+  console.log('\n');
+  const ok = scores.filter((s) => s.score === 2).length;
+  const valid = scores.filter((s) => s.score >= 0).length;
+  console.log(`executable-without-questions (score 2): ${ok}/${valid} = ${(ok / valid * 100).toFixed(0)}%`);
+  console.log(`score distribution: 2×${ok} · 1×${scores.filter((s) => s.score === 1).length} · 0×${scores.filter((s) => s.score === 0).length}`);
+  for (const s of scores.filter((x) => x.score < 2)) {
+    console.log(`  [${s.score}] ${s.t.id} ${s.t.title.slice(0, 50)} — missing: ${s.missing}`);
+  }
+}
+
 if (suite === 'recognition') await runRecognition();
+else if (suite === 'tickets') await runTickets();
 else if (suite === 'engines') await runEngines();
 else if (suite === 'matching') await runMatching();
 else if (suite === 'pages') await runPages();

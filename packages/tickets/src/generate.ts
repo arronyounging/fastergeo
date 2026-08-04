@@ -14,6 +14,7 @@
 
 import type { SiteAudit } from '@fastergeo/audit';
 import type { MetricsReport } from '@fastergeo/metrics';
+import { fixHintFor, impactWeight } from './fixhints.js';
 import type { Ticket } from './types.js';
 
 export type TicketLang = 'en' | 'zh';
@@ -108,10 +109,16 @@ const M = {
   },
 } as const;
 
-function pagesWithIssue(audit: SiteAudit, code: string): number {
-  return audit.pages.filter(p =>
-    p.dimensions.some(d => d.issues.includes(code)),
-  ).length;
+function urlsWithIssue(audit: SiteAudit, code: string): string[] {
+  return audit.pages
+    .filter(p => p.dimensions.some(d => d.issues.includes(code)))
+    .map(p => p.url);
+}
+
+const PAGE_CAP = 10;
+function capPages(urls: string[]): string[] | undefined {
+  if (urls.length === 0) return undefined;
+  return urls.length <= PAGE_CAP ? urls : [...urls.slice(0, PAGE_CAP), `… +${urls.length - PAGE_CAP}`];
 }
 
 export function generateTickets(
@@ -121,14 +128,27 @@ export function generateTickets(
 ): Ticket[] {
   const t9 = ISSUE_TICKETS[lang];
   const m = M[lang];
+  const competitorCounts = new Map<string, number>();
+  for (const p of metrics?.platforms ?? []) {
+    for (const [name, n] of Object.entries(p.competitorMentions ?? {})) {
+      competitorCounts.set(name, (competitorCounts.get(name) ?? 0) + n);
+    }
+  }
+  const competitors = [...competitorCounts.entries()]
+    .sort((a, b) => b[1] - a[1]).map(([name]) => name);
+  const hintCtx = { brand: metrics?.brand, root: audit?.root, competitors };
   const tickets: Ticket[] = [];
+  const weights = new Map<string, number>();
   let seq = 0;
-  const mk = (t: Omit<Ticket, 'id' | 'status' | 'history'>): void => {
+  const mk = (key: string, t: Omit<Ticket, 'id' | 'status' | 'history' | 'fixHint'>): void => {
     seq += 1;
+    const id = `T-${String(seq).padStart(3, '0')}`;
+    weights.set(id, impactWeight(key));
     tickets.push({
-      id: `T-${String(seq).padStart(3, '0')}`,
+      id,
       status: t.acceptance.type === 'manual' ? 'pending-manual' : 'todo',
       history: [],
+      fixHint: fixHintFor(key, lang, hintCtx),
       ...t,
     });
   };
@@ -137,25 +157,27 @@ export function generateTickets(
     // ── P0: ticket problems ──────────────────────────────────────────────
     const searchBlocked = audit.site.blockedSearchCrawlers ?? audit.site.blockedAiCrawlers;
     if (searchBlocked.length > 0) {
-      mk({
+      mk('unblock-robots', {
         title: m.unblockRobots(searchBlocked.join(', ')),
         priority: 'P0',
         rationale: m.unblockRationale,
         acceptance: { type: 'auto', check: 'site.no_ai_block', desc: m.unblockDesc },
       });
     }
-    const shells = pagesWithIssue(audit, 'spa-shell');
+    const shellUrls = urlsWithIssue(audit, 'spa-shell');
+    const shells = shellUrls.length;
     if (shells > 0) {
-      mk({
+      mk('spa-shell', {
         title: t9['spa-shell'].title,
         priority: 'P0',
         rationale: m.shellRationale(shells),
+        pages: capPages(shellUrls),
         baseline: shells,
         acceptance: { type: 'auto', check: 'pages.issue_lte:spa-shell:0', desc: t9['spa-shell'].desc },
       });
     }
     if (!audit.site.llmsTxtFound) {
-      mk({
+      mk('llms-txt', {
         title: m.llmsTitle,
         priority: 'P2', // honest grading: zero weight for Google
         rationale: m.llmsRationale,
@@ -163,7 +185,7 @@ export function generateTickets(
       });
     }
     if (!audit.site.sitemapFound) {
-      mk({
+      mk('sitemap', {
         title: m.sitemapTitle,
         priority: 'P1',
         rationale: 'site.sitemapFound=false',
@@ -174,13 +196,15 @@ export function generateTickets(
     // ── P1: per-issue aggregation ────────────────────────────────────────
     for (const [code, spec] of Object.entries(t9)) {
       if (code === 'spa-shell') continue; // handled above as P0
-      const count = pagesWithIssue(audit, code);
+      const urls = urlsWithIssue(audit, code);
+      const count = urls.length;
       if (count === 0) continue;
       const target = spec.toZero ? 0 : Math.floor(count / 2);
-      mk({
+      mk(code, {
         title: spec.title,
         priority: spec.priority,
         rationale: m.issueRationale(count, code),
+        pages: capPages(urls),
         baseline: count,
         acceptance: { type: 'auto', check: `pages.issue_lte:${code}:${target}`, desc: spec.desc },
       });
@@ -188,7 +212,7 @@ export function generateTickets(
 
     // ── site score target ────────────────────────────────────────────────
     if (audit.avgScore !== null && audit.avgScore < 70) {
-      mk({
+      mk('site-score', {
         title: m.scoreTitle(audit.avgScore),
         priority: 'P1',
         rationale: `avgScore=${audit.avgScore}`,
@@ -202,7 +226,7 @@ export function generateTickets(
     for (const p of metrics.platforms) {
       // ── P0: brand confusion = factual error ────────────────────────────
       if (p.probe && p.probe.recognition.confused > 0) {
-        mk({
+        mk('entity-confusion', {
           title: m.entityTitle(p.providerId, p.market),
           priority: 'P0',
           market: p.market,
@@ -221,7 +245,7 @@ export function generateTickets(
       .reduce((a, p) => a + (p.probe?.recognition.confused ?? 0), 0);
     if (confusions > 0 && audit?.entity
       && (!audit.entity.organizationSchema || audit.entity.sameAsCount < 2)) {
-      mk({
+      mk('entity-wiring', {
         title: m.entityWiringTitle,
         priority: 'P1',
         rationale: m.entityWiringRationale(confusions),
@@ -238,7 +262,7 @@ export function generateTickets(
       if (rates.length === 0) continue;
       const avg = rates.reduce((a, b) => a + b, 0) / rates.length;
       if (avg < 0.3) {
-        mk({
+        mk('mention-rate', {
           title: m.mentionTitle(market, `${(avg * 100).toFixed(0)}%`),
           priority: 'P1',
           market,
@@ -258,7 +282,7 @@ export function generateTickets(
           .filter(cs => cs.market === market && !cs.own)
           .slice(0, 5);
         if (topThirdParty.length > 0) {
-          mk({
+          mk('earned-media', {
             title: m.earnedTitle(market, topThirdParty.map(cs => cs.domain).join(', ')),
             priority: 'P1',
             market,
@@ -270,7 +294,11 @@ export function generateTickets(
     }
   }
 
-  // P0 first, stable within priority
+  // P0 first; within a priority, empirical impact weight decides order
+  // (see IMPACT_WEIGHTS in fixhints.ts), stable by generation sequence.
   const order = { P0: 0, P1: 1, P2: 2 };
-  return tickets.sort((a, b) => order[a.priority] - order[b.priority]);
+  return tickets.sort((a, b) =>
+    order[a.priority] - order[b.priority]
+    || (weights.get(b.id) ?? 50) - (weights.get(a.id) ?? 50)
+    || a.id.localeCompare(b.id));
 }

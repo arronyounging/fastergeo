@@ -279,6 +279,12 @@ function printTickets(tickets) {
     const acc = t.acceptance.type === 'auto' ? `[auto] ${t.acceptance.check}` : '[manual]';
     console.log(`${t.priority} ${t.id} [${t.status}] ${t.title}`);
     console.log(`   why: ${t.rationale.slice(0, 90)}`);
+    if (t.pages) console.log(`   pages: ${t.pages.join(' ')}`);
+    if (t.fixHint) {
+      const label = LANG === 'zh' ? '怎么修' : 'how to fix';
+      console.log(`   ${label}:`);
+      for (const line of t.fixHint.split('\n')) console.log(`     ${line}`);
+    }
     console.log(`   acceptance: ${acc} — ${t.acceptance.desc}`);
   }
 }

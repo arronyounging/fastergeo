@@ -283,9 +283,11 @@ Aliases are the disambiguation bedrock (Latin names match on word boundaries; CJ
 ```json
 [{ "id": "T-001", "title": "Fix client-rendered empty-shell pages (SSR/prerender)",
    "priority": "P0", "rationale": "…", "baseline": 3, "status": "todo", "history": [],
+   "pages": ["https://acme.com/pricing"],
+   "fixHint": "Why: … Where/what, pick your stack: … Check: …",
    "acceptance": { "type": "auto", "check": "pages.issue_lte:spa-shell:0", "desc": "…" } }]
 ```
-`status` ∈ todo / done / regressed / pending-manual. **Acceptance DSL, complete**:
+`status` ∈ todo / done / regressed / pending-manual. `pages` names the affected URLs (capped at 10). `fixHint` is a fix-manual fragment written for an engineer with no GEO background — where to change, what to write (copy-pasteable example, builder-specific branches for Next.js/Nuxt/WordPress/Shopify/static), and a self-check that maps to the acceptance criterion; real brand/domain/competitor names are substituted in when known. Within a priority, tickets are ordered by empirically-weighted impact (statistics blocks and entity work first, llms.txt last). **Acceptance DSL, complete**:
 `site.no_ai_block` (zero search-crawler bans) · `site.llms_txt` · `site.sitemap` · `site.entity_schema` (Organization + ≥2 sameAs) · `site.avg_score_gte:N` · `pages.no_blockers` · `pages.issue_lte:<code>:<N>` · `metrics.mention_rate_gte:<market>:<x>` · `metrics.no_confusion:<market>`.
 **Ticket-level issue codes**: `spa-shell` `no-jsonld` `block-gap:definition|statistics|comparison|steps|faq` `content-short` `no-date` `answer-below-fold` `context-dependent-paragraphs` `stale-content`. Dimension-level issues also surfaced: `http-error noindex no-canonical thin-text no-lang no-h1 multiple-h1 few-h2 no-lists no-author no-external-links off-topic`.
 
