@@ -121,7 +121,21 @@ font:12.5px var(--mono);padding:4px 0}
 font:11.5px/1.8 var(--mono);white-space:pre-wrap;color:var(--ink2);overflow-x:auto}
 .pb{margin:0 12px 11px;padding:10px 12px;background:var(--green-wash);border-left:3px solid var(--green);font-size:12.5px;line-height:1.7}
 .pb b{font:600 10px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--green);display:block;margin-bottom:4px}
-.pb a{display:inline-block;margin-top:6px;font:12px var(--mono)}
+.pbtn{margin-top:7px;background:none;border:1px solid var(--green);color:var(--green);
+padding:5px 11px;font:11.5px var(--mono);cursor:pointer}
+.pbtn:hover{background:var(--green);color:#fff}
+.pbody{margin-top:10px;font:13px/1.75 var(--serif);color:var(--ink)}
+.pbody:empty{display:none}
+.pbody h4{font:600 13px var(--mono);margin:0 0 8px;color:var(--ink2)}
+.pbody table{border-collapse:collapse;width:100%;margin:8px 0;font:12px var(--mono)}
+.pbody th,.pbody td{border:1px solid var(--rule);padding:5px 8px;text-align:left}
+.pbody th{background:var(--paper);font-weight:600}
+.pbody ul,.pbody ol{margin:8px 0;padding-left:20px}
+.pbody li{margin:3px 0}
+.pbody pre{background:var(--ink);color:var(--paper);padding:9px 11px;overflow-x:auto;
+font:11.5px var(--mono);white-space:pre-wrap}
+.pbody code{font:12px var(--mono);background:var(--paper);padding:1px 4px}
+.pbody .attr{margin-top:10px;font:10.5px var(--mono);color:var(--faint)}
 .pb .nt{margin-top:7px;font:11.5px var(--mono);color:var(--ink2);opacity:.8}
 .pr{font:600 9.5px var(--mono);padding:2px 6px;flex:none}
 .pr-P0{background:var(--red);color:#fff}.pr-P1{background:var(--amber-wash);color:var(--amber)}
@@ -163,7 +177,7 @@ const ID = ${JSON.stringify(id)};
 const ZH = ${JSON.stringify(lang === 'zh')};
 const T = (zh, en) => ZH ? zh : en;
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const clean = s => String(s ?? '').replace(/[*_\`#]+/g, '').replace(/[ \\t]+/g, ' ').trim();
+const clean = s => String(s ?? '').replace(/[*_#]+/g,'').replace(new RegExp(String.fromCharCode(96),'g'),'').replace(/[ \\t]+/g, ' ').trim();
 const DIMS = ZH
   ? {crawlability:'能不能被 AI 读到',length:'内容够不够多',structure:'结构清不清楚',
      blocks:'有没有值得被引用的段落',authority:'有没有署名和日期',relevance:'内容对不对得上问题'}
@@ -326,8 +340,8 @@ function today(ts){
       + '<p class="acc"><b>'+T('修到这样算好：','Done when: ')+'</b>'+esc(k.acceptance?.desc||'—')+'</p>'
       + (k.fixHint ? '<pre class="hint">'+esc(k.fixHint)+'</pre>' : '')
       + (k.playbook ? '<div class="pb"><b>'+T('怎么做','How to do it')+'</b> '+esc(k.playbook.covers)
-          + '<a href="/api/playbook?skill='+esc(k.playbook.skill)+(k.playbook.start?'&section='+encodeURIComponent(k.playbook.start):'')+'" target="_blank">'
-          + T('打开方法论 →','open the playbook →')+'</a>'
+          + '<button class="pbtn" data-pb="'+esc(k.playbook.skill)+'" data-sec="'+esc(k.playbook.start||'')+'">'
+          + T('展开方法论','read the playbook')+'</button><div class="pbody"></div>'
           + (k.playbook.notThis?'<div class="nt">'+esc(k.playbook.notThis)+'</div>':'')+'</div>' : '')
       + '</details>').join('')
     + '<div class="sect">'+T('要我替你盯着吗？','Want me to watch it?')+'</div>'
@@ -336,6 +350,7 @@ function today(ts){
     + '<div class="sect">'+T('看得更深','Go deeper')+'</div>'
     + '<p class="fine">'+T('这里问了 1 个引擎。命令行跑中外 18 个，并且每修一处都重爬验收。','This asked one engine. The CLI runs 18 across China and global, and re-crawls to verify every fix.')+'</p>'
     + '<code>npx fastergeo start '+esc(new URL(P.url).hostname)+'</code>';
+  el.querySelectorAll('.pbtn').forEach(b => b.onclick = () => openPlaybook(b));
   const f = document.getElementById('wf');
   if (f) f.onsubmit = async e => {
     e.preventDefault();
@@ -346,6 +361,77 @@ function today(ts){
     m.textContent = r.ok ? T('好了。有变化我写信给你。','Done. I will write when something changes.') : (d.error||'failed');
     m.className = 'wm ' + (r.ok?'ok':'err');
   };
+}
+
+/* Read it where the work is. Sending someone to a JSON page in another tab to
+   learn how to do the thing they were just told to do is a handoff they mostly
+   do not complete. */
+async function openPlaybook(btn){
+  const body = btn.nextElementSibling;
+  if (body.dataset.open === '1'){ body.innerHTML=''; body.dataset.open='0';
+    btn.textContent = T('展开方法论','read the playbook'); return; }
+  btn.disabled = true; btn.textContent = T('取方法论…','fetching…');
+  try {
+    const u = '/api/playbook?lang='+(ZH?'zh':'en')+'&skill='+encodeURIComponent(btn.dataset.pb)
+      + (btn.dataset.sec ? '&section='+encodeURIComponent(btn.dataset.sec) : '');
+    const j = await (await fetch(u)).json();
+    const sec = j.section || (j.sections||[])[0];
+    body.innerHTML = (sec ? '<h4>'+esc(sec.h)+'</h4>'+md(sec.b) : '<p class="fine">'+T('这一节暂时取不到。','Could not load this section.')+'</p>')
+      + '<div class="attr">'+esc(j.attribution||'')+'</div>';
+    body.dataset.open='1';
+    btn.textContent = T('收起','collapse');
+  } catch {
+    body.innerHTML = '<p class="fine">'+T('取不到，稍后再试。','Could not load. Try again.')+'</p>';
+    btn.textContent = T('展开方法论','read the playbook');
+  }
+  btn.disabled = false;
+}
+
+/* Enough Markdown for what the playbooks actually contain: headings, tables,
+   lists, fenced code, bold. Escaped first — this is third-party text and it is
+   never trusted as HTML. */
+function md(src){
+  const NL = String.fromCharCode(10), BT = String.fromCharCode(96);
+  const lines = esc(src).split(NL);
+  let out='', inTable=false, inList=null, inFence=false, fence=[];
+  const B = new RegExp('[*][*](.+?)[*][*]','g'), C = new RegExp(BT+'(.+?)'+BT,'g');
+  const inline = t => t.replace(B,'<b>$1</b>').replace(C,'<code>$1</code>');
+  const closeList = () => { if(inList){ out += '</'+inList+'>'; inList=null; } };
+  const closeTable = () => { if(inTable){ out += '</tbody></table>'; inTable=false; } };
+  const ROW = new RegExp('^[|](.+)[|]$'), SEP = new RegExp('^[ |:-]+$');
+  const LI = new RegExp('^[ ]*[-*][ ]+(.+)$'), OL = new RegExp('^[ ]*[0-9]+[.)][ ]+(.+)$');
+  const H = new RegExp('^[#]{2,4}[ ]+(.+)$');
+  for (const raw of lines){
+    const l = raw.replace(new RegExp('[ ]+$'),'');
+    if (l.charCodeAt(0)===96 && l.charCodeAt(1)===96){
+      if (inFence){ out += '<pre>'+fence.join(NL)+'</pre>'; fence=[]; inFence=false; }
+      else { closeList(); closeTable(); inFence=true; }
+      continue;
+    }
+    if (inFence){ fence.push(l); continue; }
+    if (ROW.test(l)){
+      if (SEP.test(l)) continue;
+      const cells = l.slice(1,-1).split('|').map(c=>c.trim());
+      if (!inTable){ closeList(); out += '<table><tbody>'; inTable=true; }
+      out += '<tr>'+cells.map(c=>'<td>'+inline(c)+'</td>').join('')+'</tr>';
+      continue;
+    }
+    closeTable();
+    const li = LI.exec(l), ol = OL.exec(l);
+    if (li || ol){
+      const want = li ? 'ul' : 'ol';
+      if (inList !== want){ closeList(); out += '<'+want+'>'; inList=want; }
+      out += '<li>'+inline((li||ol)[1])+'</li>';
+      continue;
+    }
+    closeList();
+    if (!l.trim()) continue;
+    const h = H.exec(l);
+    out += h ? '<h4>'+inline(h[1])+'</h4>' : '<p>'+inline(l)+'</p>';
+  }
+  closeList(); closeTable();
+  if (inFence && fence.length) out += '<pre>'+fence.join(NL)+'</pre>';
+  return out;
 }
 
 function showDoc(kind, d){

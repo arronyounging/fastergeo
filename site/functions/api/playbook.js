@@ -11,6 +11,7 @@
  * can render this content without it.
  */
 import bundle from './_playbooks.js';
+import { zhSection } from './_translate.js';
 
 const JSON_H = {
   'Content-Type': 'application/json; charset=utf-8',
@@ -18,10 +19,11 @@ const JSON_H = {
   'Cache-Control': 'public, max-age=86400',
 };
 
-export async function onRequestGet({ request }) {
+export async function onRequestGet({ request, env }) {
   const q = new URL(request.url).searchParams;
   const skill = q.get('skill');
   const section = q.get('section');
+  const zh = q.get('lang') === 'zh';
 
   if (!skill) {
     // The index doubles as the answer to "what do you actually know about?"
@@ -45,11 +47,17 @@ export async function onRequestGet({ request }) {
       ?? s.sections.find(x => x.h.toLowerCase().includes(want))
       ?? s.sections.find(x => want.includes(x.h.toLowerCase()));
     if (hit) {
+      // Translated on demand, cached forever. A panel in Chinese that opens an
+      // English playbook is a dead end for the reader it was written for.
+      const out = zh ? await zhSection(env, hit.h, hit.b) : hit;
       return new Response(JSON.stringify({
-        attribution: bundle.attribution, skill, about: s.about, section: hit,
+        attribution: bundle.attribution, skill, about: s.about, section: out,
       }), { headers: JSON_H });
     }
   }
+  // Whole-skill reads stay in English: translating 30 sections on one request
+  // would blow the time budget, and nothing in the product links here — it is
+  // the endpoint for browsing, not for the ticket flow.
   return new Response(JSON.stringify({
     attribution: bundle.attribution, skill, about: s.about, sections: s.sections,
   }), { headers: JSON_H });
