@@ -77,7 +77,12 @@ const MSG = {
     ticketsTitle: (n: number, a: number) => `Action Tickets (${n} · ${a} machine-verifiable)`,
     thTicket: 'ticket', thAcceptance: 'acceptance', thStatus: 'status',
     accAuto: '⚙ auto', accManual: '👤 manual', fixHow: 'How to fix',
-    startTitle: '▶ Start here — the one thing to fix first',
+    execReadiness: 'Site AI-readiness', execReadinessTip: 'Six-dimension audit average across crawled pages (0–100). This scores whether AI crawlers can read and extract from your site — visibility metrics are measured separately per market and never blended into this number.',
+    execVisibility: (mkt: string) => `${mkt} · unprompted mention`,
+    execConfusions: 'brand confusions', execSamples: 'samples analyzed', execEngines: 'engines',
+    execPages: 'pages audited', gradeWord: (g: string) => ({ A: 'Strong', B: 'Good', C: 'Weak', D: 'Critical' }[g] ?? g),
+    printBtn: '⤓ Export PDF', vsPrev: 'vs previous period',
+    startTitle: 'What to fix first',
     startWhy: 'why', startAcc: 'done when', startThen: 'then',
     startMore: (id: string) => `full instructions in ticket ${id} below`,
     trendTitle: 'Period Comparison',
@@ -137,7 +142,12 @@ const MSG = {
     ticketsTitle: (n: number, a: number) => `行动工单（${n} 条 · ${a} 条机器自动验收）`,
     thTicket: '工单', thAcceptance: '验收', thStatus: '状态',
     accAuto: '⚙ 自动', accManual: '👤 人工', fixHow: '怎么修',
-    startTitle: '▶ 先修这个 — 本期最该先做的一件事',
+    execReadiness: '站点 AI 就绪度', execReadinessTip: '已抓取页面的六维体检均分（0–100）。此分衡量 AI 爬虫能否读取并抽取你的站点——可见度指标分市场单独测量，永不混入此分。',
+    execVisibility: (mkt: string) => `${mkt} · 无提示提及率`,
+    execConfusions: '张冠李戴', execSamples: '分析样本', execEngines: '引擎',
+    execPages: '体检页面', gradeWord: (g: string) => ({ A: '强', B: '良', C: '弱', D: '危' }[g] ?? g),
+    printBtn: '⤓ 导出 PDF', vsPrev: '较上期',
+    startTitle: '先修什么',
     startWhy: '为什么', startAcc: '做到什么算完成', startThen: '其次',
     startMore: (id: string) => `完整操作指引见下方工单 ${id}`,
     trendTitle: '期对比',
@@ -195,15 +205,70 @@ function headline(input: ReportInput, m: M): string {
  * Tickets arrive already impact-ordered (P0 first, empirical weights within
  * priority), so tickets[0] IS the answer to "what do I fix first".
  */
-function fixFirst(tickets: Ticket[] | undefined, m: M): string {
-  if (!tickets || tickets.length === 0) return '';
-  const t = tickets[0];
-  const next = tickets.slice(1, 3);
-  return `<section class="start"><h2>${m.startTitle}</h2>
-    <div class="start-main"><span class="start-pr">${t.priority}</span> ${esc(t.title)}</div>
-    <div class="start-why"><b>${m.startWhy}</b> ${esc(t.rationale.slice(0, 160))}</div>
-    <div class="start-why"><b>${m.startAcc}</b> ${esc(t.acceptance.desc)} · ${esc(m.startMore(t.id))}</div>
-    ${next.length > 0 ? `<div class="start-next"><b>${m.startThen}</b> ${next.map(n => `${n.id} ${esc(n.title)}`).join(' · ')}</div>` : ''}
+/** Semicircular score gauge, pure SVG — no dependencies, prints cleanly. */
+function gaugeSvg(score: number | null, grade: string, gradeWord: string, na: string): string {
+  const R = 74, CX = 90, CY = 92, SW = 15;
+  const arc = (from: number, to: number, color: string, w = SW): string => {
+    const a0 = Math.PI * (1 - from), a1 = Math.PI * (1 - to);
+    const x0 = CX + R * Math.cos(a0), y0 = CY - R * Math.sin(a0);
+    const x1 = CX + R * Math.cos(a1), y1 = CY - R * Math.sin(a1);
+    const large = to - from > 0.5 ? 1 : 0;
+    return `<path d="M${x0.toFixed(1)} ${y0.toFixed(1)} A${R} ${R} 0 ${large} 1 ${x1.toFixed(1)} ${y1.toFixed(1)}" fill="none" stroke="${color}" stroke-width="${w}" stroke-linecap="round"/>`;
+  };
+  const col = score === null ? '#C9C4B8' : score >= 85 ? '#20714A' : score >= 70 ? '#5B8A46' : score >= 50 ? '#8A6100' : '#B23A26';
+  return `<svg viewBox="0 0 180 104" class="gauge" role="img" aria-label="score ${score ?? 'n/a'}">
+    ${arc(0, 1, '#ECE8DD')}
+    ${score !== null ? arc(0, Math.max(0.02, score / 100), col) : ''}
+    <text x="90" y="74" text-anchor="middle" class="gauge-n">${score !== null ? score : '—'}</text>
+    <text x="90" y="94" text-anchor="middle" class="gauge-g">${score !== null ? `${grade} · ${gradeWord}` : na}</text>
+  </svg>`;
+}
+
+function deltaChip(d: MetricDelta | undefined, m: M): string {
+  if (!d || d.prev === null || d.curr === null) return '';
+  const pp = (d.curr - d.prev) * 100;
+  if (Math.abs(pp) < 0.5) return '';
+  const cls = pp > 0 ? 'up' : 'down';
+  return `<span class="delta ${cls}" title="${esc(m.vsPrev)}">${pp > 0 ? '▲' : '▼'} ${Math.abs(pp).toFixed(0)}pp</span>`;
+}
+
+/** Executive summary: gauge + market visibility + key counts + verdict + top-3 actions. */
+function execSummary(input: ReportInput, m: M): string {
+  const audit = input.audit;
+  const metrics = input.metrics;
+  const score = audit?.avgScore ?? null;
+  const grade = score === null ? '' : score >= 85 ? 'A' : score >= 70 ? 'B' : score >= 50 ? 'C' : 'D';
+  const markets = [...new Set((metrics?.platforms ?? []).map(p => p.market))];
+  const kpis: string[] = [];
+  for (const mkt of markets) {
+    const ps = (metrics?.platforms ?? []).filter(p => p.market === mkt && p.mentionRate !== null);
+    if (ps.length === 0) continue;
+    const avg = ps.reduce((a, p) => a + (p.mentionRate as number), 0) / ps.length;
+    const dl = input.trend?.deltas.find(d => d.key.endsWith('.mentionRate') && d.market === mkt);
+    kpis.push(`<div class="kpi"><div class="kpi-v">${(avg * 100).toFixed(0)}%${deltaChip(dl, m)}</div>
+      <div class="kpi-l">${esc(m.execVisibility(mkt === 'cn' ? m.marketCn : m.marketGlobal))}</div></div>`);
+  }
+  const confusions = (metrics?.platforms ?? []).reduce((a, p) => a + (p.probe?.recognition.confused ?? 0), 0);
+  kpis.push(`<div class="kpi"><div class="kpi-v ${confusions > 0 ? 'kpi-bad' : 'kpi-ok'}">${metrics ? confusions : `<span class="na">${m.unmeasured}</span>`}</div><div class="kpi-l">${m.execConfusions}</div></div>`);
+  if (metrics) kpis.push(`<div class="kpi"><div class="kpi-v">${metrics.totalSamples}</div><div class="kpi-l">${m.execSamples} · ${new Set(metrics.platforms.map(p => p.providerId)).size} ${m.execEngines}</div></div>`);
+  if (audit) kpis.push(`<div class="kpi"><div class="kpi-v">${audit.pages.length}</div><div class="kpi-l">${m.execPages}</div></div>`);
+
+  const actions = (input.tickets ?? []).slice(0, 3).map((t, i) => `
+    <div class="action"><div class="action-k"><span class="action-n">${i + 1}</span><span class="action-pr pr-${t.priority}">${t.priority}</span></div>
+      <div class="action-t">${esc(t.title)}</div>
+      <div class="action-why">${esc(t.rationale.slice(0, 120))}</div>
+      <div class="action-acc"><b>${m.startAcc}</b> ${esc(t.acceptance.desc.slice(0, 90))} · ${esc(t.id)}</div></div>`).join('');
+
+  return `<section class="exec">
+    <div class="exec-grid">
+      <div class="exec-gauge">${gaugeSvg(score, grade, score !== null ? m.gradeWord(grade) : '', m.unmeasured)}
+        <div class="exec-gauge-l">${m.execReadiness} <span class="m" title="${esc(m.execReadinessTip)}">${m.methodology}</span></div></div>
+      <div class="exec-main">
+        <div class="verdict">${esc(headline(input, m))}</div>
+        <div class="kpis">${kpis.join('')}</div>
+      </div>
+    </div>
+    ${actions ? `<div class="actions-h">${m.startTitle}</div><div class="actions">${actions}</div>` : ''}
   </section>`;
 }
 
@@ -302,6 +367,8 @@ function engineTable(metrics: MetricsReport | undefined, m: M): string {
   if (!metrics) return '';
   const pct = pctWith(m);
   const pctS = (v: number): string => `${(v * 100).toFixed(0)}%`;
+  const bar = (v: number | null): string =>
+    v === null ? '' : `<span class="bar"><i style="width:${Math.max(2, v * 100)}%"></i></span>`;
   const row = (p: PlatformMetrics): string => {
     const comps = Object.entries(p.competitorMentions).sort((a, b) => b[1] - a[1])
       .slice(0, 4).map(([k, n]) => `${esc(k)}×${n}`).join(' ');
@@ -326,8 +393,8 @@ function engineTable(metrics: MetricsReport | undefined, m: M): string {
       ].filter(Boolean).join(' ');
       sent = parts || `<span class="na">${m.unmeasured}</span>`;
     }
-    return `<tr><td>${esc(p.providerId)}</td><td>${p.market}</td><td class="num">${p.samples}</td>
-      <td>${mentionCell}</td><td>${pct(p.shareOfVoice)}</td><td>${pct(p.ownDomainCiteRate)}</td>
+    return `<tr><td class="eng">${esc(p.providerId)}</td><td>${p.market}</td><td class="num">${p.samples}</td>
+      <td class="mention-td">${bar(p.mentionRate)}${mentionCell}</td><td>${pct(p.shareOfVoice)}</td><td>${pct(p.ownDomainCiteRate)}</td>
       <td>${sent}</td><td>${rec}</td><td class="comps">${comps || '—'}</td></tr>`;
   };
   return `<section><h2>${m.enginesTitle} <span class="m" title="${esc(m.enginesTip)}">${m.methodology}</span></h2>
@@ -507,113 +574,154 @@ function ticketSection(tickets: Ticket[] | undefined, m: M): string {
 }
 
 const CSS = `
-/* FasterGEO design language: precision instrument — deep ink, single accent, tabular numbers, 8px grid */
-:root{--bg:#0B0E14;--card:#121826;--well:#0D1420;--line:rgba(148,163,184,.10);
---tx:#E8EDF5;--dim:#8A96A8;--faint:#5B6675;--acc:#8B7CF6;--acc-soft:rgba(139,124,246,.12);
---red:#F4536E;--red-soft:rgba(244,83,110,.10);--ok:#2FD08C;--ok-soft:rgba(47,208,140,.12);
---amber:#F0B24A;--amber-soft:rgba(240,178,74,.12)}
+/* FasterGEO report — the Evidence File, in daylight: paper ground, ink text,
+   serif display, mono data, one proof-red accent. Built to be handed to a client. */
+@import url('https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+:root{--paper:#F3F1EA;--card:#FFFFFF;--well:#F8F6F0;--line:#E4E0D4;--rule:#D8D3C4;
+--tx:#1C1A15;--dim:#5C574D;--faint:#98917F;--red:#B23A26;--red-soft:#F8ECE8;
+--ok:#20714A;--ok-soft:#EAF1EB;--amber:#8A6100;--amber-soft:#F5EFDE;--acc:#1C1A15;--acc-soft:#EFECE2}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--tx);padding:40px 32px;-webkit-font-smoothing:antialiased;
-font:14px/1.7 -apple-system,"SF Pro Text","PingFang SC","Microsoft YaHei",sans-serif}
-main{max-width:980px;margin:0 auto}
-h1{font-size:24px;font-weight:800;letter-spacing:-.02em;margin:0 0 6px}
-h2{font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin:0 0 18px}
-h3{font-size:13px;color:var(--dim);margin:20px 0 10px;font-weight:600}
-.meta{color:var(--dim);font-size:13px;margin-bottom:28px}
-.headline{font-size:17px;line-height:1.6;font-weight:500;background:linear-gradient(135deg,var(--acc-soft),transparent 60%),var(--card);
-border:1px solid var(--line);padding:20px 24px;border-radius:14px;margin-bottom:24px}
-section{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:24px 28px;margin-bottom:20px}
-.blockers{border-color:rgba(244,83,110,.35);background:linear-gradient(135deg,var(--red-soft),transparent 55%),var(--card)}
-.blockers h2{color:var(--red)}
+body{margin:0;background:var(--paper);color:var(--tx);padding:34px 26px;-webkit-font-smoothing:antialiased;
+font:14px/1.65 -apple-system,"SF Pro Text","PingFang SC","Microsoft YaHei",sans-serif}
+main{max-width:1020px;margin:0 auto}
+h1{font-family:"Newsreader",Georgia,"Songti SC",serif;font-size:27px;font-weight:700;letter-spacing:-.01em;margin:0}
+h2{font-family:ui-monospace,"IBM Plex Mono",Menlo,monospace;font-size:11.5px;font-weight:500;letter-spacing:.14em;
+text-transform:uppercase;color:var(--dim);margin:0 0 16px;border-bottom:1px solid var(--rule);padding-bottom:9px}
+h3{font-size:13px;color:var(--dim);margin:18px 0 10px;font-weight:600}
+.num,td.num{font-variant-numeric:tabular-nums}
+/* Header bar */
+.rp-head{display:flex;align-items:center;gap:18px;border-top:3px solid var(--tx);border-bottom:1px solid var(--rule);
+padding:16px 2px 14px;margin-bottom:22px}
+.rp-brand{font-family:ui-monospace,"IBM Plex Mono",Menlo,monospace;font-size:13px;font-weight:500;letter-spacing:.16em}
+.rp-brand span{color:var(--red)}
+.rp-title{flex:1}
+.meta{color:var(--faint);font-size:12.5px;margin-top:3px}
+.printbtn{font:12px ui-monospace,"IBM Plex Mono",Menlo,monospace;color:var(--tx);background:var(--card);
+border:1px solid var(--rule);border-radius:6px;padding:8px 14px;cursor:pointer;white-space:nowrap}
+.printbtn:hover{border-color:var(--tx)}
+/* Sections as paper cards */
+section{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:24px 26px;margin-bottom:18px;
+box-shadow:0 1px 2px rgba(28,26,21,.04)}
+/* Executive summary */
+.exec{padding:26px 28px}
+.exec-grid{display:flex;gap:30px;align-items:center;flex-wrap:wrap}
+.exec-gauge{text-align:center;flex:0 0 190px}
+.gauge{width:180px;height:104px}
+.gauge-n{font:700 34px "Newsreader",Georgia,serif;fill:var(--tx)}
+.gauge-g{font:500 11px ui-monospace,"IBM Plex Mono",Menlo,monospace;fill:var(--dim);letter-spacing:.08em}
+.exec-gauge-l{font-size:11.5px;color:var(--dim);margin-top:2px}
+.exec-main{flex:1;min-width:300px}
+.verdict{font-family:"Newsreader",Georgia,"Songti SC",serif;font-size:19px;line-height:1.5;font-weight:500;
+border-left:3px solid var(--red);padding-left:14px;margin-bottom:18px}
+.kpis{display:flex;gap:0;flex-wrap:wrap}
+.kpi{padding:2px 22px 2px 0;margin-right:22px;border-right:1px solid var(--line)}
+.kpi:last-child{border-right:none}
+.kpi-v{font-family:ui-monospace,"IBM Plex Mono",Menlo,monospace;font-size:23px;font-weight:500;font-variant-numeric:tabular-nums}
+.kpi-v.kpi-bad{color:var(--red)}.kpi-v.kpi-ok{color:var(--ok)}
+.kpi-l{font-size:11.5px;color:var(--faint);margin-top:2px}
+.delta{font-size:11px;margin-left:7px;vertical-align:2px}
+.delta.up{color:var(--ok)}.delta.down{color:var(--red)}
+.actions-h{font-family:ui-monospace,"IBM Plex Mono",Menlo,monospace;font-size:11.5px;letter-spacing:.14em;
+text-transform:uppercase;color:var(--dim);margin:24px 0 12px;border-top:1px solid var(--rule);padding-top:18px}
+.actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.action{background:var(--well);border:1px solid var(--line);border-radius:8px;padding:14px 16px}
+.action-k{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.action-n{font-family:"Newsreader",Georgia,serif;font-weight:700;font-size:17px;color:var(--faint)}
+.action-pr{font:500 11px ui-monospace,"IBM Plex Mono",Menlo,monospace;padding:1px 7px;border-radius:4px}
+.action-pr.pr-P0{background:var(--red-soft);color:var(--red)}
+.action-pr.pr-P1{background:var(--amber-soft);color:var(--amber)}
+.action-pr.pr-P2{background:var(--acc-soft);color:var(--dim)}
+.action-t{font-weight:600;font-size:13.5px;line-height:1.45}
+.action-why{color:var(--dim);font-size:12px;margin-top:6px;line-height:1.55}
+.action-acc{color:var(--faint);font-size:11.5px;margin-top:8px;border-top:1px dashed var(--line);padding-top:8px}
+.action-acc b{color:var(--dim);font-weight:600}
+/* Blockers */
+.blockers{border-color:rgba(178,58,38,.4);background:linear-gradient(135deg,var(--red-soft),var(--card) 60%)}
+.blockers h2{color:var(--red);border-color:rgba(178,58,38,.3)}
 .blockers ul{margin:0;padding-left:18px}.blockers li{margin:8px 0;font-size:13.5px}
-.ev-url{color:var(--faint);font-size:12px;font-family:ui-monospace,Menlo,monospace}
-/* Entity funnel — the hero */
+.ev-url{color:var(--faint);font-size:12px;font-family:ui-monospace,"IBM Plex Mono",Menlo,monospace}
+/* Entity funnel */
 .funnel{display:flex;gap:0;align-items:stretch}
-.stage{flex:1;min-width:100px;position:relative;background:var(--well);border-radius:12px;
-padding:18px 12px 14px;text-align:center;margin-right:26px}
+.stage{flex:1;min-width:100px;position:relative;background:var(--well);border:1px solid var(--line);border-radius:8px;
+padding:16px 12px 12px;text-align:center;margin-right:26px}
 .stage:last-child{margin-right:0}
 .stage:not(:last-child)::after{content:"→";position:absolute;right:-21px;top:50%;
 transform:translateY(-50%);color:var(--faint);font-size:15px}
-.stage.ok{border-top:2px solid var(--ok)}
-.stage.bad{border-top:2px solid var(--red);background:linear-gradient(180deg,var(--red-soft),var(--well) 70%)}
-.stage.na{border-top:2px solid var(--line);opacity:.75}
-.stage.na .stage-v{color:var(--faint);font-size:18px}
-.stage-v{font-size:24px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.stage.ok{border-top:3px solid var(--ok)}
+.stage.bad{border-top:3px solid var(--red);background:linear-gradient(180deg,var(--red-soft),var(--well) 75%)}
+.stage.na{border-top:3px solid var(--rule);opacity:.72}
+.stage.na .stage-v{color:var(--faint);font-size:17px}
+.stage-v{font-family:ui-monospace,"IBM Plex Mono",Menlo,monospace;font-size:22px;font-weight:500;font-variant-numeric:tabular-nums}
 .stage.bad .stage-v{color:var(--red)}
 .stage-l{font-size:13px;font-weight:600;margin-top:4px}
 .stage-n{font-size:11px;color:var(--faint);margin-top:4px;line-height:1.4}
 /* Tables */
 table{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
-th{text-align:left;color:var(--faint);font-weight:500;font-size:11.5px;letter-spacing:.04em;
-padding:8px;border-bottom:1px solid var(--line)}
+th{text-align:left;color:var(--faint);font-weight:500;font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+font-family:ui-monospace,"IBM Plex Mono",Menlo,monospace;padding:8px;border-bottom:1px solid var(--rule)}
 td{padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:top}
 tr:last-child td{border-bottom:none}
+tbody tr:nth-child(even){background:var(--well)}
+td.eng{font-weight:600}
 .na{color:var(--faint)}
 .ci{color:var(--faint);font-size:10px;vertical-align:super;cursor:help}
 .ok{color:var(--ok)}.bad-t{color:var(--red)}
+.mention-td{min-width:130px}
+.bar{display:inline-block;width:64px;height:7px;background:var(--acc-soft);border-radius:4px;margin-right:8px;
+position:relative;overflow:hidden;vertical-align:1px}
+.bar i{position:absolute;left:0;top:0;bottom:0;background:var(--tx);border-radius:4px}
 /* Grade badges + dimension bars */
-.grade{display:inline-flex;width:26px;height:26px;border-radius:8px;align-items:center;
-justify-content:center;font-weight:800;font-size:13px}
+.grade{display:inline-flex;width:26px;height:26px;border-radius:6px;align-items:center;
+justify-content:center;font-weight:700;font-size:13px;font-family:"Newsreader",Georgia,serif}
 .g-A .grade,.g-B .grade{background:var(--ok-soft);color:var(--ok)}
 .g-C .grade{background:var(--amber-soft);color:var(--amber)}
 .g-D .grade{background:var(--red-soft);color:var(--red)}
-.url{word-break:break-all;font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--dim)}
+.url{word-break:break-all;font-family:ui-monospace,"IBM Plex Mono",Menlo,monospace;font-size:12px;color:var(--dim)}
 .dims{white-space:nowrap}
-.dim{display:inline-block;width:34px;height:5px;background:var(--well);border-radius:3px;
+.dim{display:inline-block;width:34px;height:6px;background:var(--acc-soft);border-radius:3px;
 margin-right:4px;position:relative;overflow:hidden;vertical-align:middle}
-.dim i{position:absolute;left:0;top:0;bottom:0;background:var(--acc);border-radius:3px}
-.dim.low i{background:var(--red)}.dim.na{opacity:.25}
+.dim i{position:absolute;left:0;top:0;bottom:0;background:var(--tx);border-radius:3px}
+.dim.low i{background:var(--red)}.dim.na{opacity:.3}
 /* Tickets */
 .pr-P0 td:first-child b{color:var(--red)}
 .pr-P1 td:first-child b{color:var(--amber)}
 .pr-P2 td:first-child b{color:var(--faint)}
 .rationale{color:var(--dim);font-size:12px;margin-top:3px}
 .fixhint{margin-top:6px}
-.fixhint summary{cursor:pointer;color:var(--acc);font-size:12px;user-select:none}
-.fixhint pre{white-space:pre-wrap;color:var(--dim);font-size:12px;line-height:1.6;
-  background:var(--well);border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin:6px 0 0}
+.fixhint summary{cursor:pointer;color:var(--red);font-size:12px;user-select:none;font-family:ui-monospace,"IBM Plex Mono",Menlo,monospace}
+.fixhint pre{white-space:pre-wrap;color:var(--dim);font-size:12px;line-height:1.6;font-family:ui-monospace,"IBM Plex Mono",Menlo,monospace;
+background:var(--well);border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin:6px 0 0}
 .comps{color:var(--dim);font-size:12px}
 .m{font-size:11px;color:var(--faint);cursor:help;font-weight:400;letter-spacing:0;text-transform:none}
+/* Trend */
+.trend-alerts{margin:0 0 14px;padding-left:18px}.trend-alerts li{margin:6px 0;font-size:13px}
 /* Answer replay */
-details.rp{border:1px solid var(--line);border-radius:10px;margin:8px 0;background:var(--well)}
+details.rp{border:1px solid var(--line);border-radius:8px;margin:8px 0;background:var(--well)}
 details.rp summary{cursor:pointer;padding:10px 14px;font-size:13px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;list-style:none}
 details.rp summary::-webkit-details-marker{display:none}
 details.rp summary::before{content:"▸";color:var(--faint);font-size:11px}
 details.rp[open] summary::before{content:"▾"}
 .rp-q{flex:1;min-width:200px}
 .rp-a{padding:2px 16px 12px 28px;font-size:13px;color:var(--dim);white-space:pre-wrap;line-height:1.85;border-top:1px solid var(--line);margin-top:2px;padding-top:12px}
-mark.hl-brand{background:var(--acc-soft);color:var(--acc);border-radius:3px;padding:0 2px}
+mark.hl-brand{background:var(--acc-soft);color:var(--tx);border-radius:3px;padding:0 2px;font-weight:600}
 mark.hl-ev{background:var(--red-soft);color:var(--red);border-radius:3px;padding:0 2px;font-weight:600}
-.chip{font-size:11px;padding:2px 8px;border-radius:99px;white-space:nowrap}
-.c-probe{background:var(--acc-soft);color:var(--acc)}
+.chip{font-size:11px;padding:2px 8px;border-radius:99px;white-space:nowrap;font-family:ui-monospace,"IBM Plex Mono",Menlo,monospace}
+.c-probe{background:var(--acc-soft);color:var(--dim)}
 .c-ok{background:var(--ok-soft);color:var(--ok)}
 .c-dim{background:var(--well);color:var(--faint);border:1px solid var(--line)}
 .c-bad{background:var(--red-soft);color:var(--red);font-weight:600}
-.rp-cite{padding:0 16px 10px 28px;font-size:12px;color:var(--faint);font-family:ui-monospace,Menlo,monospace;word-break:break-all}
+.rp-cite{padding:0 16px 10px 28px;font-size:12px;color:var(--faint);font-family:ui-monospace,"IBM Plex Mono",Menlo,monospace;word-break:break-all}
 .rp-meta{padding:0 16px 12px 28px;font-size:11px;color:var(--faint)}
-.rp-ev-note{border:1px solid rgba(244,83,110,.35);background:var(--red-soft);border-radius:10px;padding:10px 14px;margin:8px 0;font-size:12.5px;color:var(--red)}
+.rp-ev-note{border:1px solid rgba(178,58,38,.35);background:var(--red-soft);border-radius:8px;padding:10px 14px;margin:8px 0;font-size:12.5px;color:var(--red)}
 .rp-ev-q{color:var(--tx);font-size:12.5px;margin-top:4px}
-footer{color:var(--faint);font-size:12px;text-align:center;padding:16px 0 4px}
-/* Start-here card */
-.start{border-color:rgba(139,124,246,.4);background:linear-gradient(135deg,var(--acc-soft),transparent 55%),var(--card)}
-.start h2{color:var(--acc)}
-.start-main{font-size:16px;font-weight:700;line-height:1.5}
-.start-pr{color:var(--red);font-family:ui-monospace,Menlo,monospace;font-size:13px;margin-right:4px}
-.start-why{color:var(--dim);font-size:13px;margin-top:8px}
-.start-why b{color:var(--tx);font-weight:600;margin-right:6px}
-.start-next{color:var(--faint);font-size:12.5px;margin-top:10px;border-top:1px solid var(--line);padding-top:10px}
-.trend-alerts{margin:0 0 14px;padding-left:18px}.trend-alerts li{margin:6px 0;font-size:13px}
-/* Print / PDF: paper-white, expanded, page-break aware */
+footer{color:var(--faint);font-size:12px;text-align:center;padding:18px 0 6px;border-top:1px solid var(--rule);margin-top:8px}
+/* Print / PDF */
 @media print{
-:root{--bg:#fff;--card:#fff;--well:#F4F4F2;--line:rgba(0,0,0,.15);
---tx:#1C1A15;--dim:#444;--faint:#666;--acc:#5b46d4;--acc-soft:rgba(91,70,212,.08);
---red:#B23A26;--red-soft:rgba(178,58,38,.07);--ok:#1c7a4c;--ok-soft:rgba(28,122,76,.08);
---amber:#8a6100;--amber-soft:rgba(138,97,0,.08)}
-body{padding:0;font-size:12px}
-section{border:1px solid var(--line);break-inside:avoid;page-break-inside:avoid;margin-bottom:14px;padding:16px 18px}
-.headline{border:1px solid var(--line)}
+body{padding:0;font-size:12px;background:#fff}
+section{border:1px solid var(--line);box-shadow:none;break-inside:avoid;page-break-inside:avoid;margin-bottom:14px;padding:16px 18px}
+.exec{break-inside:avoid}
 tr{break-inside:avoid}
-.m{display:none}
+.m,.printbtn{display:none}
 details.rp,.fixhint{break-inside:avoid}
 a{color:var(--tx);text-decoration:none}
 }`;
@@ -626,10 +734,12 @@ export function renderHtmlReport(input: ReportInput): string {
 <title>${esc(input.brandName)} · ${m.reportTitle} · FasterGEO</title>
 <meta name="viewport" content="width=device-width,initial-scale=1"><style>${CSS}</style></head>
 <body><main>
-<h1>${esc(input.brandName)} · ${m.reportTitle}</h1>
-<div class="meta">FasterGEO · ${esc(at.slice(0, 10))}${input.audit ? ` · ${esc(input.audit.root)}` : ''} · ${m.metaHint}</div>
-<div class="headline">${esc(headline(input, m))}</div>
-${fixFirst(input.tickets, m)}
+<header class="rp-head">
+  <div class="rp-brand">FASTER<span>GEO</span></div>
+  <div class="rp-title"><h1>${esc(input.brandName)}</h1><div class="meta">${m.reportTitle} · ${esc(at.slice(0, 10))}${input.audit ? ` · ${esc(input.audit.root)}` : ''} · ${m.metaHint}</div></div>
+  <button class="printbtn" onclick="print()">${m.printBtn}</button>
+</header>
+${execSummary(input, m)}
 ${blockerBanner(input, m)}
 ${funnel(input.metrics, m)}
 ${trendSection(input.trend, m)}

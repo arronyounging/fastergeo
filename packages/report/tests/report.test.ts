@@ -261,17 +261,20 @@ describe('renderHtmlReport — fix-first card (Pass 6)', () => {
     { id: 'T-003', title: 'Add statistics blocks', priority: 'P1' as const, rationale: 'stats', status: 'todo' as const,
       history: [], acceptance: { type: 'auto' as const, check: 'pages.issue_lte:block-gap:statistics:0', desc: 'stats' } },
   ];
-  it('leads with the #1 ticket and points at the ticket table', () => {
+  it('executive summary leads with the top-3 impact-ordered tickets as action cards', () => {
     const html = renderHtmlReport({ brandName: 'B', tickets });
-    expect(html).toContain('Start here');
+    expect(html).toContain('What to fix first');
     expect(html).toContain('Unblock AI SEARCH crawlers');
     expect(html).toContain('done when');
-    expect(html).toContain('full instructions in ticket T-001');
-    expect(html).toContain('T-002 Fix empty shells');
+    expect(html).toContain('T-001');
+    expect(html).toContain('Fix empty shells');
+    expect(html).toContain('Add statistics blocks');
   });
-  it('is absent with no tickets', () => {
+  it('action cards absent with no tickets; gauge renders unmeasured without an audit', () => {
     const html = renderHtmlReport({ brandName: 'B' });
-    expect(html).not.toContain('class="start"');
+    expect(html).not.toContain('class="action"');
+    expect(html).toContain('class="gauge"');
+    expect(html).toContain('unmeasured');
   });
 });
 

@@ -371,8 +371,8 @@ fastergeo sources --samples samples-*.jsonl --brand brand.json
 
 Top to bottom (single-file HTML; `--lang zh` for Chinese; **print/⌘P-to-PDF ships built-in**: paper palette, page-break-aware sections, all collapsed evidence auto-expands while printing):
 
-1. **Headline** — the worst findings first (confusions / shells / mention rate); never buried in an average.
-2. **Start here card** — the single highest-impact ticket (tickets arrive impact-ordered), with its why, its done-when, and a pointer to the full instructions. The 60-second answer to "what do I fix first".
+1. **Executive summary** — score gauge (site AI-readiness, audit average — visibility is never blended in), plain-language verdict, KPI strip (per-market mention rate with period deltas, confusions, samples) …
+2. **What to fix first** — the single highest-impact ticket (tickets arrive impact-ordered), with its why, its done-when, and a pointer to the full instructions. The 60-second answer to "what do I fix first".
 3. **Red banner** — blockers + verbatim confusion quotes + negative-sentiment evidence. Nothing else matters until these are fixed.
 4. **Entity funnel** — five stages per market. Reading rules: without a judge, the first two stages show *unmeasured* (grey — not red, not green); with 0% mentions the rank stage shows "— not in the candidate set" (no rank exists; that is not 0%).
 5. **Period comparison** — appears from the second period on (needs `--history` / a `cycle` project): each metric prev → curr with a discipline chip — *observation* (single change), *trend* (two consecutive same-direction changes), *needs more periods*; deterministic P0 alerts (new confusion, blockers rising) listed inline.

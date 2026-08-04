@@ -93,6 +93,9 @@ h2{font-family:var(--serif);font-weight:500;font-size:clamp(27px,3.4vw,38px);lin
 .cmd:hover{background:#2A2620}
 .cmd .copy{color:#8A8371;font-size:11px;border-left:1px solid #4C4739;padding-left:12px}
 .cta-row .alt{font-family:var(--mono);font-size:13px}
+.btn-report{display:inline-block;background:var(--ink);color:var(--paper);padding:12px 22px;
+font-family:var(--mono);font-size:14px;text-decoration:none;letter-spacing:.02em}
+.btn-report:hover{background:var(--red);color:var(--paper)}
 .hero .fine{font-family:var(--mono);font-size:12px;color:var(--faint);margin-top:14px}
 
 /* Exhibit — the hero artifact */
@@ -265,6 +268,7 @@ footer .links{margin-left:auto;display:flex;gap:18px}
     <a class="wordmark" href="/">FASTER<b>GEO</b></a>
     <nav>
       <a href="/tools/">Tools</a>
+      <a href="/sample-report/">Sample report</a>
       <a href="#funnel">Funnel</a>
       <a href="#loop">The Loop</a>
       <a href="/docs/">Docs</a>
@@ -285,9 +289,10 @@ footer .links{margin-left:auto;display:flex;gap:18px}
       FasterGEO shows you the answer they got, then turns every gap into a fix a machine
       verifies — with the verbatim quote attached.</p>
       <div class="cta-row">
+        <a class="btn-report" href="/sample-report/">See a real report →</a>
         <span class="cmd" onclick="navigator.clipboard.writeText('npx fastergeo bootstrap --root https://yoursite.com')" title="Click to copy">
           $ npx fastergeo bootstrap --root yoursite.com <span class="copy">copy</span></span>
-        <a class="alt" href="https://github.com/arronyounging/fastergeo/blob/main/METHODOLOGY.md">Read the methodology →</a>
+        <a class="alt" href="https://github.com/arronyounging/fastergeo/blob/main/METHODOLOGY.md">Methodology →</a>
       </div>
       <div class="fine">Free · self-hosted · your data stays on your disk</div>
     </div>
@@ -493,7 +498,8 @@ footer .links{margin-left:auto;display:flex;gap:18px}
     <h2>Every day you don't look,<br>AI is answering <em>without you.</em></h2>
     <span class="cmd" onclick="navigator.clipboard.writeText('npx fastergeo bootstrap --root https://yoursite.com')" title="Click to copy">
       $ npx fastergeo bootstrap --root https://yoursite.com <span class="copy">copy</span></span>
-    <div class="fine">One command. Facts, competitors and a question bank derived from your site — nothing invented.</div>
+    <div class="fine">One command. Facts, competitors and a question bank derived from your site — nothing invented.
+    &nbsp;·&nbsp; <a href="/sample-report/" style="color:var(--red)">Or read a real report first →</a></div>
   </div>
 </section>
 

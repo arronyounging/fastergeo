@@ -169,7 +169,7 @@ async function cmdMetrics() {
   let sentimentJudge;
   if (flags.judge) {
     const jp = resolveProvider(flags.judge);
-    const askJudge = async prompt => (await ask(jp, { question: prompt, maxTokens: 500, temperature: 0 })).answer;
+    const askJudge = async prompt => (await ask(jp, { question: prompt, maxTokens: 500, temperature: 0, timeoutMs: 300_000 })).answer;
     judge = makeLlmJudge(askJudge);
     sentimentJudge = makeSentimentJudge(askJudge);
   }
@@ -263,7 +263,7 @@ async function buildContext() {
   let sentimentJudge;
     if (flags.judge) {
       const jp = resolveProvider(flags.judge);
-      const askJudge = async prompt => (await ask(jp, { question: prompt, maxTokens: 500, temperature: 0 })).answer;
+      const askJudge = async prompt => (await ask(jp, { question: prompt, maxTokens: 500, temperature: 0, timeoutMs: 300_000 })).answer;
       judge = makeLlmJudge(askJudge);
       sentimentJudge = makeSentimentJudge(askJudge);
     }
@@ -871,7 +871,7 @@ async function cmdCycle() {
   let sentimentJudge;
   if (flags.judge) {
     const jp = resolveProvider(flags.judge);
-    const askJudge = async prompt => (await ask(jp, { question: prompt, maxTokens: 500, temperature: 0 })).answer;
+    const askJudge = async prompt => (await ask(jp, { question: prompt, maxTokens: 500, temperature: 0, timeoutMs: 300_000 })).answer;
     judge = makeLlmJudge(askJudge);
     sentimentJudge = makeSentimentJudge(askJudge);
   }

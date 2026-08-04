@@ -93,6 +93,9 @@ h2{font-family:var(--serif);font-weight:500;font-size:clamp(27px,3.4vw,38px);lin
 .cmd:hover{background:#2A2620}
 .cmd .copy{color:#8A8371;font-size:11px;border-left:1px solid #4C4739;padding-left:12px}
 .cta-row .alt{font-family:var(--mono);font-size:13px}
+.btn-report{display:inline-block;background:var(--ink);color:var(--paper);padding:12px 22px;
+font-family:var(--mono);font-size:14px;text-decoration:none;letter-spacing:.02em}
+.btn-report:hover{background:var(--red);color:var(--paper)}
 .hero .fine{font-family:var(--mono);font-size:12px;color:var(--faint);margin-top:14px}
 
 /* Exhibit — the hero artifact */
@@ -265,6 +268,7 @@ footer .links{margin-left:auto;display:flex;gap:18px}
     <a class="wordmark" href="/">FASTER<b>GEO</b></a>
     <nav>
       <a href="/tools/">免费工具</a>
+      <a href="/sample-report/zh">样例报告</a>
       <a href="#funnel">五个问题</a>
       <a href="#loop">闭环</a>
       <a href="/docs/">文档</a>
@@ -283,9 +287,10 @@ footer .links{margin-left:auto;display:flex;gap:18px}
       <h1>AI 每天都在回答关于你品牌的问题。<br><em>来看证据。</em></h1>
       <p class="sub">你的下一位客户刚刚问了豆包——或者 ChatGPT——「哪家好」。FasterGEO 给你看它得到的那个答案，然后把每个缺口变成机器可验收的修复——每个结论都附 AI 原话。</p>
       <div class="cta-row">
+        <a class="btn-report" href="/sample-report/zh">看一份真实报告 →</a>
         <span class="cmd" onclick="navigator.clipboard.writeText('npx fastergeo bootstrap --root https://yoursite.com')" title="Click to copy">
           $ npx fastergeo bootstrap --root yoursite.com <span class="copy">copy</span></span>
-        <a class="alt" href="https://github.com/arronyounging/fastergeo/blob/main/METHODOLOGY.md">阅读公开方法论 →</a>
+        <a class="alt" href="https://github.com/arronyounging/fastergeo/blob/main/METHODOLOGY.md">方法论 →</a>
       </div>
       <div class="fine">免费 · 自托管 · 数据不出你的电脑</div>
     </div>
@@ -465,7 +470,7 @@ footer .links{margin-left:auto;display:flex;gap:18px}
     <h2>你不看的每一天，<br>AI 都在<em>没有你</em>的情况下回答。</h2>
     <span class="cmd" onclick="navigator.clipboard.writeText('npx fastergeo bootstrap --root https://yoursite.com')" title="Click to copy">
       $ npx fastergeo bootstrap --root https://yoursite.com <span class="copy">copy</span></span>
-    <div class="fine">一条命令。事实、竞品与题库从你的网站推导——绝不编造。</div>
+    <div class="fine">一条命令。事实、竞品与题库从你的网站推导——绝不编造。&nbsp;·&nbsp;<a href="/sample-report/zh" style="color:var(--red)">或先读一份真实报告 →</a></div>
   </div>
 </section>
 
