@@ -5,3 +5,5 @@ export type {
 export { generateTickets } from './generate.js';
 export { fixHintFor, impactWeight, IMPACT_WEIGHTS } from './fixhints.js';
 export { verifyTickets } from './verify.js';
+export { rankTickets } from './rank.js';
+export type { RankedTickets } from './rank.js';
