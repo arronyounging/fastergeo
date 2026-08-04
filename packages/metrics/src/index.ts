@@ -6,6 +6,8 @@ export type {
 export { classifySentiment, makeSentimentJudge } from './sentiment.js';
 export { wilsonInterval } from './stats.js';
 export { analyzeCitationSources } from './sources.js';
+export { suggestAliases } from './aliases.js';
+export type { AliasCandidate } from './aliases.js';
 export type { CitationSource } from './sources.js';
 export type { Interval } from './stats.js';
 export { firstMentionIndex, mentions, brandRank, matchRanges } from './matching.js';

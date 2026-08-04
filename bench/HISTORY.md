@@ -14,3 +14,10 @@ Every polish pass records before/after here. Numbers come from `node bench/run.m
 
 **Honest caveat**: 47/55 cases are crafted from the same rulebook the prompt encodes — by design (the
 rulebook is the spec), but field cases will keep being added as they arrive; 100% here ≠ 100% in the wild.
+
+## matching (matching/golden.jsonl · 241 cases: 193 pos / 48 neg, spec M1–M5)
+
+| date | config | precision | recall | case-level (incl. count/range asserts) | notes |
+|---|---|---|---|---|---|
+| 2026-08-04 | baseline (135 cases) | 99.1% | 100% | 134/135 | found real spec split: mentions() lacked the <2-char guard matchRanges has — metrics vs display could disagree |
+| 2026-08-04 | unified guard · expanded corpus | **100%** | **100%** | **241/241** | targets (P≥99/R≥95) exceeded; spec decisions codified in matching/RULES.md (M1–M5); field adjacency survey confirmed boundary design |

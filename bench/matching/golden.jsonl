@@ -1,0 +1,241 @@
+{"id": "m-001", "text": "Custyle is a platform.", "names": ["Custyle"], "expectMatch": true, "note": "sentence start [Custyle]"}
+{"id": "m-002", "text": "I recommend Custyle.", "names": ["Custyle"], "expectMatch": true, "note": "period after [Custyle]"}
+{"id": "m-003", "text": "Try Custyle, it works.", "names": ["Custyle"], "expectMatch": true, "note": "comma after [Custyle]"}
+{"id": "m-004", "text": "(Custyle)", "names": ["Custyle"], "expectMatch": true, "note": "parens [Custyle]"}
+{"id": "m-005", "text": "**Custyle** is bold.", "names": ["Custyle"], "expectMatch": true, "note": "markdown bold [Custyle]"}
+{"id": "m-006", "text": "“Custyle”是一个品牌。", "names": ["Custyle"], "expectMatch": true, "note": "CN quotes + CJK after [Custyle]"}
+{"id": "m-007", "text": "如Custyle、其他家。", "names": ["Custyle"], "expectMatch": true, "note": "CJK before + 顿号 after [Custyle]"}
+{"id": "m-008", "text": "用Custyle做周边", "names": ["Custyle"], "expectMatch": true, "note": "CJK both sides, no space [Custyle]"}
+{"id": "m-009", "text": "Custyle/Printify/Gelato", "names": ["Custyle"], "expectMatch": true, "note": "slash list head [Custyle]"}
+{"id": "m-010", "text": "Printful/Custyle/Gelato", "names": ["Custyle"], "expectMatch": true, "note": "slash list middle [Custyle]"}
+{"id": "m-011", "text": "Custyle's pricing is fair.", "names": ["Custyle"], "expectMatch": true, "note": "ASCII possessive 's [Custyle]"}
+{"id": "m-012", "text": "Custyle’s pricing is fair.", "names": ["Custyle"], "expectMatch": true, "note": "curly possessive ’s [Custyle]"}
+{"id": "m-013", "text": "visit Custyle.ai for more", "names": ["Custyle"], "expectMatch": true, "note": "domain-form dot [Custyle]"}
+{"id": "m-014", "text": "rated: Custyle!", "names": ["Custyle"], "expectMatch": true, "note": "exclamation after [Custyle]"}
+{"id": "m-015", "text": "- Custyle: a good option", "names": ["Custyle"], "expectMatch": true, "note": "list dash + colon [Custyle]"}
+{"id": "m-016", "text": "见「Custyle」官网", "names": ["Custyle"], "expectMatch": true, "note": "CJK corner quotes [Custyle]"}
+{"id": "m-017", "text": "比较Custyle与竞品", "names": ["Custyle"], "expectMatch": true, "note": "CJK before, 与 after [Custyle]"}
+{"id": "m-018", "text": "email us at hi@Custyle.com", "names": ["Custyle"], "expectMatch": true, "note": "inside email domain [Custyle]"}
+{"id": "m-019", "text": "Fernway is a platform.", "names": ["Fernway"], "expectMatch": true, "note": "sentence start [Fernway]"}
+{"id": "m-020", "text": "I recommend Fernway.", "names": ["Fernway"], "expectMatch": true, "note": "period after [Fernway]"}
+{"id": "m-021", "text": "Try Fernway, it works.", "names": ["Fernway"], "expectMatch": true, "note": "comma after [Fernway]"}
+{"id": "m-022", "text": "(Fernway)", "names": ["Fernway"], "expectMatch": true, "note": "parens [Fernway]"}
+{"id": "m-023", "text": "**Fernway** is bold.", "names": ["Fernway"], "expectMatch": true, "note": "markdown bold [Fernway]"}
+{"id": "m-024", "text": "“Fernway”是一个品牌。", "names": ["Fernway"], "expectMatch": true, "note": "CN quotes + CJK after [Fernway]"}
+{"id": "m-025", "text": "如Fernway、其他家。", "names": ["Fernway"], "expectMatch": true, "note": "CJK before + 顿号 after [Fernway]"}
+{"id": "m-026", "text": "用Fernway做周边", "names": ["Fernway"], "expectMatch": true, "note": "CJK both sides, no space [Fernway]"}
+{"id": "m-027", "text": "Fernway/Printify/Gelato", "names": ["Fernway"], "expectMatch": true, "note": "slash list head [Fernway]"}
+{"id": "m-028", "text": "Printful/Fernway/Gelato", "names": ["Fernway"], "expectMatch": true, "note": "slash list middle [Fernway]"}
+{"id": "m-029", "text": "Fernway's pricing is fair.", "names": ["Fernway"], "expectMatch": true, "note": "ASCII possessive 's [Fernway]"}
+{"id": "m-030", "text": "Fernway’s pricing is fair.", "names": ["Fernway"], "expectMatch": true, "note": "curly possessive ’s [Fernway]"}
+{"id": "m-031", "text": "visit Fernway.ai for more", "names": ["Fernway"], "expectMatch": true, "note": "domain-form dot [Fernway]"}
+{"id": "m-032", "text": "rated: Fernway!", "names": ["Fernway"], "expectMatch": true, "note": "exclamation after [Fernway]"}
+{"id": "m-033", "text": "- Fernway: a good option", "names": ["Fernway"], "expectMatch": true, "note": "list dash + colon [Fernway]"}
+{"id": "m-034", "text": "见「Fernway」官网", "names": ["Fernway"], "expectMatch": true, "note": "CJK corner quotes [Fernway]"}
+{"id": "m-035", "text": "比较Fernway与竞品", "names": ["Fernway"], "expectMatch": true, "note": "CJK before, 与 after [Fernway]"}
+{"id": "m-036", "text": "email us at hi@Fernway.com", "names": ["Fernway"], "expectMatch": true, "note": "inside email domain [Fernway]"}
+{"id": "m-037", "text": "GeoLook is a platform.", "names": ["GeoLook"], "expectMatch": true, "note": "sentence start [GeoLook]"}
+{"id": "m-038", "text": "I recommend GeoLook.", "names": ["GeoLook"], "expectMatch": true, "note": "period after [GeoLook]"}
+{"id": "m-039", "text": "Try GeoLook, it works.", "names": ["GeoLook"], "expectMatch": true, "note": "comma after [GeoLook]"}
+{"id": "m-040", "text": "(GeoLook)", "names": ["GeoLook"], "expectMatch": true, "note": "parens [GeoLook]"}
+{"id": "m-041", "text": "**GeoLook** is bold.", "names": ["GeoLook"], "expectMatch": true, "note": "markdown bold [GeoLook]"}
+{"id": "m-042", "text": "“GeoLook”是一个品牌。", "names": ["GeoLook"], "expectMatch": true, "note": "CN quotes + CJK after [GeoLook]"}
+{"id": "m-043", "text": "如GeoLook、其他家。", "names": ["GeoLook"], "expectMatch": true, "note": "CJK before + 顿号 after [GeoLook]"}
+{"id": "m-044", "text": "用GeoLook做周边", "names": ["GeoLook"], "expectMatch": true, "note": "CJK both sides, no space [GeoLook]"}
+{"id": "m-045", "text": "GeoLook/Printify/Gelato", "names": ["GeoLook"], "expectMatch": true, "note": "slash list head [GeoLook]"}
+{"id": "m-046", "text": "Printful/GeoLook/Gelato", "names": ["GeoLook"], "expectMatch": true, "note": "slash list middle [GeoLook]"}
+{"id": "m-047", "text": "GeoLook's pricing is fair.", "names": ["GeoLook"], "expectMatch": true, "note": "ASCII possessive 's [GeoLook]"}
+{"id": "m-048", "text": "GeoLook’s pricing is fair.", "names": ["GeoLook"], "expectMatch": true, "note": "curly possessive ’s [GeoLook]"}
+{"id": "m-049", "text": "visit GeoLook.ai for more", "names": ["GeoLook"], "expectMatch": true, "note": "domain-form dot [GeoLook]"}
+{"id": "m-050", "text": "rated: GeoLook!", "names": ["GeoLook"], "expectMatch": true, "note": "exclamation after [GeoLook]"}
+{"id": "m-051", "text": "- GeoLook: a good option", "names": ["GeoLook"], "expectMatch": true, "note": "list dash + colon [GeoLook]"}
+{"id": "m-052", "text": "见「GeoLook」官网", "names": ["GeoLook"], "expectMatch": true, "note": "CJK corner quotes [GeoLook]"}
+{"id": "m-053", "text": "比较GeoLook与竞品", "names": ["GeoLook"], "expectMatch": true, "note": "CJK before, 与 after [GeoLook]"}
+{"id": "m-054", "text": "email us at hi@GeoLook.com", "names": ["GeoLook"], "expectMatch": true, "note": "inside email domain [GeoLook]"}
+{"id": "m-055", "text": "Rosé is a platform.", "names": ["Rosé"], "expectMatch": true, "note": "sentence start [Rosé]"}
+{"id": "m-056", "text": "I recommend Rosé.", "names": ["Rosé"], "expectMatch": true, "note": "period after [Rosé]"}
+{"id": "m-057", "text": "Try Rosé, it works.", "names": ["Rosé"], "expectMatch": true, "note": "comma after [Rosé]"}
+{"id": "m-058", "text": "(Rosé)", "names": ["Rosé"], "expectMatch": true, "note": "parens [Rosé]"}
+{"id": "m-059", "text": "**Rosé** is bold.", "names": ["Rosé"], "expectMatch": true, "note": "markdown bold [Rosé]"}
+{"id": "m-060", "text": "“Rosé”是一个品牌。", "names": ["Rosé"], "expectMatch": true, "note": "CN quotes + CJK after [Rosé]"}
+{"id": "m-061", "text": "如Rosé、其他家。", "names": ["Rosé"], "expectMatch": true, "note": "CJK before + 顿号 after [Rosé]"}
+{"id": "m-062", "text": "用Rosé做周边", "names": ["Rosé"], "expectMatch": true, "note": "CJK both sides, no space [Rosé]"}
+{"id": "m-063", "text": "Rosé/Printify/Gelato", "names": ["Rosé"], "expectMatch": true, "note": "slash list head [Rosé]"}
+{"id": "m-064", "text": "Printful/Rosé/Gelato", "names": ["Rosé"], "expectMatch": true, "note": "slash list middle [Rosé]"}
+{"id": "m-065", "text": "Rosé's pricing is fair.", "names": ["Rosé"], "expectMatch": true, "note": "ASCII possessive 's [Rosé]"}
+{"id": "m-066", "text": "Rosé’s pricing is fair.", "names": ["Rosé"], "expectMatch": true, "note": "curly possessive ’s [Rosé]"}
+{"id": "m-067", "text": "visit Rosé.ai for more", "names": ["Rosé"], "expectMatch": true, "note": "domain-form dot [Rosé]"}
+{"id": "m-068", "text": "rated: Rosé!", "names": ["Rosé"], "expectMatch": true, "note": "exclamation after [Rosé]"}
+{"id": "m-069", "text": "- Rosé: a good option", "names": ["Rosé"], "expectMatch": true, "note": "list dash + colon [Rosé]"}
+{"id": "m-070", "text": "见「Rosé」官网", "names": ["Rosé"], "expectMatch": true, "note": "CJK corner quotes [Rosé]"}
+{"id": "m-071", "text": "比较Rosé与竞品", "names": ["Rosé"], "expectMatch": true, "note": "CJK before, 与 after [Rosé]"}
+{"id": "m-072", "text": "email us at hi@Rosé.com", "names": ["Rosé"], "expectMatch": true, "note": "inside email domain [Rosé]"}
+{"id": "m-073", "text": "X2Go is a platform.", "names": ["X2Go"], "expectMatch": true, "note": "sentence start [X2Go]"}
+{"id": "m-074", "text": "I recommend X2Go.", "names": ["X2Go"], "expectMatch": true, "note": "period after [X2Go]"}
+{"id": "m-075", "text": "Try X2Go, it works.", "names": ["X2Go"], "expectMatch": true, "note": "comma after [X2Go]"}
+{"id": "m-076", "text": "(X2Go)", "names": ["X2Go"], "expectMatch": true, "note": "parens [X2Go]"}
+{"id": "m-077", "text": "**X2Go** is bold.", "names": ["X2Go"], "expectMatch": true, "note": "markdown bold [X2Go]"}
+{"id": "m-078", "text": "“X2Go”是一个品牌。", "names": ["X2Go"], "expectMatch": true, "note": "CN quotes + CJK after [X2Go]"}
+{"id": "m-079", "text": "如X2Go、其他家。", "names": ["X2Go"], "expectMatch": true, "note": "CJK before + 顿号 after [X2Go]"}
+{"id": "m-080", "text": "用X2Go做周边", "names": ["X2Go"], "expectMatch": true, "note": "CJK both sides, no space [X2Go]"}
+{"id": "m-081", "text": "X2Go/Printify/Gelato", "names": ["X2Go"], "expectMatch": true, "note": "slash list head [X2Go]"}
+{"id": "m-082", "text": "Printful/X2Go/Gelato", "names": ["X2Go"], "expectMatch": true, "note": "slash list middle [X2Go]"}
+{"id": "m-083", "text": "X2Go's pricing is fair.", "names": ["X2Go"], "expectMatch": true, "note": "ASCII possessive 's [X2Go]"}
+{"id": "m-084", "text": "X2Go’s pricing is fair.", "names": ["X2Go"], "expectMatch": true, "note": "curly possessive ’s [X2Go]"}
+{"id": "m-085", "text": "visit X2Go.ai for more", "names": ["X2Go"], "expectMatch": true, "note": "domain-form dot [X2Go]"}
+{"id": "m-086", "text": "rated: X2Go!", "names": ["X2Go"], "expectMatch": true, "note": "exclamation after [X2Go]"}
+{"id": "m-087", "text": "- X2Go: a good option", "names": ["X2Go"], "expectMatch": true, "note": "list dash + colon [X2Go]"}
+{"id": "m-088", "text": "见「X2Go」官网", "names": ["X2Go"], "expectMatch": true, "note": "CJK corner quotes [X2Go]"}
+{"id": "m-089", "text": "比较X2Go与竞品", "names": ["X2Go"], "expectMatch": true, "note": "CJK before, 与 after [X2Go]"}
+{"id": "m-090", "text": "email us at hi@X2Go.com", "names": ["X2Go"], "expectMatch": true, "note": "inside email domain [X2Go]"}
+{"id": "m-091", "text": "i heard custyle is fine", "names": ["Custyle"], "expectMatch": true, "note": "lowercase form", "expectedMatched": "custyle"}
+{"id": "m-092", "text": "CUSTYLE IS GREAT", "names": ["Custyle"], "expectMatch": true, "note": "uppercase form", "expectedMatched": "CUSTYLE"}
+{"id": "m-093", "text": "CuStYlE mixed", "names": ["Custyle"], "expectMatch": true, "note": "mixed case", "expectedMatched": "CuStYlE"}
+{"id": "m-094", "text": "rosé vs ROSÉ wines", "names": ["Rosé"], "expectMatch": true, "note": "accented case-fold both", "expectCount": 2}
+{"id": "m-095", "text": "Custylex is another brand.", "names": ["Custyle"], "expectMatch": false, "note": "suffix letter [Custyle]"}
+{"id": "m-096", "text": "SuperCustyle launched.", "names": ["Custyle"], "expectMatch": false, "note": "prefix letter [Custyle]"}
+{"id": "m-097", "text": "Custyles are popular.", "names": ["Custyle"], "expectMatch": false, "note": "plural token [Custyle]"}
+{"id": "m-098", "text": "Custyle-style designs", "names": ["Custyle"], "expectMatch": false, "note": "hyphen compound (precision rule M2) [Custyle]"}
+{"id": "m-099", "text": "the Custyle_pro plugin", "names": ["Custyle"], "expectMatch": false, "note": "underscore suffix [Custyle]"}
+{"id": "m-100", "text": "pre-Custyle era", "names": ["Custyle"], "expectMatch": false, "note": "hyphen prefix (M2) [Custyle]"}
+{"id": "m-101", "text": "www.Custylepro.com", "names": ["Custyle"], "expectMatch": false, "note": "inside longer domain label [Custyle]"}
+{"id": "m-102", "text": "Fernwayx is another brand.", "names": ["Fernway"], "expectMatch": false, "note": "suffix letter [Fernway]"}
+{"id": "m-103", "text": "SuperFernway launched.", "names": ["Fernway"], "expectMatch": false, "note": "prefix letter [Fernway]"}
+{"id": "m-104", "text": "Fernways are popular.", "names": ["Fernway"], "expectMatch": false, "note": "plural token [Fernway]"}
+{"id": "m-105", "text": "Fernway-style designs", "names": ["Fernway"], "expectMatch": false, "note": "hyphen compound (precision rule M2) [Fernway]"}
+{"id": "m-106", "text": "the Fernway_pro plugin", "names": ["Fernway"], "expectMatch": false, "note": "underscore suffix [Fernway]"}
+{"id": "m-107", "text": "pre-Fernway era", "names": ["Fernway"], "expectMatch": false, "note": "hyphen prefix (M2) [Fernway]"}
+{"id": "m-108", "text": "www.Fernwaypro.com", "names": ["Fernway"], "expectMatch": false, "note": "inside longer domain label [Fernway]"}
+{"id": "m-109", "text": "GeoLookx is another brand.", "names": ["GeoLook"], "expectMatch": false, "note": "suffix letter [GeoLook]"}
+{"id": "m-110", "text": "SuperGeoLook launched.", "names": ["GeoLook"], "expectMatch": false, "note": "prefix letter [GeoLook]"}
+{"id": "m-111", "text": "GeoLooks are popular.", "names": ["GeoLook"], "expectMatch": false, "note": "plural token [GeoLook]"}
+{"id": "m-112", "text": "GeoLook-style designs", "names": ["GeoLook"], "expectMatch": false, "note": "hyphen compound (precision rule M2) [GeoLook]"}
+{"id": "m-113", "text": "the GeoLook_pro plugin", "names": ["GeoLook"], "expectMatch": false, "note": "underscore suffix [GeoLook]"}
+{"id": "m-114", "text": "pre-GeoLook era", "names": ["GeoLook"], "expectMatch": false, "note": "hyphen prefix (M2) [GeoLook]"}
+{"id": "m-115", "text": "www.GeoLookpro.com", "names": ["GeoLook"], "expectMatch": false, "note": "inside longer domain label [GeoLook]"}
+{"id": "m-116", "text": "Custyles listed", "names": ["Custyle"], "expectMatch": false, "note": "plural again"}
+{"id": "m-117", "text": "GeoLookPro costs $10", "names": ["GeoLook"], "expectMatch": false, "note": "the classic lookalike"}
+{"id": "m-119", "text": "云杉出行怎么样？", "names": ["云杉出行"], "expectMatch": true, "note": "CJK plain"}
+{"id": "m-120", "text": "我用过云杉出行。", "names": ["云杉出行"], "expectMatch": true, "note": "CJK mid-sentence"}
+{"id": "m-121", "text": "「云杉出行」评价", "names": ["云杉出行"], "expectMatch": true, "note": "CJK corner quotes"}
+{"id": "m-122", "text": "（云杉出行）", "names": ["云杉出行"], "expectMatch": true, "note": "CJK CN parens"}
+{"id": "m-123", "text": "云杉出行/滴滴对比", "names": ["云杉出行"], "expectMatch": true, "note": "CJK slash"}
+{"id": "m-124", "text": "推荐 云杉出行 试试", "names": ["云杉出行"], "expectMatch": true, "note": "CJK spaces around"}
+{"id": "m-125", "text": "拾光相册很好用", "names": ["拾光相册"], "expectMatch": true, "note": "CJK app name"}
+{"id": "m-126", "text": "云杉出行上线了", "names": ["云杉"], "expectMatch": true, "note": "CJK alias substring — matches BY SPEC (pick aliases carefully, documented)"}
+{"id": "m-127", "text": "这棵云杉长得高", "names": ["云杉"], "expectMatch": true, "note": "CJK homograph tree — false-positive risk documented, matches by spec"}
+{"id": "m-128", "text": "custyle.ai and Custyle are the same", "names": ["Custyle", "custyle.ai"], "expectMatch": true, "note": "name+domain alias", "expectCount": 3}
+{"id": "m-129", "text": "Custyle（酷斯特）发布新品", "names": ["Custyle", "酷斯特"], "expectMatch": true, "note": "EN+CN alias pair", "expectCount": 2}
+{"id": "m-130", "text": "酷斯特是 Custyle 的中文名，酷斯特很好", "names": ["Custyle", "酷斯特"], "expectMatch": true, "note": "mixed multi-hit", "expectCount": 3}
+{"id": "m-131", "text": "I love UT me! products", "names": ["UT me!"], "expectMatch": true, "note": "name containing space+bang"}
+{"id": "m-132", "text": "X2Go beats X2Gone", "names": ["X2Go"], "expectMatch": true, "note": "digit name; lookalike suffix present", "expectCount": 1}
+{"id": "m-133", "text": "Ｃｕｓｔｙｌｅ 全角形态", "names": ["Custyle"], "expectMatch": false, "note": "fullwidth Latin — documented limitation (no NFKC)"}
+{"id": "m-134", "text": "Cus​tyle has zero-width space", "names": ["Custyle"], "expectMatch": false, "note": "ZWSP inside — documented limitation"}
+{"id": "m-135", "text": "推荐 Printful 和 custyle 两家。", "names": ["Custyle"], "expectMatch": true, "note": "range slice equals actual casing", "expectedMatched": "custyle"}
+{"id": "m-136", "text": "is Custyle good?", "names": ["Custyle"], "expectMatch": true, "note": "question mark after [Custyle]"}
+{"id": "m-137", "text": "brands: Custyle; others", "names": ["Custyle"], "expectMatch": true, "note": "semicolon [Custyle]"}
+{"id": "m-138", "text": "\"Custyle\" quoted", "names": ["Custyle"], "expectMatch": true, "note": "ASCII quotes [Custyle]"}
+{"id": "m-139", "text": "[Custyle] bracketed", "names": ["Custyle"], "expectMatch": true, "note": "square brackets [Custyle]"}
+{"id": "m-140", "text": "{Custyle} braced", "names": ["Custyle"], "expectMatch": true, "note": "curly braces [Custyle]"}
+{"id": "m-141", "text": "«Custyle» guillemets", "names": ["Custyle"], "expectMatch": true, "note": "guillemets [Custyle]"}
+{"id": "m-142", "text": "《Custyle》书名号", "names": ["Custyle"], "expectMatch": true, "note": "CJK book quotes [Custyle]"}
+{"id": "m-143", "text": "top pick:\nCustyle\nend", "names": ["Custyle"], "expectMatch": true, "note": "newline boundaries [Custyle]"}
+{"id": "m-144", "text": "tab\tCustyle\ttab", "names": ["Custyle"], "expectMatch": true, "note": "tab boundaries [Custyle]"}
+{"id": "m-145", "text": "对比：Custyle，另一家", "names": ["Custyle"], "expectMatch": true, "note": "CJK colon+comma [Custyle]"}
+{"id": "m-146", "text": "；Custyle；", "names": ["Custyle"], "expectMatch": true, "note": "CJK semicolons [Custyle]"}
+{"id": "m-147", "text": "1.Custyle 2.Other", "names": ["Custyle"], "expectMatch": true, "note": "numbered list dot before [Custyle]"}
+{"id": "m-148", "text": "Custyle+Printful bundle", "names": ["Custyle"], "expectMatch": true, "note": "plus sign after [Custyle]"}
+{"id": "m-149", "text": "50% off Custyle!", "names": ["Custyle"], "expectMatch": true, "note": "percent context [Custyle]"}
+{"id": "m-150", "text": "#Custyle hashtag", "names": ["Custyle"], "expectMatch": true, "note": "hash before [Custyle]"}
+{"id": "m-151", "text": "@Custyle handle", "names": ["Custyle"], "expectMatch": true, "note": "at-sign before [Custyle]"}
+{"id": "m-152", "text": "is Fernway good?", "names": ["Fernway"], "expectMatch": true, "note": "question mark after [Fernway]"}
+{"id": "m-153", "text": "brands: Fernway; others", "names": ["Fernway"], "expectMatch": true, "note": "semicolon [Fernway]"}
+{"id": "m-154", "text": "\"Fernway\" quoted", "names": ["Fernway"], "expectMatch": true, "note": "ASCII quotes [Fernway]"}
+{"id": "m-155", "text": "[Fernway] bracketed", "names": ["Fernway"], "expectMatch": true, "note": "square brackets [Fernway]"}
+{"id": "m-156", "text": "{Fernway} braced", "names": ["Fernway"], "expectMatch": true, "note": "curly braces [Fernway]"}
+{"id": "m-157", "text": "«Fernway» guillemets", "names": ["Fernway"], "expectMatch": true, "note": "guillemets [Fernway]"}
+{"id": "m-158", "text": "《Fernway》书名号", "names": ["Fernway"], "expectMatch": true, "note": "CJK book quotes [Fernway]"}
+{"id": "m-159", "text": "top pick:\nFernway\nend", "names": ["Fernway"], "expectMatch": true, "note": "newline boundaries [Fernway]"}
+{"id": "m-160", "text": "tab\tFernway\ttab", "names": ["Fernway"], "expectMatch": true, "note": "tab boundaries [Fernway]"}
+{"id": "m-161", "text": "对比：Fernway，另一家", "names": ["Fernway"], "expectMatch": true, "note": "CJK colon+comma [Fernway]"}
+{"id": "m-162", "text": "；Fernway；", "names": ["Fernway"], "expectMatch": true, "note": "CJK semicolons [Fernway]"}
+{"id": "m-163", "text": "1.Fernway 2.Other", "names": ["Fernway"], "expectMatch": true, "note": "numbered list dot before [Fernway]"}
+{"id": "m-164", "text": "Fernway+Printful bundle", "names": ["Fernway"], "expectMatch": true, "note": "plus sign after [Fernway]"}
+{"id": "m-165", "text": "50% off Fernway!", "names": ["Fernway"], "expectMatch": true, "note": "percent context [Fernway]"}
+{"id": "m-166", "text": "#Fernway hashtag", "names": ["Fernway"], "expectMatch": true, "note": "hash before [Fernway]"}
+{"id": "m-167", "text": "@Fernway handle", "names": ["Fernway"], "expectMatch": true, "note": "at-sign before [Fernway]"}
+{"id": "m-168", "text": "is GeoLook good?", "names": ["GeoLook"], "expectMatch": true, "note": "question mark after [GeoLook]"}
+{"id": "m-169", "text": "brands: GeoLook; others", "names": ["GeoLook"], "expectMatch": true, "note": "semicolon [GeoLook]"}
+{"id": "m-170", "text": "\"GeoLook\" quoted", "names": ["GeoLook"], "expectMatch": true, "note": "ASCII quotes [GeoLook]"}
+{"id": "m-171", "text": "[GeoLook] bracketed", "names": ["GeoLook"], "expectMatch": true, "note": "square brackets [GeoLook]"}
+{"id": "m-172", "text": "{GeoLook} braced", "names": ["GeoLook"], "expectMatch": true, "note": "curly braces [GeoLook]"}
+{"id": "m-173", "text": "«GeoLook» guillemets", "names": ["GeoLook"], "expectMatch": true, "note": "guillemets [GeoLook]"}
+{"id": "m-174", "text": "《GeoLook》书名号", "names": ["GeoLook"], "expectMatch": true, "note": "CJK book quotes [GeoLook]"}
+{"id": "m-175", "text": "top pick:\nGeoLook\nend", "names": ["GeoLook"], "expectMatch": true, "note": "newline boundaries [GeoLook]"}
+{"id": "m-176", "text": "tab\tGeoLook\ttab", "names": ["GeoLook"], "expectMatch": true, "note": "tab boundaries [GeoLook]"}
+{"id": "m-177", "text": "对比：GeoLook，另一家", "names": ["GeoLook"], "expectMatch": true, "note": "CJK colon+comma [GeoLook]"}
+{"id": "m-178", "text": "；GeoLook；", "names": ["GeoLook"], "expectMatch": true, "note": "CJK semicolons [GeoLook]"}
+{"id": "m-179", "text": "1.GeoLook 2.Other", "names": ["GeoLook"], "expectMatch": true, "note": "numbered list dot before [GeoLook]"}
+{"id": "m-180", "text": "GeoLook+Printful bundle", "names": ["GeoLook"], "expectMatch": true, "note": "plus sign after [GeoLook]"}
+{"id": "m-181", "text": "50% off GeoLook!", "names": ["GeoLook"], "expectMatch": true, "note": "percent context [GeoLook]"}
+{"id": "m-182", "text": "#GeoLook hashtag", "names": ["GeoLook"], "expectMatch": true, "note": "hash before [GeoLook]"}
+{"id": "m-183", "text": "@GeoLook handle", "names": ["GeoLook"], "expectMatch": true, "note": "at-sign before [GeoLook]"}
+{"id": "m-184", "text": "is Rosé good?", "names": ["Rosé"], "expectMatch": true, "note": "question mark after [Rosé]"}
+{"id": "m-185", "text": "brands: Rosé; others", "names": ["Rosé"], "expectMatch": true, "note": "semicolon [Rosé]"}
+{"id": "m-186", "text": "\"Rosé\" quoted", "names": ["Rosé"], "expectMatch": true, "note": "ASCII quotes [Rosé]"}
+{"id": "m-187", "text": "[Rosé] bracketed", "names": ["Rosé"], "expectMatch": true, "note": "square brackets [Rosé]"}
+{"id": "m-188", "text": "{Rosé} braced", "names": ["Rosé"], "expectMatch": true, "note": "curly braces [Rosé]"}
+{"id": "m-189", "text": "«Rosé» guillemets", "names": ["Rosé"], "expectMatch": true, "note": "guillemets [Rosé]"}
+{"id": "m-190", "text": "《Rosé》书名号", "names": ["Rosé"], "expectMatch": true, "note": "CJK book quotes [Rosé]"}
+{"id": "m-191", "text": "top pick:\nRosé\nend", "names": ["Rosé"], "expectMatch": true, "note": "newline boundaries [Rosé]"}
+{"id": "m-192", "text": "tab\tRosé\ttab", "names": ["Rosé"], "expectMatch": true, "note": "tab boundaries [Rosé]"}
+{"id": "m-193", "text": "对比：Rosé，另一家", "names": ["Rosé"], "expectMatch": true, "note": "CJK colon+comma [Rosé]"}
+{"id": "m-194", "text": "；Rosé；", "names": ["Rosé"], "expectMatch": true, "note": "CJK semicolons [Rosé]"}
+{"id": "m-195", "text": "1.Rosé 2.Other", "names": ["Rosé"], "expectMatch": true, "note": "numbered list dot before [Rosé]"}
+{"id": "m-196", "text": "Rosé+Printful bundle", "names": ["Rosé"], "expectMatch": true, "note": "plus sign after [Rosé]"}
+{"id": "m-197", "text": "50% off Rosé!", "names": ["Rosé"], "expectMatch": true, "note": "percent context [Rosé]"}
+{"id": "m-198", "text": "#Rosé hashtag", "names": ["Rosé"], "expectMatch": true, "note": "hash before [Rosé]"}
+{"id": "m-199", "text": "@Rosé handle", "names": ["Rosé"], "expectMatch": true, "note": "at-sign before [Rosé]"}
+{"id": "m-200", "text": "is X2Go good?", "names": ["X2Go"], "expectMatch": true, "note": "question mark after [X2Go]"}
+{"id": "m-201", "text": "brands: X2Go; others", "names": ["X2Go"], "expectMatch": true, "note": "semicolon [X2Go]"}
+{"id": "m-202", "text": "\"X2Go\" quoted", "names": ["X2Go"], "expectMatch": true, "note": "ASCII quotes [X2Go]"}
+{"id": "m-203", "text": "[X2Go] bracketed", "names": ["X2Go"], "expectMatch": true, "note": "square brackets [X2Go]"}
+{"id": "m-204", "text": "{X2Go} braced", "names": ["X2Go"], "expectMatch": true, "note": "curly braces [X2Go]"}
+{"id": "m-205", "text": "«X2Go» guillemets", "names": ["X2Go"], "expectMatch": true, "note": "guillemets [X2Go]"}
+{"id": "m-206", "text": "《X2Go》书名号", "names": ["X2Go"], "expectMatch": true, "note": "CJK book quotes [X2Go]"}
+{"id": "m-207", "text": "top pick:\nX2Go\nend", "names": ["X2Go"], "expectMatch": true, "note": "newline boundaries [X2Go]"}
+{"id": "m-208", "text": "tab\tX2Go\ttab", "names": ["X2Go"], "expectMatch": true, "note": "tab boundaries [X2Go]"}
+{"id": "m-209", "text": "对比：X2Go，另一家", "names": ["X2Go"], "expectMatch": true, "note": "CJK colon+comma [X2Go]"}
+{"id": "m-210", "text": "；X2Go；", "names": ["X2Go"], "expectMatch": true, "note": "CJK semicolons [X2Go]"}
+{"id": "m-211", "text": "1.X2Go 2.Other", "names": ["X2Go"], "expectMatch": true, "note": "numbered list dot before [X2Go]"}
+{"id": "m-212", "text": "X2Go+Printful bundle", "names": ["X2Go"], "expectMatch": true, "note": "plus sign after [X2Go]"}
+{"id": "m-213", "text": "50% off X2Go!", "names": ["X2Go"], "expectMatch": true, "note": "percent context [X2Go]"}
+{"id": "m-214", "text": "#X2Go hashtag", "names": ["X2Go"], "expectMatch": true, "note": "hash before [X2Go]"}
+{"id": "m-215", "text": "@X2Go handle", "names": ["X2Go"], "expectMatch": true, "note": "at-sign before [X2Go]"}
+{"id": "m-216", "text": "myCustyle account", "names": ["Custyle"], "expectMatch": false, "note": "camel prefix [Custyle]"}
+{"id": "m-217", "text": "Custyleify tools", "names": ["Custyle"], "expectMatch": false, "note": "suffix -ify [Custyle]"}
+{"id": "m-218", "text": "anti-Custyle posts", "names": ["Custyle"], "expectMatch": false, "note": "hyphen prefix (M2) [Custyle]"}
+{"id": "m-219", "text": "Custyle-like services", "names": ["Custyle"], "expectMatch": false, "note": "hyphen suffix (M2) [Custyle]"}
+{"id": "m-220", "text": "myFernway account", "names": ["Fernway"], "expectMatch": false, "note": "camel prefix [Fernway]"}
+{"id": "m-221", "text": "Fernwayify tools", "names": ["Fernway"], "expectMatch": false, "note": "suffix -ify [Fernway]"}
+{"id": "m-222", "text": "anti-Fernway posts", "names": ["Fernway"], "expectMatch": false, "note": "hyphen prefix (M2) [Fernway]"}
+{"id": "m-223", "text": "Fernway-like services", "names": ["Fernway"], "expectMatch": false, "note": "hyphen suffix (M2) [Fernway]"}
+{"id": "m-224", "text": "myGeoLook account", "names": ["GeoLook"], "expectMatch": false, "note": "camel prefix [GeoLook]"}
+{"id": "m-225", "text": "GeoLookify tools", "names": ["GeoLook"], "expectMatch": false, "note": "suffix -ify [GeoLook]"}
+{"id": "m-226", "text": "anti-GeoLook posts", "names": ["GeoLook"], "expectMatch": false, "note": "hyphen prefix (M2) [GeoLook]"}
+{"id": "m-227", "text": "GeoLook-like services", "names": ["GeoLook"], "expectMatch": false, "note": "hyphen suffix (M2) [GeoLook]"}
+{"id": "m-228", "text": "myRosé account", "names": ["Rosé"], "expectMatch": false, "note": "camel prefix [Rosé]"}
+{"id": "m-229", "text": "Roséify tools", "names": ["Rosé"], "expectMatch": false, "note": "suffix -ify [Rosé]"}
+{"id": "m-230", "text": "anti-Rosé posts", "names": ["Rosé"], "expectMatch": false, "note": "hyphen prefix (M2) [Rosé]"}
+{"id": "m-231", "text": "Rosé-like services", "names": ["Rosé"], "expectMatch": false, "note": "hyphen suffix (M2) [Rosé]"}
+{"id": "m-232", "text": "myX2Go account", "names": ["X2Go"], "expectMatch": false, "note": "camel prefix [X2Go]"}
+{"id": "m-233", "text": "X2Goify tools", "names": ["X2Go"], "expectMatch": false, "note": "suffix -ify [X2Go]"}
+{"id": "m-234", "text": "anti-X2Go posts", "names": ["X2Go"], "expectMatch": false, "note": "hyphen prefix (M2) [X2Go]"}
+{"id": "m-235", "text": "X2Go-like services", "names": ["X2Go"], "expectMatch": false, "note": "hyphen suffix (M2) [X2Go]"}
+{"id": "m-236", "text": "云杉出行、滴滴、T3 里选", "names": ["云杉出行"], "expectMatch": true, "note": "CJK list"}
+{"id": "m-237", "text": "最推荐的是云杉出行了", "names": ["云杉出行"], "expectMatch": true, "note": "CJK sentence-final particle"}
+{"id": "m-238", "text": "拾光相册App不错", "names": ["拾光相册"], "expectMatch": true, "note": "CJK + Latin App suffix"}
+{"id": "m-239", "text": "别用拾光相册盗版", "names": ["拾光相册"], "expectMatch": true, "note": "CJK verb before"}
+{"id": "m-240", "text": "云-杉-出-行", "names": ["云杉出行"], "expectMatch": false, "note": "CJK hyphen-broken — no match (spec)"}
+{"id": "m-241", "text": "云杉 出行分开写", "names": ["云杉出行"], "expectMatch": false, "note": "CJK space-broken — no match (spec, exact substring)"}
+{"id": "m-242", "text": "A X here", "names": ["X"], "expectMatch": false, "note": "single-char name filtered — unified spec across mentions/matchRanges"}

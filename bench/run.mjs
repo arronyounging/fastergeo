@@ -138,5 +138,45 @@ async function runRecognition() {
   console.log(`resolved by: heuristic ${byMethod.heuristic} · judge ${byMethod.judge}`);
 }
 
+async function runMatching() {
+  const { mentions, matchRanges } = await import('../packages/metrics/dist/index.js');
+  const cases = readFileSync(new URL('./matching/golden.jsonl', import.meta.url), 'utf8')
+    .split('\n').filter(Boolean).map((l) => JSON.parse(l)).slice(0, limit);
+  console.log(`matching golden · ${cases.length} cases\n`);
+
+  let tp = 0, fp = 0, fn = 0, tn = 0;
+  const misses = [];
+  for (const c of cases) {
+    const got = mentions(c.text, c.names);
+    const ranges = matchRanges(c.text, c.names);
+    let ok = got === c.expectMatch;
+    let why = '';
+    if (ok && c.expectCount !== undefined && ranges.length !== c.expectCount) {
+      ok = false; why = `count ${ranges.length}≠${c.expectCount}`;
+    }
+    if (ok && c.expectedMatched) {
+      const hit = ranges.some((r) => c.text.slice(r.start, r.end) === c.expectedMatched);
+      if (!hit) { ok = false; why = `range slice ≠ "${c.expectedMatched}"`; }
+    }
+    if (c.expectMatch && got) tp++;
+    else if (!c.expectMatch && got) fp++;
+    else if (c.expectMatch && !got) fn++;
+    else tn++;
+    if (!ok) misses.push({ c, got, why });
+  }
+  const p = tp + fp ? tp / (tp + fp) : null;
+  const r = tp + fn ? tp / (tp + fn) : null;
+  console.log(`mention precision: ${(p * 100).toFixed(1)}%  recall: ${(r * 100).toFixed(1)}%  (tp ${tp} fp ${fp} fn ${fn} tn ${tn})`);
+  console.log(`case-level pass (incl. count/range assertions): ${cases.length - misses.length}/${cases.length}`);
+  if (misses.length) {
+    console.log('\nmisses:');
+    for (const { c, got, why } of misses) {
+      console.log(`  ${c.id}  expect=${c.expectMatch} got=${got} ${why}  · ${c.note}`);
+      console.log(`      "${c.text}" names=${JSON.stringify(c.names)}`);
+    }
+  }
+}
+
 if (suite === 'recognition') await runRecognition();
+else if (suite === 'matching') await runMatching();
 else { console.error(`unknown suite: ${suite}`); process.exit(1); }

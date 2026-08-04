@@ -377,3 +377,28 @@ describe('makeLlmJudge — invented-quote guard (prompt v2)', () => {
     expect(r.verdict).toBe('confused');
   });
 });
+
+import { suggestAliases } from '../src/aliases.js';
+
+describe('suggestAliases — candidates only, never auto-added', () => {
+  it('proposes domain forms and multiword variants, deduped against existing', () => {
+    const out = suggestAliases({ name: 'Faster GEO', domains: ['https://www.fastergeo.co/x'], aliases: [] });
+    // one representative per case-insensitive equivalence class
+    const keys = out.map(a => a.alias.toLowerCase());
+    expect(keys).toContain('fastergeo.co');
+    expect(keys).toContain('fastergeo');    // domain label ≡ no-space join (one survives)
+    expect(keys).toContain('faster-geo');   // hyphen join
+    expect(keys).toContain('fg');           // acronym
+    expect(keys).not.toContain('faster geo');
+    expect(new Set(keys).size).toBe(keys.length); // no duplicate classes
+    // case-variant of an existing alias is redundant (Latin matching is
+    // case-insensitive) and must be deduped:
+    const out2 = suggestAliases({ name: 'Faster GEO', domains: [], aliases: ['fastergeo'] });
+    expect(out2.map(a => a.alias)).not.toContain('FasterGEO');
+  });
+
+  it('returns nothing new for a single-word brand with matching domain label', () => {
+    const out = suggestAliases({ name: 'Custyle', domains: ['custyle.ai'], aliases: ['custyle.ai'] });
+    expect(out.map(a => a.alias)).toEqual([]);
+  });
+});

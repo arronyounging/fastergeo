@@ -15,8 +15,11 @@ function escapeRegExp(s: string): string {
 /** Index of the first occurrence of any name variant, or -1. */
 export function firstMentionIndex(text: string, names: string[]): number {
   let best = -1;
-  for (const name of names) {
-    if (!name) continue;
+  for (const raw of names) {
+    // Same guard as matchRanges — metrics and display MUST share one spec,
+    // or the replay could disagree with the numbers it exists to prove.
+    const name = raw?.trim();
+    if (!name || name.length < 2) continue;
     let idx = -1;
     if (HAS_CJK.test(name)) {
       idx = text.indexOf(name);

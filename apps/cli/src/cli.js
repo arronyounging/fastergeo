@@ -29,7 +29,7 @@ import {
 } from '@fastergeo/providers';
 import {
   computeMetrics, parseGeoLookSamples, makeLlmJudge, makeSentimentJudge,
-  renderSampleSheet, parseSampleSheet, enrichWithQuestionBank,
+  renderSampleSheet, parseSampleSheet, enrichWithQuestionBank, suggestAliases,
 } from '@fastergeo/metrics';
 import { auditSite, fetchPage } from '@fastergeo/audit';
 import { generateTickets, verifyTickets } from '@fastergeo/tickets';
@@ -430,6 +430,11 @@ async function cmdBootstrap() {
     console.log(`  [${c.confidence}] ${c.name} — ${c.why.slice(0, 40)}`);
   }
   console.log(`\nquestion bank: ${result.questions.length} (cn ${result.questions.filter(q => q.market === 'cn').length} / global ${result.questions.filter(q => q.market === 'global').length} / probes ${result.questions.filter(q => q.brandInQuestion).length})`);
+  const aliasCands = suggestAliases(result.brand);
+  if (aliasCands.length) {
+    console.log('\nalias candidates (add the right ones to brand.json by hand — missing aliases silently under-count visibility):');
+    for (const a of aliasCands) console.log(`  · ${a.alias}  — ${a.reason}`);
+  }
   console.log('\nnext: review competitors in brand.json and unconfirmed facts, then fastergeo sample / audit / plan.');
 }
 
