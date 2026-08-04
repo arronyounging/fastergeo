@@ -9,8 +9,10 @@ import { createServer } from 'node:http';
 import { readFileSync, writeFileSync, readdirSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { renderHtmlReport } from '@fastergeo/report';
+import { renderHtmlReport, dailyContract } from '@fastergeo/report';
 import { computeTrends } from '@fastergeo/trends';
+import { PROVIDERS, resolveProvider } from '@fastergeo/providers';
+import { rankTickets } from '@fastergeo/tickets';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -32,6 +34,41 @@ function loadPeriods(dir) {
   return [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date));
 }
 
+/**
+ * Every engine, with whether a key is configured — never whether it is valid,
+ * and never the key itself.
+ *
+ * The unconfigured ones are listed by name on purpose. A row reading
+ * "文心 · not configured" says more about China coverage than any claim on the
+ * marketing site, and it keeps the dashboard honest: an engine we did not
+ * sample renders as "—", never as a zero.
+ */
+function engineStatus() {
+  return Object.values(PROVIDERS).map(spec => {
+    const r = resolveProvider(spec.id);
+    return {
+      id: spec.id,
+      name: spec.name,
+      market: spec.market,
+      driver: spec.driver,
+      configured: spec.driver === 'api' ? Boolean(r.apiKey) : false,
+      keyEnv: spec.keyEnv ?? null,
+    };
+  });
+}
+
+/** The five dossier documents, raw. The frontend renders them; we don't parse. */
+function loadDossier(dir) {
+  const d = join(dir, 'dossier');
+  const files = ['product.md', 'facts.md', 'competitors.md', 'questions.md', 'voice.md'];
+  const out = {};
+  for (const f of files) {
+    const p = join(d, f);
+    out[f] = existsSync(p) ? readFileSync(p, 'utf8') : null;
+  }
+  return out;
+}
+
 export function startUi(projectDir, port = 8765) {
   const server = createServer((req, res) => {
     const url = new URL(req.url, 'http://127.0.0.1');
@@ -48,6 +85,10 @@ export function startUi(projectDir, port = 8765) {
       if (url.pathname === '/api/project') {
         const periods = loadPeriods(projectDir);
         const latest = periods[periods.length - 1] ?? null;
+        const lang = url.searchParams.get('lang') === 'zh' ? 'zh' : 'en';
+        // Ranking and contract wording come from the packages, not from the
+        // frontend — a second copy of either would drift from the CLI's.
+        const ranked = rankTickets(loadJson(join(projectDir, 'tickets.json'), []));
         // samples can be MBs of verbatim answers and the frontend does not
         // read them from this endpoint — /api/report renders them instead.
         const { samples: _omit, ...latestLite } = latest ?? {};
@@ -55,8 +96,16 @@ export function startUi(projectDir, port = 8765) {
           brand: loadJson(join(projectDir, 'brand.json'), {}),
           facts: loadJson(join(projectDir, 'facts.json')),
           tickets: loadJson(join(projectDir, 'tickets.json'), []),
+          today: ranked.today,
+          ticketCounts: ranked.counts,
+          questions: loadJson(join(projectDir, 'questions.json'), []),
           periods: periods.map(p => p.date),
           latest: latest ? latestLite : null,
+          engines: engineStatus(),
+          dossier: loadDossier(projectDir),
+          contract: dailyContract(lang),
+          digest: existsSync(join(projectDir, 'today.md'))
+            ? readFileSync(join(projectDir, 'today.md'), 'utf8') : null,
         });
       }
 
