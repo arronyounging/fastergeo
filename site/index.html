@@ -130,6 +130,7 @@ background:var(--red-wash);border-radius:0 6px 6px 0;font-size:13.5px;line-heigh
 .scan-keep{margin-top:14px;font:13px var(--mono)}
 .scan-keep a{color:var(--red);text-decoration-color:var(--red)}
 .scan-keep span{color:var(--faint)}
+.scan-pending{margin-bottom:14px;font:13px var(--mono);color:var(--faint)}
 .scan-said{background:var(--panel);border:1px solid var(--rule2);border-left:4px solid var(--rule2);
 padding:20px 24px;margin-bottom:18px}
 .scan-said.v-bad{border-left-color:var(--red);background:var(--red-wash)}
@@ -666,20 +667,7 @@ form.addEventListener('submit', async e => {
       return `<div class="scan-blocker">■ ${plain ? `<b>${plain}</b><div class="scan-raw">${esc(b)}</div>` : esc(b)}</div>`;
     }).join('');
     const site = d.site ? `<div class="scan-checks">${chk(d.site.robotsTxtFound)} robots.txt · ${chk(!(d.site.blockedSearchCrawlers ?? d.site.blockedAiCrawlers)?.length)} AI search crawlers allowed · ${chk(d.site.sitemapFound)} sitemap · ${chk(d.site.llmsTxtFound)} llms.txt</div>` : '';
-    /* The quote goes above the score, for the same reason the report leads with
-       it: a number is an abstraction the reader has to be taught to care about,
-       and an engine describing them as a different company is not. */
-    const q = d.probe;
-    const V = { confused: ['bad', 'It has you mixed up with a different company'],
-      unknown: ['bad', 'It does not know who you are'],
-      knows: ['good', 'It knows who you are'],
-      unverified: ['mid', 'Read it yourself — we would not call this one for you'] };
-    const said = q ? `<div class="scan-said v-${V[q.verdict][0]}">
-        <div class="said-q">${esc(q.question)}</div>
-        <blockquote>${esc(q.answer.length > 600 ? q.answer.slice(0, 600) + '…' : q.answer)}</blockquote>
-        <div class="said-foot"><b>${V[q.verdict][1]}</b> · asked of DeepSeek just now · one question, one engine —
-          it says nothing yet about whether AI <i>recommends</i> you</div>
-      </div>` : '';
+    const said = '<div id="saidSlot"></div>';
     out.innerHTML = `${said}<div class="scan-card">
       <div class="scan-head"><div class="scan-grade ${p.grade}">${p.grade}</div>
         <div><div class="scan-score"><span id="scoreNum" class="num">0</span><small> /100 · AI reads ${p.wordCount.toLocaleString()} words on this page</small></div>
@@ -702,6 +690,27 @@ form.addEventListener('submit', async e => {
       };
       requestAnimationFrame(tick);
     });
+    /* The probe is two calls to a reasoning model — about twenty seconds against
+       the audit's three. Loaded after the card so the half that already works
+       never waits on the half that might not answer. */
+    (async () => {
+      const slot = document.getElementById('saidSlot');
+      slot.innerHTML = '<div class="scan-pending">Asking DeepSeek what kind of company you are…</div>';
+      try {
+        const pr = await fetch('/api/probe?lang=en&url=' + encodeURIComponent(url) + (d.id ? '&id=' + d.id : ''));
+        const pd = await pr.json();
+        const q = pd.probe;
+        if (!q) { slot.innerHTML = ''; return; }
+        const V = { confused: ['bad', 'It has you mixed up with a different company'],
+      unknown: ['bad', 'It does not know who you are'],
+      knows: ['good', 'It knows who you are'],
+      unverified: ['mid', 'Read it yourself — we would not call this one for you'] };
+        slot.innerHTML = `<div class="scan-said v-${V[q.verdict][0]}">
+          <div class="said-q">${esc(q.question)}</div>
+          <blockquote>${esc(q.answer.length > 700 ? q.answer.slice(0, 700) + '…' : q.answer)}</blockquote>
+          <div class="said-foot"><b>${V[q.verdict][1]}</b> · asked of DeepSeek just now · one question, one engine — it says nothing yet about whether AI <i>recommends</i> you</div></div>`;
+      } catch { slot.innerHTML = ''; }
+    })();
   } catch (err) {
     clearInterval(stepTimer);
     out.innerHTML = `<div class="scan-err">${esc(err.message)}</div>`;
