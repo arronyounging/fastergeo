@@ -172,7 +172,19 @@ describe('renderHtmlReport — answer replay', () => {
   });
 
   it('omits the section entirely without samples', () => {
-    expect(renderHtmlReport(INPUT)).not.toContain('Answer Replay');
+    // Structural, not prose: other copy may legitimately mention the section by
+    // name, and asserting on the words made this test fail for the wrong reason.
+    expect(renderHtmlReport(INPUT)).not.toContain('class="replay"');
+    expect(renderHtmlReport(INPUT)).not.toContain('rp-ans');
+  });
+
+  it('closes with a way back for whoever the report was forwarded to', () => {
+    const html = renderHtmlReport(INPUT);
+    expect(html).toContain('How to reproduce this');
+    expect(html).toContain('npx fastergeo report');
+    expect(html).toContain('fastergeo.co');
+    // Must not point at a section that did not render.
+    expect(html).not.toContain('Answer Replay below');
   });
 
   it('uses metric word-boundary rules — no mention chip or highlight for lookalike names', () => {
