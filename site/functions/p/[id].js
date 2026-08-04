@@ -49,6 +49,22 @@ border:none;cursor:pointer}
 max-height:190px;overflow:auto;border-radius:0}
 .term div{white-space:pre-wrap}
 .term .cur::after{content:"▋";animation:pulse 1s infinite}
+.fn{background:var(--panel);border:1px solid var(--rule);border-top:none;padding:18px 20px}
+.fn .verdict{font:500 19px/1.5 var(--serif);margin:0 0 14px;padding-left:13px;border-left:3px solid var(--red)}
+.fn .verdict.ok{border-left-color:var(--green)}
+.fn .stations{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--rule);border:1px solid var(--rule)}
+@media(max-width:900px){.fn .stations{grid-template-columns:repeat(2,1fr)}}
+.stn{background:var(--paper);padding:10px 9px;font:11.5px var(--mono);min-height:74px}
+.stn.broken{background:var(--red-wash)}
+.stn.ok{background:var(--green-wash)}
+.stn.here{outline:2px solid var(--red);outline-offset:-2px;position:relative}
+.stn .n{font:600 10px var(--mono);color:var(--faint)}
+.stn .q{font:500 12.5px/1.45 var(--serif);color:var(--ink);margin:3px 0 5px}
+.stn .s{font:10.5px var(--mono)}
+.stn.broken .s{color:var(--red)}.stn.ok .s{color:var(--green)}
+.stn.unmeasured .s,.stn.notcov .s{color:var(--faint)}
+.stn .tc{float:right;font:600 10px var(--mono);color:var(--ink2)}
+.fn .note{margin-top:11px;font:11.5px/1.8 var(--mono);color:var(--faint)}
 .panes{display:grid;grid-template-columns:250px minmax(0,1fr) 330px;gap:1px;background:var(--rule);
 border:1px solid var(--rule);border-top:none;border-radius:0 0 9px 9px}
 @media(max-width:1100px){.panes{grid-template-columns:1fr}}
@@ -103,6 +119,10 @@ font:12.5px var(--mono);padding:4px 0}
 .tk .acc b{color:var(--green);font-weight:500}
 .tk .hint{margin:0 12px 11px;padding:10px 12px;background:var(--panel);border:1px solid var(--rule);
 font:11.5px/1.8 var(--mono);white-space:pre-wrap;color:var(--ink2);overflow-x:auto}
+.pb{margin:0 12px 11px;padding:10px 12px;background:var(--green-wash);border-left:3px solid var(--green);font-size:12.5px;line-height:1.7}
+.pb b{font:600 10px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--green);display:block;margin-bottom:4px}
+.pb a{display:inline-block;margin-top:6px;font:12px var(--mono)}
+.pb .nt{margin-top:7px;font:11.5px var(--mono);color:var(--ink2);opacity:.8}
 .pr{font:600 9.5px var(--mono);padding:2px 6px;flex:none}
 .pr-P0{background:var(--red);color:#fff}.pr-P1{background:var(--amber-wash);color:var(--amber)}
 .pr-P2{background:#EFEBE0;color:var(--ink2)}
@@ -129,6 +149,7 @@ border-bottom:1px solid var(--rule);font:600 12.5px var(--mono)}
     <span class="meta" id="meta"></span><span class="sp"></span>
     <span class="meta" id="stage"></span></div>
   <div class="term" id="term"></div>
+  <div id="funnel"></div>
   <div class="panes">
     <div class="pane" id="pProfile"></div>
     <div class="pane" id="pEvidence"></div>
@@ -187,10 +208,48 @@ function render(){
   document.getElementById('brand').textContent = brand;
   document.getElementById('meta').textContent = new URL(P.url).hostname + ' · ' + P.createdAt.slice(0,10)
     + (P.pageCount ? ' · ' + T(P.pageCount+' 页已读', P.pageCount+' pages read') : '');
+  funnel(P.diagnosis);
   profile(d, brand);
   evidence(q, a);
   today(P.tickets || []);
 }
+
+function funnel(dg){
+  const el = document.getElementById('funnel');
+  if (!dg){ el.innerHTML = ''; return; }
+  const LABEL = ZH
+    ? {ok:'没问题',broken:'断了',unmeasured:'未测','not-covered':'我们不测'}
+    : {ok:'holds',broken:'breaks here',unmeasured:'not measured','not-covered':'we do not cover'};
+  const cls = {ok:'ok',broken:'broken',unmeasured:'unmeasured','not-covered':'notcov'};
+  const cells = dg.stations.map(s => {
+    const meta = STN[s.id];
+    return '<div class="stn '+cls[s.state]+(s.id===dg.breakAt?' here':'')+'">'
+      + '<span class="n">'+meta.n+'</span>'
+      + (s.ticketCount?'<span class="tc">'+s.ticketCount+'</span>':'')
+      + '<div class="q">'+meta.q+'</div>'
+      + '<div class="s">'+LABEL[s.state]+'</div></div>';
+  }).join('');
+  const detail = dg.stations.find(s => s.id === dg.breakAt);
+  el.innerHTML = '<div class="fn">'
+    + '<div class="verdict'+(dg.breakAt?'':' ok')+'">'+esc(ZH?dg.verdict.zh:dg.verdict.en)+'</div>'
+    + '<div class="stations">'+cells+'</div>'
+    + '<div class="note">'+T(
+        '「未测」是没测，不是没问题。「我们不测」是我们真的不做这一栏 —— 说清楚比无限期挂着「即将推出」诚实。',
+        '“Not measured” is an absence, not a pass. “We do not cover” means exactly that — saying so beats an indefinite “coming soon”.')
+    + '</div></div>';
+}
+
+const STN = ZH ? {
+  positioned:{n:0,q:'你说得清自己是什么吗'}, demand:{n:1,q:'有人在找这个吗'},
+  discoverable:{n:2,q:'找得到你吗'}, comprehensible:{n:3,q:'读得懂、引得动吗'},
+  credible:{n:4,q:'有谁替你说话'}, convertible:{n:5,q:'下得了单吗'},
+  compounding:{n:6,q:'会带来下一个吗'},
+} : {
+  positioned:{n:0,q:'Can you say what you are'}, demand:{n:1,q:'Is anyone asking'},
+  discoverable:{n:2,q:'Do they find you'}, comprehensible:{n:3,q:'Can they quote you'},
+  credible:{n:4,q:'Does anyone vouch'}, convertible:{n:5,q:'Can they act'},
+  compounding:{n:6,q:'Does one bring the next'},
+};
 
 function profile(d, brand){
   const el = document.getElementById('pProfile');
@@ -265,7 +324,12 @@ function today(ts){
       + '<summary><span class="pr pr-'+esc(k.priority)+'">'+esc(k.priority)+'</span><b>'+esc(k.title)+'</b></summary>'
       + (k.rationale ? '<p class="why">'+esc(k.rationale)+'</p>' : '')
       + '<p class="acc"><b>'+T('修到这样算好：','Done when: ')+'</b>'+esc(k.acceptance?.desc||'—')+'</p>'
-      + (k.fixHint ? '<pre class="hint">'+esc(k.fixHint)+'</pre>' : '') + '</details>').join('')
+      + (k.fixHint ? '<pre class="hint">'+esc(k.fixHint)+'</pre>' : '')
+      + (k.playbook ? '<div class="pb"><b>'+T('怎么做','How to do it')+'</b> '+esc(k.playbook.covers)
+          + '<a href="/api/playbook?skill='+esc(k.playbook.skill)+(k.playbook.start?'&section='+encodeURIComponent(k.playbook.start):'')+'" target="_blank">'
+          + T('打开方法论 →','open the playbook →')+'</a>'
+          + (k.playbook.notThis?'<div class="nt">'+esc(k.playbook.notThis)+'</div>':'')+'</div>' : '')
+      + '</details>').join('')
     + '<div class="sect">'+T('要我替你盯着吗？','Want me to watch it?')+'</div>'
     + '<p class="fine">'+T('我会定期重看，等你改的东西真的生效了写信告诉你。不用注册。','I re-check and write when a fix actually lands. No account.')+'</p>'
     + '<form id="wf"><input id="we" type="email" required placeholder="you@company.com"><button class="go" type="submit">'+T('盯着','Watch')+'</button></form><div id="wm" class="wm"></div>'

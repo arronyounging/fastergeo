@@ -13,7 +13,7 @@
  * dossier does not cost you the audit that already succeeded.
  */
 import { auditPage, checkSite, fetchPage } from '@fastergeo/audit';
-import { generateTickets } from '@fastergeo/tickets';
+import { generateTickets, diagnose, stationForTicket, playbookFor, stationOf } from '@fastergeo/tickets';
 import { bootstrapProject } from '@fastergeo/content';
 import { askLlm, parseJsonish } from './_llm.js';
 
@@ -165,10 +165,22 @@ const STAGE_FNS = {
 
   async tickets(p, env) {
     say(p, `Turning all of that into a fix list.`, `我在把这些变成一张修复清单。`);
-    p.tickets = generateTickets(p.audit, undefined, p.lang);
+    p.tickets = generateTickets(p.audit, undefined, p.lang).map(t => ({
+      ...t, station: stationForTicket(t), playbook: playbookFor(t),
+    }));
+    // The funnel is the product's spine: a flat list of eight tickets is a
+    // to-do list, and a to-do list is not a methodology. This says where the
+    // break is, so work downstream of it can wait.
+    p.diagnosis = diagnose({ audit: p.audit, probe: p.probe, tickets: p.tickets });
     const p0 = p.tickets.filter(t => t.priority === 'P0').length;
     say(p, `${p.tickets.length} items${p0 ? `, ${p0} of them P0` : ''} — each says what "done" has to look like.`,
       `${p.tickets.length} 条${p0 ? `，其中 ${p0} 条 P0` : ''} —— 每条都写明了「修到什么程度算好」。`);
+    const d = p.diagnosis;
+    if (d?.breakAt) {
+      const s = stationOf(d.breakAt);
+      say(p, `You break at station ${s.n}: ${s.q.en} Everything downstream of it waits.`,
+        `你断在第 ${s.n} 站：${s.q.zh}它后面的活先等着。`);
+    }
     say(p, `Done. Everything above is on this page now.`, `跑完了。上面这些现在都在这一页上。`);
     return 'done';
   },
