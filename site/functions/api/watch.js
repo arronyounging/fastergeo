@@ -7,7 +7,8 @@
  * re-crawl the page and write when a fix lands, which is the one hand-off in
  * the funnel that does not depend on the user remembering to come back.
  */
-import { watchScan, validEmail } from './_store.js';
+import { watchScan, validEmail, kv } from './_store.js';
+import { loadProject, saveProject } from './project.js';
 
 export async function onRequestPost({ request, env }) {
   const headers = { 'Content-Type': 'application/json; charset=utf-8' };
@@ -23,6 +24,16 @@ export async function onRequestPost({ request, env }) {
     // Say what is actually wrong. A generic failure here would look like the
     // address was rejected, and the user would retype a correct address.
     return new Response(JSON.stringify({ error: 'storage not configured' }), { status: 503, headers });
+  }
+  // Projects and one-off scans are both watchable; the caller says which.
+  if (body?.kind === 'project') {
+    const p = await loadProject(env, id);
+    if (!p) return new Response(JSON.stringify({ error: 'project not found — it may have expired' }), { status: 404, headers });
+    p.email = email;
+    p.watchedAt = p.watchedAt ?? new Date().toISOString();
+    await saveProject(env, p);
+    await kv(env).put(`w:${email}:${id}`, 'project');
+    return new Response(JSON.stringify({ ok: true, url: p.url }), { headers });
   }
   const rec = await watchScan(env, id, email);
   if (!rec) {

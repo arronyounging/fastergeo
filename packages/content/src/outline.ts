@@ -7,7 +7,7 @@
  * word-equivalent self-contained sections.
  */
 
-import { isCjkDominant } from '@fastergeo/rules';
+import { isCjkDominant } from '@fastergeo/rules/text';
 import type { FactStore, Outline } from './types.js';
 
 export function buildOutline(question: string, store: FactStore): Outline {

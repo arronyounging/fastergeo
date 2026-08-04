@@ -1,0 +1,326 @@
+/**
+ * GET /p/<id> — the workbench.
+ *
+ * Shipped as a shell that boots empty and fills as the pipeline runs, because
+ * that is the honest shape of the thing: the work takes minutes, and a spinner
+ * over a blank page for two minutes reads as broken. The terminal is not
+ * decoration — it is the only accurate way to say "someone started working for
+ * you" while there is nothing to show yet.
+ *
+ * Four panes, the same ones the CLI has: the dossier it derived, the evidence it
+ * collected, what to fix today, and what we can keep watching. No login: the URL
+ * is the console.
+ */
+const esc = s => String(s ?? '')
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+export async function onRequestGet({ params, request }) {
+  const lang = new URL(request.url).searchParams.get('lang') === 'zh' ? 'zh' : 'en';
+  return new Response(shell(params.id, lang), {
+    headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' },
+  });
+}
+
+function shell(id, lang) {
+  return `<!doctype html><html lang="${lang === 'zh' ? 'zh-CN' : 'en'}"><head><meta charset="utf-8">
+<title>FasterGEO</title><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--paper:#F6F3EC;--panel:#FCFAF5;--ink:#1C1A15;--ink2:#4C4739;--faint:#8A8371;
+--rule:#DAD3C2;--rule2:#BFB6A0;--red:#B23A26;--red-wash:#F3E4DE;--green:#3A6B42;--green-wash:#E7EEE2;
+--amber:#8A6100;--amber-wash:#F5EFDE;
+--serif:"Newsreader","Songti SC",Georgia,serif;--mono:"IBM Plex Mono",ui-monospace,Menlo,monospace}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.7 var(--serif)}
+.wrap{max-width:1560px;margin:0 auto;padding:14px}
+.beat{display:flex;gap:14px;align-items:center;flex-wrap:wrap;background:var(--ink);color:#E8E4D8;
+padding:11px 18px;font:12.5px var(--mono);border-radius:9px 9px 0 0}
+.beat b{font-family:var(--serif);font-size:17px}
+.dot{width:7px;height:7px;border-radius:50%;background:#4ADE80;flex:none;
+box-shadow:0 0 8px #4ADE80;animation:pulse 1.6s infinite}
+@keyframes pulse{50%{opacity:.35}}
+.dot.idle{animation:none;background:#6B7280;box-shadow:none}
+.beat .meta{color:#B9B3A3}.beat .sp{flex:1}
+.btn{background:#F6F3EC;color:#1C1A15;padding:6px 13px;text-decoration:none;font:12px var(--mono);
+border:none;cursor:pointer}
+.btn:hover{background:var(--red);color:#fff}
+.term{background:#12100C;color:#C8C2B2;font:12.5px/1.85 var(--mono);padding:12px 18px;
+max-height:190px;overflow:auto;border-radius:0}
+.term div{white-space:pre-wrap}
+.term .cur::after{content:"▋";animation:pulse 1s infinite}
+.panes{display:grid;grid-template-columns:250px minmax(0,1fr) 330px;gap:1px;background:var(--rule);
+border:1px solid var(--rule);border-top:none;border-radius:0 0 9px 9px}
+@media(max-width:1100px){.panes{grid-template-columns:1fr}}
+.pane{background:var(--panel);padding:16px 17px;min-width:0}
+h2{font:500 11px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--ink2);
+margin:0 0 12px;padding-bottom:8px;border-bottom:1px solid var(--rule);display:flex;
+justify-content:space-between;align-items:center;gap:8px}
+h2 b{color:var(--ink);font-size:12px}
+h3{font:500 17px var(--serif);margin:0 0 3px}
+p{color:var(--ink2);margin:0 0 12px;font-size:14.5px}
+.fine{font:11.5px/1.75 var(--mono);color:var(--faint)}
+.sub{font:11.5px var(--mono);color:var(--faint);margin-bottom:14px;word-break:break-all}
+.sect{font:500 10px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin:16px 0 7px}
+.doc{display:flex;justify-content:space-between;gap:6px;padding:7px 0;border-bottom:1px dotted var(--rule2);
+font-size:13.5px;cursor:pointer}
+.doc:hover{color:var(--red)}
+.doc:last-child{border-bottom:none}
+.tag{font:600 9.5px var(--mono);padding:1px 6px;background:var(--green-wash);color:var(--green);white-space:nowrap}
+.tag.warn{background:var(--amber-wash);color:var(--amber)}
+.chip{display:inline-block;font:12px var(--mono);background:var(--paper);border:1px solid var(--rule);
+border-radius:20px;padding:2px 9px;margin:0 4px 5px 0}
+.said{border-left:4px solid var(--rule2);background:var(--paper);padding:15px 17px;margin-bottom:16px}
+.said.bad{border-left-color:var(--red);background:var(--red-wash)}
+.said.good{border-left-color:var(--green);background:var(--green-wash)}
+.said.mid{border-left-color:var(--amber);background:var(--amber-wash)}
+.said .q{font:11.5px var(--mono);color:var(--faint);margin-bottom:9px}
+.said blockquote{margin:0;font-size:16.5px;line-height:1.65}
+.said .foot{margin-top:11px;font:12px var(--mono);color:var(--ink2)}
+.score{display:flex;gap:13px;align-items:center;margin-bottom:14px}
+.score b{font:500 27px var(--mono)}.score small{color:var(--faint);font:12px var(--mono)}
+.grade{font:500 19px var(--mono);border:1px solid var(--rule2);padding:6px 12px}
+.g-D,.g-C{color:var(--red);border-color:var(--red)}.g-A,.g-B{color:var(--green);border-color:var(--green)}
+.dim{display:grid;grid-template-columns:minmax(140px,1fr) 90px 72px;gap:9px;align-items:center;
+font:12.5px var(--mono);padding:4px 0}
+.dim .bar{height:6px;background:#EFEBE0;position:relative}
+.dim .bar i{position:absolute;inset:0 auto 0 0;background:var(--ink);transition:width .6s}
+.dim.low .bar i{background:var(--red)}
+.dim .v{text-align:right}.dim em{color:var(--faint);font-style:normal}
+.checks{margin-top:12px;font:12px var(--mono);display:flex;gap:13px;flex-wrap:wrap}
+.ok{color:var(--green)}.no{color:var(--red)}
+.funnel{display:flex;border:1px solid var(--rule);margin:16px 0 6px}
+.st{flex:1;padding:10px 5px;text-align:center;border-right:1px solid var(--rule);font:11px var(--mono)}
+.st:last-child{border-right:none}
+.st span{display:block;font:500 15px var(--mono);margin-bottom:2px}
+.st.bad{background:var(--red-wash)}.st.bad span{color:var(--red)}
+.st.good{background:var(--green-wash)}.st.good span{color:var(--green)}
+.st.na{background:var(--paper)}.st.na span{color:var(--faint)}
+.tk{border:1px solid var(--rule);background:var(--paper);margin-bottom:8px}
+.tk summary{padding:10px 12px;cursor:pointer;display:flex;gap:8px;align-items:baseline;font-size:14px}
+.tk summary b{font-weight:500}
+.tk .why,.tk .acc{margin:0 12px 9px;font-size:13px;color:var(--ink2)}
+.tk .acc b{color:var(--green);font-weight:500}
+.tk .hint{margin:0 12px 11px;padding:10px 12px;background:var(--panel);border:1px solid var(--rule);
+font:11.5px/1.8 var(--mono);white-space:pre-wrap;color:var(--ink2);overflow-x:auto}
+.pr{font:600 9.5px var(--mono);padding:2px 6px;flex:none}
+.pr-P0{background:var(--red);color:#fff}.pr-P1{background:var(--amber-wash);color:var(--amber)}
+.pr-P2{background:#EFEBE0;color:var(--ink2)}
+form{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+input{flex:1;min-width:170px;padding:10px 12px;border:1px solid var(--rule2);background:#fff;
+font:12.5px var(--mono);color:var(--ink)}
+button.go{padding:10px 16px;border:1px solid var(--ink);background:var(--ink);color:var(--paper);
+font:12.5px var(--mono);cursor:pointer}
+button.go:hover{background:var(--red);border-color:var(--red)}
+.wm{margin-top:9px;font:12px var(--mono)}.wm.ok{color:var(--green)}.wm.err{color:var(--red)}
+.rules{margin-top:18px;padding:10px 11px;background:var(--paper);font:11px/1.8 var(--mono);color:var(--faint)}
+.rules b{color:var(--ink2)}
+code{display:block;background:var(--ink);color:var(--paper);padding:10px 12px;font:12px var(--mono);
+word-break:break-all;margin-top:8px}
+dialog{border:1px solid var(--rule2);padding:0;max-width:820px;width:92vw;background:var(--panel)}
+dialog::backdrop{background:rgba(28,26,21,.45)}
+.dh{display:flex;justify-content:space-between;align-items:center;padding:12px 17px;
+border-bottom:1px solid var(--rule);font:600 12.5px var(--mono)}
+.db{padding:15px 19px;max-height:70vh;overflow:auto;white-space:pre-wrap;font:12px/1.8 var(--mono)}
+.empty{color:var(--faint);font:12.5px var(--mono);padding:14px 0}
+</style></head><body>
+<div class="wrap">
+  <div class="beat"><span class="dot" id="dot"></span><b id="brand">…</b>
+    <span class="meta" id="meta"></span><span class="sp"></span>
+    <span class="meta" id="stage"></span></div>
+  <div class="term" id="term"></div>
+  <div class="panes">
+    <div class="pane" id="pProfile"></div>
+    <div class="pane" id="pEvidence"></div>
+    <div class="pane" id="pToday"></div>
+  </div>
+</div>
+<dialog id="dlg"><div class="dh"><span id="dt"></span><button class="btn" id="dx">×</button></div>
+<div class="db" id="db"></div></dialog>
+<script>
+const ID = ${JSON.stringify(id)};
+const ZH = ${JSON.stringify(lang === 'zh')};
+const T = (zh, en) => ZH ? zh : en;
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const clean = s => String(s ?? '').replace(/[*_\`#]+/g, '').replace(/[ \\t]+/g, ' ').trim();
+const DIMS = ZH
+  ? {crawlability:'能不能被 AI 读到',length:'内容够不够多',structure:'结构清不清楚',
+     blocks:'有没有值得被引用的段落',authority:'有没有署名和日期',relevance:'内容对不对得上问题'}
+  : {crawlability:'Can AI read it',length:'Is there enough here',structure:'Is it clearly organised',
+     blocks:'Anything worth quoting',authority:'Who wrote it, and when',relevance:'Does it match what people ask'};
+
+const term = document.getElementById('term');
+function print(m){ const d=document.createElement('div'); d.textContent='> '+m; term.appendChild(d); term.scrollTop=1e9; }
+let P = null;
+
+async function boot(){
+  P = await (await fetch('/api/project?id='+ID)).json();
+  if (P.error){ term.innerHTML = '<div>'+esc(T('这个项目不存在或已过期。','This project does not exist or has expired.'))+'</div>'; return; }
+  P.log.forEach(l => print(l.m));
+  render();
+  if (P.stage !== 'done') loop();
+  else document.getElementById('dot').className = 'dot idle';
+}
+
+/* One stage per request: a Worker cannot hold the connection for the whole
+   pipeline, and each returned line is what makes the terminal real. */
+async function loop(){
+  for (let guard = 0; guard < 12; guard++){
+    document.getElementById('stage').textContent = T('正在跑：','running: ') + P.stage;
+    let r;
+    try {
+      r = await (await fetch('/api/step', {method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({id: ID})})).json();
+    } catch { print(T('连接断了，刷新页面可以接着跑。','Connection dropped — reload to continue.')); break; }
+    (r.newLines || []).forEach(l => print(l.m));
+    P = await (await fetch('/api/project?id='+ID)).json();
+    render();
+    if (r.done || r.error) break;
+  }
+  document.getElementById('dot').className = 'dot idle';
+  document.getElementById('stage').textContent = '';
+}
+
+function render(){
+  const d = P.dossier, a = P.audit, q = P.probe;
+  const brand = d?.brand?.name || new URL(P.url).hostname;
+  document.getElementById('brand').textContent = brand;
+  document.getElementById('meta').textContent = new URL(P.url).hostname + ' · ' + P.createdAt.slice(0,10)
+    + (P.pageCount ? ' · ' + T(P.pageCount+' 页已读', P.pageCount+' pages read') : '');
+  profile(d, brand);
+  evidence(q, a);
+  today(P.tickets || []);
+}
+
+function profile(d, brand){
+  const el = document.getElementById('pProfile');
+  if (!d){ el.innerHTML = h2(T('档案','Profile')) + waiting(); return; }
+  const facts = d.facts?.facts || [];
+  const sourced = facts.filter(f => f.status === 'confirmed').length;
+  const unc = facts.length - sourced;
+  const docs = [
+    ['product', T('产品档案','Product'), ''],
+    ['facts', T('品牌事实库','Brand facts'), sourced ? tag(T(sourced+' 条带来源', sourced+' sourced')) : ''],
+    ['competitors', T('竞品分析','Competitors'), (d.competitorCandidates||[]).length ? tag(T((d.competitorCandidates||[]).length+' 待核',(d.competitorCandidates||[]).length+' to review'),1) : ''],
+    ['questions', T('问题库','Questions'), (d.questions||[]).length ? tag(T((d.questions||[]).length+' 题',(d.questions||[]).length+' qs')) : ''],
+  ];
+  el.innerHTML = h2(T('档案','Profile'))
+    + '<h3>'+esc(brand)+'</h3><div class="sub">'+esc(d.brand?.description||'')+'</div>'
+    + '<div class="sect">'+T('四份档案','Four documents')+'</div>'
+    + docs.map(([k,l,t]) => '<div class="doc" data-doc="'+k+'"><span>'+l+' '+t+'</span><span class="fine">›</span></div>').join('')
+    + ((d.competitorCandidates||[]).length ? '<div class="sect">'+T('竞品 · 待人工核对','Competitors · to review')+'</div>'
+        + d.competitorCandidates.map(c => '<span class="chip">'+esc(c.name)+'</span>').join('') : '')
+    + (unc ? '<div class="fine" style="margin-top:12px">'+T(unc+' 条事实网站上没写，标了待确认，没有瞎猜。', unc+' facts were not on the site and are left unconfirmed rather than guessed.')+'</div>' : '')
+    + '<div class="rules"><b>'+T('我们的纪律','Our discipline')+'</b><br>'
+    + T('· 每个判定都带原话<br>· 算不出就写「未测」，绝不写 0<br>· 竞品是猜的，等你核','· Every verdict carries a quote<br>· Unmeasured stays unmeasured, never a zero<br>· Competitors are guesses until you confirm them')
+    + '</div>';
+  el.querySelectorAll('[data-doc]').forEach(x => x.onclick = () => showDoc(x.dataset.doc, d));
+}
+
+function evidence(q, a){
+  const el = document.getElementById('pEvidence');
+  if (!q && !a){ el.innerHTML = h2(T('证据','Evidence')) + waiting(); return; }
+  let html = h2(T('证据','Evidence'), a ? T((a.pages||[]).length+' 页已体检',(a.pages||[]).length+' pages audited') : '');
+  if (q){
+    const V = {confused:['bad',T('它把你认成了别的公司','It has you mixed up with a different company')],
+      unknown:['bad',T('它不知道你是谁','It does not know who you are')],
+      knows:['good',T('它知道你是谁','It knows who you are')],
+      unverified:['mid',T('你自己看 —— 这条我们不替你下结论','Read it yourself — we would not call this one for you')]};
+    const v = V[q.verdict] || V.unverified;
+    html += '<div class="said '+v[0]+'"><div class="q">'+esc(q.question)+'</div>'
+      + '<blockquote>'+esc(clean(q.answer))+'</blockquote>'
+      + '<div class="foot"><b>'+v[1]+'</b> · '+T('问的是 DeepSeek','asked of DeepSeek')+'</div>'
+      + '<div class="fine" style="margin-top:5px">'+T('一个问题、一个引擎 —— 还说明不了 AI 会不会推荐你。','One question, one engine — it says nothing yet about whether AI recommends you.')+'</div></div>';
+  }
+  if (a){
+    html += '<div class="score"><span class="grade g-'+gradeOf(a.avgScore)+'">'+gradeOf(a.avgScore)+'</span>'
+      + '<div><b>'+(a.avgScore ?? '—')+'</b><small>/100 · '+T('网站 AI 就绪度','Site AI-readiness')+'</small></div></div>';
+    const agg = {};
+    for (const pg of a.pages||[]) for (const dm of pg.dimensions||[]) {
+      if (dm.score === null || dm.score === undefined) { agg[dm.key] = agg[dm.key] || null; continue; }
+      const cur = agg[dm.key] || {s:0,m:0}; agg[dm.key] = {s:cur.s+dm.score, m:cur.m+dm.max};
+    }
+    html += Object.keys(DIMS).map(k => {
+      const v = agg[k];
+      const pct = v ? Math.round(v.s/v.m*100) : 0;
+      return '<div class="dim'+(v && pct<40?' low':'')+'"><span>'+DIMS[k]+'</span>'
+        + '<span class="bar"><i style="width:'+pct+'%"></i></span>'
+        + '<span class="v">'+(v ? pct+'%' : '<em>'+T('未测','not measured')+'</em>')+'</span></div>';
+    }).join('');
+    const s = a.site || {};
+    const chk = (ok,l) => '<span class="'+(ok?'ok':'no')+'">'+(ok?'✓':'✗')+' '+l+'</span>';
+    html += '<div class="checks">'+chk(s.robotsTxtFound,'robots.txt')
+      + chk(!(s.blockedSearchCrawlers||s.blockedAiCrawlers||[]).length, T('AI 爬虫未被封','AI crawlers allowed'))
+      + chk(s.sitemapFound,'sitemap')+chk(s.llmsTxtFound,'llms.txt')+'</div>'
+      + '<div class="fine" style="margin-top:10px">'+T('「未测」是没测，不是 0。','“Not measured” is an absence, not a zero.')+'</div>';
+  }
+  el.innerHTML = html;
+}
+
+function today(ts){
+  const el = document.getElementById('pToday');
+  if (!ts.length){ el.innerHTML = h2(T('今天','Today')) + (P.stage==='done' ? '<div class="empty">'+T('没有待办。','Nothing queued.')+'</div>' : waiting()); return; }
+  el.innerHTML = h2(T('今天','Today'), T('修 '+ts.length+' 件','fix '+ts.length))
+    + ts.map((k,i) => '<details class="tk"'+(i===0?' open':'')+'>'
+      + '<summary><span class="pr pr-'+esc(k.priority)+'">'+esc(k.priority)+'</span><b>'+esc(k.title)+'</b></summary>'
+      + (k.rationale ? '<p class="why">'+esc(k.rationale)+'</p>' : '')
+      + '<p class="acc"><b>'+T('修到这样算好：','Done when: ')+'</b>'+esc(k.acceptance?.desc||'—')+'</p>'
+      + (k.fixHint ? '<pre class="hint">'+esc(k.fixHint)+'</pre>' : '') + '</details>').join('')
+    + '<div class="sect">'+T('要我替你盯着吗？','Want me to watch it?')+'</div>'
+    + '<p class="fine">'+T('我会定期重看，等你改的东西真的生效了写信告诉你。不用注册。','I re-check and write when a fix actually lands. No account.')+'</p>'
+    + '<form id="wf"><input id="we" type="email" required placeholder="you@company.com"><button class="go" type="submit">'+T('盯着','Watch')+'</button></form><div id="wm" class="wm"></div>'
+    + '<div class="sect">'+T('看得更深','Go deeper')+'</div>'
+    + '<p class="fine">'+T('这里问了 1 个引擎。命令行跑中外 18 个，并且每修一处都重爬验收。','This asked one engine. The CLI runs 18 across China and global, and re-crawls to verify every fix.')+'</p>'
+    + '<code>npx fastergeo start '+esc(new URL(P.url).hostname)+'</code>';
+  const f = document.getElementById('wf');
+  if (f) f.onsubmit = async e => {
+    e.preventDefault();
+    const m = document.getElementById('wm'); m.textContent='…';
+    const r = await fetch('/api/watch', {method:'POST',headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({id: ID, email: document.getElementById('we').value, kind:'project'})});
+    const d = await r.json().catch(()=>({}));
+    m.textContent = r.ok ? T('好了。有变化我写信给你。','Done. I will write when something changes.') : (d.error||'failed');
+    m.className = 'wm ' + (r.ok?'ok':'err');
+  };
+}
+
+function showDoc(kind, d){
+  const F = d.facts || {};
+  let title = kind, body = '';
+  if (kind === 'product'){
+    title = T('产品档案','Product dossier');
+    body = [T('名称：','Name: ')+(d.brand?.name||'—'), T('一句话：','In one line: ')+(F.definition||d.brand?.description||'—'),
+      T('行业：','Industry: ')+(d.brand?.industry||'—'), T('域名：','Domains: ')+(d.brand?.domains||[]).join(', '),
+      T('别名：','Aliases: ')+((d.brand?.aliases||[]).join(', ')||'—'),
+      (d.unresolved||[]).length ? '\\n'+T('网站上没找到（需要你补）：','Not found on the site (yours to fill): ')+d.unresolved.join(', ') : ''
+    ].join('\\n');
+  } else if (kind === 'facts'){
+    title = T('品牌事实库','Brand facts');
+    body = T('只有 confirmed 且非 E 级的事实允许进入生成内容。\\n\\n','Only confirmed, non-E facts may enter generated content.\\n\\n')
+      + (F.facts||[]).map(f => '['+f.grade+'] '+f.claim+'\\n    '+(f.source||T('（网站上没找到）','(not found on the site)'))
+        +'  ·  '+(f.status==='confirmed'?'confirmed':'UNCONFIRMED')).join('\\n\\n');
+  } else if (kind === 'competitors'){
+    title = T('竞品分析','Competitors');
+    body = T('这些全部是从你的网站文字里猜的。真正的竞争集来自采样 AI 的回答，不是来自读你的首页。\\n\\n',
+      'All of these are guesses from your site text. A real competitive set comes from sampling AI answers, not from reading a homepage.\\n\\n')
+      + (d.competitorCandidates||[]).map(c => '['+c.confidence+'] '+c.name+'\\n    '+c.why).join('\\n\\n');
+  } else {
+    title = T('问题库','Question bank');
+    body = T('探测题会点名你的品牌，用来测 AI 认不认识你，严格排除在可见度指标之外。\\n\\n',
+      'Probe questions name your brand — they measure recognition and are kept out of visibility metrics.\\n\\n')
+      + (d.questions||[]).map(q => (q.brandInQuestion?'● ':'  ')+'['+q.market+'/'+q.group+'] '+q.text).join('\\n');
+  }
+  document.getElementById('dt').textContent = title;
+  document.getElementById('db').textContent = body;
+  document.getElementById('dlg').showModal();
+}
+document.getElementById('dx').onclick = () => document.getElementById('dlg').close();
+
+const h2 = (t, r) => '<h2><b>'+t+'</b>'+(r?'<span class="fine">'+r+'</span>':'')+'</h2>';
+const waiting = () => '<div class="empty">'+T('还在跑…','working…')+'</div>';
+const tag = (t, warn) => '<span class="tag'+(warn?' warn':'')+'">'+t+'</span>';
+const gradeOf = s => s === null || s === undefined ? '—' : s>=85?'A':s>=70?'B':s>=50?'C':'D';
+
+boot();
+</script></body></html>`;
+}

@@ -5,6 +5,8 @@
   "type": "module",
   "dependencies": {
     "@fastergeo/audit": "workspace:^",
-    "@fastergeo/rules": "workspace:^"
+    "@fastergeo/rules": "workspace:^",
+    "@fastergeo/tickets": "workspace:^",
+    "@fastergeo/content": "workspace:^"
   }
 }
