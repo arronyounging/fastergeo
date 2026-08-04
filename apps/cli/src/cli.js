@@ -10,6 +10,7 @@
 import { parseArgs } from 'node:util';
 import { readFileSync } from 'node:fs';
 import { EnvHttpProxyAgent, setGlobalDispatcher } from 'undici';
+import { notify, pendingNotifyError, channelEnvKeys } from './notify.js';
 
 // Node's fetch ignores HTTP(S)_PROXY. Behind a proxy (common for CN users
 // reaching global sites/engines) every audit/verify fetch would silently
@@ -75,6 +76,7 @@ const { values: flags, positionals } = parseArgs({
     dir: { type: 'string' },
     every: { type: 'string' },
     at: { type: 'string' },
+    notify: { type: 'string' },
     repeat: { type: 'string' },
     seed: { type: 'string' },
     expand: { type: 'boolean', default: false },
@@ -1148,6 +1150,15 @@ async function cmdCycle() {
   const dir = flags.dir ?? '.';
   const date = new Date().toISOString().slice(0, 10);
   syncFactsFromDossier(dir);
+
+  // A push that failed last night happened while nobody was watching. Say it
+  // now, before anything else: the user has been believing they would hear
+  // about regressions, and for at least one run they would not have.
+  const stale = pendingNotifyError(dir);
+  if (stale) {
+    soft(`Last run could not reach ${stale.channel} (${stale.error}) — you were not notified on ${stale.at.slice(0, 10)}.`,
+      `上次没能推送到 ${stale.channel}（${stale.error}）—— ${stale.at.slice(0, 10)} 那次你没有收到通知。`);
+  }
   const brand = JSON.parse(readFileSync(`${dir}/brand.json`, 'utf8'));
   const questions = JSON.parse(readFileSync(`${dir}/questions.json`, 'utf8'));
   const root = flags.root ?? `https://${brand.domains[0]}`;
@@ -1263,11 +1274,23 @@ async function cmdCycle() {
   // the thing that can be read in thirty seconds, and the payload a push
   // notification will carry.
   const ranked = rankTickets(tickets);
-  writeFileSync(`${dir}/today.md`, renderTodayDigest({
+  const digest = renderTodayDigest({
     brandName: brand.name, date, metrics: metricsReport, audit: auditReport,
     today: ranked.today, verified, periodCount: periods.length, lang: LANG,
-  }));
+  });
+  writeFileSync(`${dir}/today.md`, digest);
   step(`Today's three: ${dir}/today.md`, `今天该做的三件：${dir}/today.md`);
+
+  const channel = flags.notify ?? process.env.FASTERGEO_NOTIFY;
+  if (channel && channel !== 'none') {
+    const r = await notify(dir, channel, digest, { brand: brand.name, date, root });
+    if (r.sent) step(`Sent to ${channel}.`, `已推送到 ${channel}。`);
+    else {
+      soft(`Could not send to ${channel}: ${r.error}`, `推送到 ${channel} 失败：${r.error}`);
+      soft(`The digest is still on disk, and I'll tell you again next run until it works.`,
+        `摘要还在磁盘上，下次运行我会再说一遍，直到它发出去为止。`);
+    }
+  }
 
   if (NARRATE) {
     step(`Report saved: ${dir}/report-${date}.html`, `报告已生成：${dir}/report-${date}.html`);
@@ -1299,8 +1322,12 @@ function plistPath(label) { return `${process.env.HOME}/Library/LaunchAgents/${l
  * install rather than buried, because a key in a file the user didn't know
  * about is a security problem regardless of its permissions.
  */
-function jobEnv() {
+function jobEnv(channel) {
   const env = {};
+  for (const k of channelEnvKeys(channel)) {
+    if (process.env[k]) env[k] = process.env[k];
+  }
+  if (channel && channel !== 'none') env.FASTERGEO_NOTIFY = channel;
   for (const k of ['HTTPS_PROXY', 'HTTP_PROXY', 'ALL_PROXY', 'NO_PROXY',
     'https_proxy', 'http_proxy', 'all_proxy', 'no_proxy']) {
     if (process.env[k]) env[k] = process.env[k];
@@ -1334,7 +1361,18 @@ async function cmdHire() {
   const node = process.execPath;
   const cli = new URL(import.meta.url).pathname;
   const label = jobLabel(abs);
-  const env = jobEnv();
+  const channel = flags.notify ?? 'none';
+  const env = jobEnv(channel);
+  // A job hired to notify, with no credentials to notify with, would run every
+  // morning and reach nobody. Better to refuse now than to be silent daily.
+  const missing = channelEnvKeys(channel)
+    .filter(k => !/SECRET$/.test(k))
+    .filter(k => !process.env[k]);
+  if (missing.length) {
+    console.error(t(`--notify ${channel} needs ${missing.join(' and ')} in your environment. Set them, then run hire again.`,
+      `--notify ${channel} 需要环境变量 ${missing.join(' 和 ')}。设好再跑一次 hire。`));
+    process.exit(1);
+  }
 
   // Logs go to Library, never inside the project. A LaunchAgent whose log path
   // sits under ~/Desktop can hit a state where launchd cannot reopen the file
@@ -1389,6 +1427,13 @@ ${Object.entries(env).map(([k, v]) => `    <key>${xml(k)}</key><string>${xml(v)}
   step(t(`Log:  ${log}`, `日志：${log}`));
   step(t(`Carried ${keyed} engine key(s) and ${Object.keys(env).length - keyed} other variable(s) into the job — a scheduled job inherits no shell environment.`,
     `把 ${keyed} 个引擎 Key 和 ${Object.keys(env).length - keyed} 个其它变量写进了任务 —— 定时任务不继承你的 shell 环境。`));
+  if (channel !== 'none') {
+    step(t(`Each morning's digest goes to ${channel}. If a send fails I'll say so on the next run rather than going quiet.`,
+      `每天早上的摘要推送到 ${channel}。推送失败的话，我会在下一次运行时说出来，不会闷着。`));
+  } else {
+    soft(t(`No notification channel — the digest lands in ${basename(abs)}/today.md and waits for you. Add --notify telegram to have it come to you.`,
+      `没配推送 —— 摘要写在 ${basename(abs)}/today.md 里等你。加 --notify telegram 可以让它主动找你。`));
+  }
   if (keyed) {
     soft(t(`Those keys now sit in ${path} (permissions 0600). Run \`fastergeo fire\` to remove it.`,
       `这些 Key 现在在 ${path} 里（权限 0600）。跑 \`fastergeo fire\` 可以删掉。`));
@@ -1538,6 +1583,7 @@ if (!run) {
   内容     outline/draft/fabcheck  事实约束生成 + 编造门禁
   运营     cycle      一条命令跑完整一期
            hire       雇它每天自动跑（装定时任务）· fire 卸载
+                      --notify telegram|webhook 让摘要主动找你
   界面     ui         本地看板 · report 单文件诊断报告
 
   全局: --lang zh 切换中文输出。数据全在本机。` : `fastergeo — open-source GEO platform (China + global AI engines)
@@ -1557,6 +1603,7 @@ if (!run) {
   content  outline/draft/fabcheck  facts-constrained generation + fabrication gate
   operate  cycle      one command runs a full period
            hire       have it run every day (installs a scheduled job) · fire removes it
+                      --notify telegram|webhook to have the digest come to you
   view     ui         local dashboard · report one-file diagnosis report
 
   global: --lang zh for Chinese output. All data stays on your machine.`);
