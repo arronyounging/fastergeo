@@ -152,9 +152,45 @@ font:12px ui-monospace,Menlo,monospace;background:var(--card);color:var(--tx)}
 .brief li{margin-bottom:9px}
 .note{font-size:10.5px;color:var(--faint)}
 .empty{color:var(--faint);font-size:12.5px;padding:22px 0;text-align:center}
-.term{background:#12100C;color:#C8C2B2;font:11.5px/1.8 ui-monospace,Menlo,monospace;
-padding:10px 18px;max-height:118px;overflow:auto}
+.beat .caret{background:none;border:0;color:#B9B3A3;cursor:pointer;font-size:12px;padding:2px 4px;
+line-height:1;border-radius:4px;flex:none}
+.beat .caret:hover{background:#2C2823;color:#F3F1EA}
+.beat .tail{color:#8A8371;font-family:ui-monospace,Menlo,monospace;font-size:11px;
+overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:38vw;flex:none}
+.term{background:#12100C;color:#C8C2B2;font:11.5px/1.85 ui-monospace,Menlo,monospace;
+padding:10px 18px 6px;height:150px;overflow:auto;position:relative;transition:height .12s}
+.term.hide{display:none}
 .term div{white-space:pre-wrap}
+.term .tg{color:#7FA88A}
+.term .day{color:#6B6558;text-align:center;margin:6px 0}
+/* Okara puts a grab bar under the terminal; the height is a preference, so it
+   is remembered rather than reset on every visit. */
+.grip{height:9px;background:#12100C;display:flex;align-items:center;justify-content:center;cursor:ns-resize}
+.grip.hide{display:none}
+.grip i{width:34px;height:3px;border-radius:2px;background:#3A352C;display:block}
+.grip:hover i{background:#5C574D}
+/* Panes collapse to a rail, the way Okara's Company and Analytics columns do. */
+.ph .cx{background:none;border:0;color:var(--faint);cursor:pointer;font-size:12px;padding:0 2px;line-height:1}
+.ph .cx:hover{color:var(--tx)}
+.pane.rail{padding:16px 6px;overflow:hidden;cursor:pointer}
+.pane.rail .railname{writing-mode:vertical-rl;font:500 10.5px ui-monospace,Menlo,monospace;
+letter-spacing:.16em;text-transform:uppercase;color:var(--dim);margin:0 auto}
+/* Every block of numbers gets a title and one line saying what produced it —
+   the pattern that makes Okara's Analytics column readable rather than dense. */
+.shead{margin:20px 0 9px}
+.shead:first-child{margin-top:4px}
+.shead b{display:block;font:600 13.5px "Newsreader",Georgia,"Songti SC",serif}
+.shead span{display:block;font-size:11px;color:var(--faint);margin-top:1px}
+.rings{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-start}
+.ring{text-align:center;width:62px}
+.ring svg{display:block;margin:0 auto}
+.ring .rv{font:500 14px ui-monospace,Menlo,monospace;fill:var(--tx)}
+.ring .rl{display:block;font-size:10px;color:var(--faint);margin-top:3px;line-height:1.35}
+.sig{display:flex;justify-content:space-between;gap:10px;align-items:baseline;padding:7px 8px;
+border-bottom:1px solid var(--line);font-size:12px}
+.sig:last-child{border-bottom:none}
+.sig .w{color:var(--amber)}
+.sig .sv{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:var(--dim);text-align:right;flex:none}
 dialog{border:1px solid var(--line);border-radius:10px;padding:0;max-width:860px;width:92vw;
 background:var(--card);color:var(--tx)}
 dialog::backdrop{background:rgba(28,26,21,.4)}
@@ -166,10 +202,12 @@ a{color:var(--red)}
 </style></head><body>
 <div class="wrap">
   <div class="beat">
+    <button class="caret" id="tg" title="terminal">⌄</button>
     <span class="dot" id="dot"></span>
     <span><b id="bName">…</b></span>
     <span style="color:#B9B3A3" id="bMeta"></span>
     <span class="sp"></span>
+    <span class="tail" id="tail"></span>
     <span class="mono" style="color:#B9B3A3;font-size:11px" id="bKeys"></span>
     <a class="btn ghost" id="bReport" href="#">${zh ? '诊断页' : 'Diagnosis'}</a>
     <a class="btn ghost" href="/my${zh ? '?lang=zh' : ''}">${zh ? '我的站点' : 'My sites'}</a>
@@ -177,6 +215,7 @@ a{color:var(--red)}
   </div>
   <div id="wallbar"></div>
   <div class="term" id="term"></div>
+  <div class="grip" id="grip" title="drag to resize"><i></i></div>
   <div class="panes">
     <div class="pane" id="pProfile"></div>
     <div class="pane" id="pEvidence"></div>
@@ -247,12 +286,28 @@ const ENGINES = [
   ['ai-overview','Google AI Overviews','global','web'],
 ];
 
-let P = null, tab = 'visible';
+let P = null, tab = 'visible', railToggle = () => {};
 
+chrome();
 fetch('/api/project?id=' + ID).then(r => r.json()).then(d => { P = d; render(); })
   .catch(e => { document.getElementById('pProfile').innerHTML = '<div class="empty">' + esc(String(e)) + '</div>'; });
 
-function render(){ beat(); wallbar(); terminal(); profile(); evidence(); today(); ask(); }
+function render(){
+  beat(); wallbar(); terminal(); profile(); evidence(); today(); ask();
+  // stopPropagation matters: collapsing sets a click handler on the pane to
+  // expand it again, and without this the button's own click bubbles straight
+  // into it and the column reopens in the same tick.
+  document.querySelectorAll('[data-rail]').forEach(b => {
+    b.onclick = e => { e.stopPropagation(); railToggle(b.dataset.rail); };
+  });
+  // Rails are restored after render, because render rewrites the panes.
+  for (const id of ['pProfile','pEvidence','pToday','pAsk']){
+    let want = false;
+    try { want = localStorage.getItem('fastergeo.rail.' + id) === '1'; } catch {}
+    const el = document.getElementById(id);
+    if (want && !el.classList.contains('rail')) railToggle(id);
+  }
+}
 
 /* Which engines this hosted run actually asked. On the hosted side there is one
    — the probe — and pretending otherwise is the failure this panel exists to
@@ -311,13 +366,86 @@ function wallbar(){
               'The response was a ' + (w.vendor || 'bot check') + ' challenge page. Allow AI crawlers through, or run from an allowed network, then start again.'));
 }
 
+/* Which part of the system spoke. Okara prefixes every line with the source and
+   it is the difference between a log and a wall of text — you can find the one
+   subsystem you care about without reading the rest. */
+function sourceTag(m){
+  if (/爬虫|crawler|渲染|render|体检|audit|就绪度|readiness/i.test(m)) return 'AUDIT';
+  if (/引擎|engine|问了|asked|回答|answer|认识|knows/i.test(m)) return 'GEO';
+  if (/工单|ticket|修复|fix|清单/i.test(m)) return 'FIX';
+  if (/档案|dossier|事实|fact|竞品|competitor|题库|question/i.test(m)) return 'PROFILE';
+  return '';
+}
+
 function terminal(){
-  const log = (P.log || []).slice(-14);
+  const log = P.log || [];
   const el = document.getElementById('term');
-  el.innerHTML = log.length
-    ? log.map(l => '<div>&gt; ' + esc(l.m) + '</div>').join('')
-    : '<div style="color:#7E7768">' + T('还没有记录。','Nothing logged yet.') + '</div>';
+  if (!log.length){
+    el.innerHTML = '<div style="color:#6B6558">' + T('还没有记录。','Nothing logged yet.') + '</div>';
+    return;
+  }
+  let day = '';
+  const rows = [];
+  for (const l of log){
+    const d = new Date(l.t).toISOString().slice(0, 10);
+    if (d !== day){ day = d; rows.push('<div class="day">—— ' + d + ' (UTC) ——</div>'); }
+    const tag = l.loop ? 'LOOP' : sourceTag(l.m);
+    rows.push('<div>&gt; ' + (tag ? '<span class="tg">[' + tag + ']</span> ' : '') + esc(l.m) + '</div>');
+  }
+  el.innerHTML = rows.join('');
   el.scrollTop = el.scrollHeight;
+  tail();
+}
+
+/* Folded away, the last line rides in the title bar. The system should not go
+   silent just because someone wanted the screen back. */
+function tail(){
+  const hid = document.getElementById('term').classList.contains('hide');
+  const log = (P && P.log) || [];
+  document.getElementById('tail').textContent = hid && log.length ? '> ' + log[log.length - 1].m : '';
+}
+
+function chrome(){
+  const term = document.getElementById('term'), grip = document.getElementById('grip');
+  const set = hid => {
+    term.classList.toggle('hide', hid);
+    grip.classList.toggle('hide', hid);
+    document.getElementById('tg').textContent = hid ? '›' : '⌄';
+    try { localStorage.setItem('fastergeo.term', hid ? '0' : '1'); } catch {}
+    tail();
+  };
+  let open = true;
+  try { open = localStorage.getItem('fastergeo.term') !== '0'; } catch {}
+  set(!open);
+  document.getElementById('tg').onclick = () => set(!term.classList.contains('hide'));
+
+  // Height is a preference, so it survives a reload rather than resetting.
+  try { const h = Number(localStorage.getItem('fastergeo.termH')); if (h >= 60) term.style.height = h + 'px'; } catch {}
+  let drag = null;
+  grip.onmousedown = e => { drag = { y: e.clientY, h: term.getBoundingClientRect().height }; e.preventDefault(); };
+  document.addEventListener('mousemove', e => {
+    if (!drag) return;
+    const h = Math.min(460, Math.max(60, drag.h + (e.clientY - drag.y)));
+    term.style.height = h + 'px';
+  });
+  document.addEventListener('mouseup', () => {
+    if (!drag) return;
+    try { localStorage.setItem('fastergeo.termH', String(Math.round(term.getBoundingClientRect().height))); } catch {}
+    drag = null;
+  });
+
+  // Columns collapse to a labelled rail, the way Okara's Company and Analytics
+  // columns do — the console is wide and not every column is wanted at once.
+  const NAMES = { pProfile: T('档案','Profile'), pEvidence: T('证据','Evidence'),
+                  pToday: T('今天','Today'), pAsk: T('问它','Ask') };
+  railToggle = id => {
+    const el = document.getElementById(id);
+    const railed = el.classList.toggle('rail');
+    try { localStorage.setItem('fastergeo.rail.' + id, railed ? '1' : '0'); } catch {}
+    if (railed) el.innerHTML = '<div class="railname">' + esc(NAMES[id]) + ' ›</div>';
+    else render();
+    el.onclick = railed ? () => { el.classList.remove('rail'); try { localStorage.setItem('fastergeo.rail.' + id, '0'); } catch {} render(); } : null;
+  };
 }
 
 function profile(){
@@ -336,7 +464,7 @@ function profile(){
   ];
   let host = P.url; try { host = new URL(P.url).hostname; } catch {}
   document.getElementById('pProfile').innerHTML =
-    '<div class="ph"><b>' + T('档案','Profile') + '</b><span>✎</span></div>'
+    '<div class="ph"><b>' + T('档案','Profile') + '</b><button class="cx" data-rail="pProfile">‹</button></div>'
     + '<div class="brandname">' + esc(b.name || host) + '</div>'
     + '<div class="sub">' + esc(host) + '</div>'
     + '<div class="sect">' + T('五份档案','Five documents') + '</div>'
@@ -356,7 +484,8 @@ function evidence(){
     '<span class="tab ' + (d.id === tab ? 'on' : '') + ' ' + (d.state === 'live' ? '' : 'soon')
     + '" data-tab="' + d.id + '">' + (ZH ? d.zh : d.en) + suffix[d.state] + '</span>').join('');
   document.getElementById('pEvidence').innerHTML =
-    '<div class="ph"><b>' + T('证据','Evidence') + '</b><span class="mono">' + samplesLine() + '</span></div>'
+    '<div class="ph"><b>' + T('证据','Evidence') + '</b><span class="mono">' + samplesLine()
+      + '</span><button class="cx" data-rail="pEvidence">‹</button></div>'
     + '<div class="tabs">' + strip + '</div>'
     + '<div>' + (tab === 'visible' ? visibleTab() : tab === 'watch' ? watchTab() : soonTab(tab)) + '</div>';
   document.querySelectorAll('[data-tab]').forEach(el => { el.onclick = () => { tab = el.dataset.tab; evidence(); }; });
@@ -433,7 +562,89 @@ function visibleTab(){
     + '<span style="color:var(--faint)">' + T('这里不会放模糊的占位内容：没测过的东西，我们不会假装手里有。',
         'No blurred placeholders here: we do not pretend to hold what we never measured.') + '</span></span>'
     + '<button class="btn" style="background:#1C1A15;color:#F3F1EA" id="howKey">' + T('怎么跑全部 18 个 →','How to run all 18 →') + '</button></div>' : '';
-  return quoteHtml + meterHtml + funnelHtml() + engineTable();
+  return quoteHtml + meterHtml
+    + shead(T('品牌实体漏斗','Brand entity funnel'),
+        T('AI 引用你之前要过的五道闸，每一道断了修法都不同','five gates before an AI cites you — each breaks differently and is fixed differently'))
+    + funnelHtml()
+    + shead(T('逐引擎','Engine by engine'),
+        T('哪个引擎问过、问了几条、怎么判的','which engines were asked, how many samples, and what they decided'))
+    + engineTable()
+    + auditHtml();
+}
+
+/* Title, one line of what produced it, then the numbers. Okara's Analytics
+   column reads well because nothing is a bare table — every block says what it
+   is measuring before it shows a figure. */
+function shead(title, sub){
+  return '<div class="shead"><b>' + esc(title) + '</b>'
+    + (sub ? '<span>' + esc(sub) + '</span>' : '') + '</div>';
+}
+
+function ring(v, label){
+  const col = v >= 80 ? 'var(--ok)' : v >= 50 ? 'var(--amber)' : 'var(--red)';
+  const r = 19, len = 2 * Math.PI * r;
+  return '<div class="ring"><svg width="50" height="50" viewBox="0 0 50 50">'
+    + '<circle cx="25" cy="25" r="' + r + '" fill="none" stroke="#EFEBE0" stroke-width="4"></circle>'
+    + '<circle cx="25" cy="25" r="' + r + '" fill="none" stroke="' + col + '" stroke-width="4" stroke-linecap="round"'
+    + ' stroke-dasharray="' + (len * v / 100).toFixed(1) + ' ' + len.toFixed(1) + '" transform="rotate(-90 25 25)"></circle>'
+    + '<text class="rv" x="25" y="29" text-anchor="middle">' + v + '</text></svg>'
+    + '<span class="rl">' + esc(label) + '</span></div>';
+}
+
+/* The six dimensions, averaged over the pages we read. Each is scored out of
+   its own max, so the raw numbers cannot be averaged directly — doing that
+   would rank a 15/15 below a 20/40. */
+function auditHtml(){
+  const a = P.audit;
+  if (!a || !(a.pages || []).length) return '';
+  const DIM = ZH
+    ? [['crawlability','爬得到'],['length','讲够了'],['structure','结构'],['blocks','抽取块'],
+       ['authority','出处'],['relevance','答对题']]
+    : [['crawlability','crawlable'],['length','length'],['structure','structure'],['blocks','blocks'],
+       ['authority','authority'],['relevance','relevance']];
+  const acc = {};
+  for (const pg of a.pages) for (const d of pg.dimensions || []){
+    acc[d.key] = acc[d.key] || { s:0, m:0 };
+    acc[d.key].s += d.score; acc[d.key].m += (d.max || 0);
+  }
+  const rings = ring(Math.round(a.avgScore || 0), T('全站','site'))
+    + DIM.filter(d => acc[d[0]]).map(d => ring(Math.round(acc[d[0]].s / acc[d[0]].m * 100), d[1])).join('');
+
+  const st = a.site || {};
+  const blocked = st.blockedSearchCrawlers || [];
+  const sig = [
+    ['llms.txt', st.llmsTxtFound, T('有','present'), T('没有','absent')],
+    ['robots.txt', st.robotsFound, T('有','present'), T('没有','absent')],
+    ['sitemap.xml', st.sitemapFound, T('有','present'), T('没有','absent')],
+    [T('AI 搜索爬虫','AI search crawlers'), blocked.length === 0,
+      T('都放行','all allowed'), T('挡了 ' + blocked.length + ' 个','blocking ' + blocked.length)],
+  ];
+  const org = a.entity && a.entity.organizationSchema;
+  sig.push([T('Organization 声明','Organization schema'), Boolean(org), T('有','declared'), T('没有','missing')]);
+
+  // The block map is the most directly actionable thing the audit produces: a
+  // column of dashes means the whole site has none of that block, which is
+  // exactly why an AI answering that kind of question does not quote you.
+  const BL = ZH
+    ? [['definition','定义'],['comparison','对比'],['statistics','数字'],['steps','步骤'],['faq','FAQ']]
+    : [['definition','definition'],['comparison','comparison'],['statistics','statistics'],['steps','steps'],['faq','faq']];
+  const have = {};
+  for (const pg of a.pages) for (const k of Object.keys(pg.blocks || {})) if (pg.blocks[k]) have[k] = (have[k] || 0) + 1;
+  const n = a.pages.length;
+  const blocksRows = BL.map(b => '<div class="sig"><span' + (have[b[0]] ? '' : ' class="w"') + '>'
+    + (have[b[0]] ? '' : '⚠ ') + esc(b[1]) + '</span><span class="sv">'
+    + (have[b[0]] ? have[b[0]] + '/' + n : T('一页都没有','none of ' + n)) + '</span></div>').join('');
+
+  return shead(T('页面体检 · 六维','Page audit · six dimensions'),
+      T('用 AI 爬虫的眼睛读了 ' + n + ' 页，不需要任何 Key', 'read ' + n + ' pages as an AI crawler sees them, no keys needed'))
+    + '<div class="rings">' + rings + '</div>'
+    + shead(T('抽取块','Extractable blocks'),
+        T('AI 直接摘走的是这五种块，整站有几页带','the five blocks an AI lifts, and how many pages carry each'))
+    + blocksRows
+    + shead(T('机器可读入口','Machine-readable entry points'),
+        T('爬虫进不进得来，进来了认不认得出你是谁','whether crawlers get in, and whether they can tell who you are'))
+    + sig.map(x => '<div class="sig"><span' + (x[1] ? '' : ' class="w"') + '>' + (x[1] ? '' : '⚠ ') + esc(x[0])
+        + '</span><span class="sv">' + esc(x[1] ? x[2] : x[3]) + '</span></div>').join('');
 }
 
 function funnelHtml(){
@@ -510,7 +721,8 @@ function today(){
   const items = (P.feedOpen || []).slice(0, 3);
   const c = P.feedCounts || { done:0, regressed:0, open:0 };
   document.getElementById('pToday').innerHTML =
-    '<div class="ph"><b>' + T('今天','Today') + '</b><span>' + T('修 ' + items.length + ' 件', 'fix ' + items.length) + '</span></div>'
+    '<div class="ph"><b>' + T('今天','Today') + '</b><span>' + T('修 ' + items.length + ' 件', 'fix ' + items.length)
+      + '</span><button class="cx" data-rail="pToday">‹</button></div>'
     + (items.length ? items.map(t => '<div class="card"' + (t.state === 'regressed' ? ' style="border-color:var(--red)"' : '') + '>'
         + '<div class="k"><span class="pr ' + esc(t.priority) + '">' + esc(t.priority) + '</span>'
         + (t.state === 'regressed' ? '<span class="pr" style="background:var(--red);color:#fff">'
@@ -565,7 +777,8 @@ function ask(){
   }
   if (!items.length) items.push(T('本期没有发现致命问题。','No blockers this period.'));
   document.getElementById('pAsk').innerHTML =
-    '<div class="ph"><b>' + T('问它','Ask') + '</b><span class="mono">' + T('已接通','wired') + '</span></div>'
+    '<div class="ph"><b>' + T('问它','Ask') + '</b><span class="mono">' + T('已接通','wired')
+      + '</span><button class="cx" data-rail="pAsk">‹</button></div>'
     + '<div class="sect">' + T('今日简报','Today\\u2019s brief') + '</div>'
     + '<ul class="brief">' + items.map(i => '<li>' + i + '</li>').join('')
     + '<li class="note">' + T('第 1 期没有期对比。<b>单期只算观察，连续两期同向才叫趋势</b> —— 下一期才会出现这一栏。',
