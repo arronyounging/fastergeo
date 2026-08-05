@@ -348,7 +348,8 @@ function today(ts){
           + (k.playbook.notThis?'<div class="nt">'+esc(k.playbook.notThis)+'</div>':'')+'</div>' : '')
       + '</details>').join('')
     + '<div class="sect">'+T('要我替你盯着吗？','Want me to watch it?')+'</div>'
-    + '<p class="fine">'+T('我会定期重看，等你改的东西真的生效了写信告诉你。不用注册。','I re-check and write when a fix actually lands. No account.')+'</p>'
+    + '<p class="fine">'+T('留个邮箱，我把这一页记下来。<b>发信还没接通</b> —— 接通之前，重爬的结果会更新在这个页面上，链接不会变。',
+        'Leave an address and I will keep this page on the list. <b>Email is not wired yet</b> — until it is, re-crawl results land on this page and the link stays put.')+'</p>'
     + '<form id="wf"><input id="we" type="email" required placeholder="you@company.com"><button class="go" type="submit">'+T('盯着','Watch')+'</button></form><div id="wm" class="wm"></div>'
     + '<div class="sect">'+T('看得更深','Go deeper')+'</div>'
     + '<p class="fine">'+T('这里问了 1 个引擎。命令行跑中外 18 个，并且每修一处都重爬验收。','This asked one engine. The CLI runs 18 across China and global, and re-crawls to verify every fix.')+'</p>'
@@ -361,7 +362,7 @@ function today(ts){
     const r = await fetch('/api/watch', {method:'POST',headers:{'Content-Type':'application/json'},
       body: JSON.stringify({id: ID, email: document.getElementById('we').value, kind:'project'})});
     const d = await r.json().catch(()=>({}));
-    m.textContent = r.ok ? T('好了。有变化我写信给你。','Done. I will write when something changes.') : (d.error||'failed');
+    m.textContent = r.ok ? T('记下了。发信接通后你会第一批收到。','Noted. You will be in the first batch once email is wired.') : (d.error||'failed');
     m.className = 'wm ' + (r.ok?'ok':'err');
   };
 }
