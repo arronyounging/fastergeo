@@ -49,7 +49,7 @@ try {
     return rest.slice(0, end + 2);
   };
   const src = ['const T = ', 'const esc = ', 'const h2 = ', 'const waiting = ',
-    'function chip(', 'function today('].map(take).join('\n');
+    'function chip(', 'function verifyLine(', 'function today('].map(take).join('\n');
 
   const el = { innerHTML: '', querySelectorAll: () => [] };
   const feed = [
@@ -58,9 +58,10 @@ try {
     { key: 'k2', state: 'new', priority: 'P1', title: '首页读不到', acceptance: { desc: 'd' } },
   ];
   const doneItems = [{ key: 'k3', state: 'done', title: '已修', resolvedAt: '2026-08-01T00:00:00Z', doneBy: 'owner' }];
-  const run = new Function('document', 'P', 'ZH', 'ID',
+  const mk = proj => new Function('document', 'P', 'ZH', 'ID',
     src + '\nreturn (a,b,c) => { today(a,b,c); return document.getElementById("pToday").innerHTML; };')(
-    { getElementById: () => el }, { stage: 'done', url: 'https://x.com' }, true, 'TESTID123');
+    { getElementById: () => el }, proj, true, 'TESTID123');
+  const run = mk({ stage: 'done', url: 'https://x.com' });
   const pane = run(feed, { unread: 2 }, doneItems);
   for (const need of ['又坏了', '未读', '我修好了', '放回去', 'llms.txt']) {
     if (!pane.includes(need)) throw new Error(`today() lost "${need}"`);
@@ -68,7 +69,14 @@ try {
   // The empty state must still say something. A blank pane reads as a crash.
   const empty = run([], { unread: 0 }, []);
   if (!empty.includes('没有待办')) throw new Error('today() renders nothing when the queue is empty');
+  // Both halves of the verification claim. The strong one must not appear until
+  // a loop run has actually happened — that sentence going out early is exactly
+  // the promise-before-plumbing failure that keeps recurring here.
+  if (!pane.includes('还没接上')) throw new Error('unwatched project must not claim a daily re-crawl');
+  const watched = mk({ stage: 'done', url: 'https://x.com', loop: { lastCheck: 1785000000000 } })(feed, { unread: 0 }, []);
+  if (!watched.includes('每天重爬核对')) throw new Error('a project the loop has run on should say so');
   console.log('✓ today() renders the queue, its states, its actions and its empty case');
+  console.log('✓ the daily-re-crawl claim only appears once the loop has actually run');
 } catch (e) {
   console.error(`✗ rendered panel is broken: ${e.message}`);
   const lines = m[1].split('\n');

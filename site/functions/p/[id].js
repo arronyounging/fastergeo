@@ -375,6 +375,20 @@ function chip(k){
   return '';
 }
 
+/* What we can honestly say about verification.
+   The strong version — "we re-crawl every day and it comes back on its own" —
+   is only true once the daily loop is actually running against this project.
+   Claiming it before then is the same promise-before-plumbing mistake this
+   product exists to argue against, so the sentence is driven by whether a loop
+   run has actually happened rather than by what we intend to build. */
+function verifyLine(){
+  const at = P.loop && P.loop.lastCheck;
+  if (at) return T('每天重爬核对（上次 '+String(new Date(at).toISOString()).slice(0,10)+'）—— 说了修好但没修好，它会自己回来。',
+    'Re-crawled and checked daily (last '+String(new Date(at).toISOString()).slice(0,10)+'). If it is not actually fixed, it comes back on its own.');
+  return T('你下次重跑时会核对 —— 说了修好但没修好，它会自己回来。每日自动重爬还没接上。',
+    'Checked the next time you re-run this. If it is not actually fixed, it comes back on its own. The daily re-crawl is not wired up yet.');
+}
+
 function today(ts, counts, done){
   const el = document.getElementById('pToday');
   done = done || [];
@@ -399,8 +413,7 @@ function today(ts, counts, done){
       + (k.key ? '<div class="acts">'
           + '<button class="act" data-k="'+esc(k.key)+'" data-a="done">'+T('我修好了','I fixed this')+'</button>'
           + '<button class="act" data-k="'+esc(k.key)+'" data-a="snooze">'+T('先放放','not now')+'</button>'
-          + '<span class="fine">'+T('下次重爬会核对 —— 说了修好但没修好，它会自己回来。',
-              'The next crawl checks. If it is not actually fixed, it comes back on its own.')+'</span></div>' : '')
+          + '<span class="fine">'+verifyLine()+'</span></div>' : '')
       + '</details>').join('')
     /* Kept, not deleted. The finished pile is the only record that any of this
        worked, and a queue that empties itself leaves a user with nothing to
