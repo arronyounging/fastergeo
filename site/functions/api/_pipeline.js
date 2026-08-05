@@ -16,8 +16,9 @@ import { auditPage, checkSite, fetchPage } from '@fastergeo/audit';
 import { generateTickets, diagnose, stationForTicket, playbookFor, stationOf } from '@fastergeo/tickets';
 import { bootstrapProject } from '@fastergeo/content';
 import { askLlm, parseJsonish } from './_llm.js';
+import { buildVoice, buildContentStrategy } from './_docs.js';
 
-export const STAGES = ['crawl', 'audit', 'dossier', 'probe', 'tickets', 'done'];
+export const STAGES = ['crawl', 'audit', 'dossier', 'docs', 'probe', 'tickets', 'done'];
 
 const MAX_PAGES = 5;
 const say = (p, en, zh) => p.log.push({ t: Date.now(), m: p.lang === 'zh' ? zh : en });
@@ -130,6 +131,28 @@ const STAGE_FNS = {
       say(p, `Competitors to review: ${names.join(', ')}`, `待你核对的竞品：${names.join('、')}`);
     }
     say(p, `Question bank: ${r.questions.length} buying questions.`, `问题库：${r.questions.length} 个购买意图问题。`);
+    return 'docs';
+  },
+
+  async docs(p, env) {
+    // Voice is extracted, never written: quoting what the brand already
+    // published and letting a human name the pattern is the only honest way to
+    // do this, and it is the same refusal the CLI makes.
+    p.voice = buildVoice(p.pages, p.lang);
+    say(p, `Pulled ${p.voice.evidence.length} sentences you already wrote — the voice guide is yours to name.`,
+      `摘了 ${p.voice.evidence.length} 句你自己写过的话 —— 语气怎么定，你说了算。`);
+
+    const strat = await buildContentStrategy(env, {
+      brand: p.dossier?.brand, questions: p.dossier?.questions, audit: p.audit,
+      competitors: p.dossier?.competitorCandidates, lang: p.lang,
+    });
+    if (strat) {
+      p.strategy = strat;
+      say(p, `Content plan: ${strat.pieces.length} pieces, each answering a question buyers actually ask.`,
+        `内容计划：${strat.pieces.length} 篇，每篇都对着一个买家真会问的问题。`);
+    } else {
+      say(p, `Not enough to plan content from yet.`, `还不够推导内容计划。`);
+    }
     return 'probe';
   },
 

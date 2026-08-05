@@ -271,11 +271,14 @@ function profile(d, brand){
   const facts = d.facts?.facts || [];
   const sourced = facts.filter(f => f.status === 'confirmed').length;
   const unc = facts.length - sourced;
+  const V = P.voice, S = P.strategy;
   const docs = [
     ['product', T('产品档案','Product'), ''],
     ['facts', T('品牌事实库','Brand facts'), sourced ? tag(T(sourced+' 条带来源', sourced+' sourced')) : ''],
     ['competitors', T('竞品分析','Competitors'), (d.competitorCandidates||[]).length ? tag(T((d.competitorCandidates||[]).length+' 待核',(d.competitorCandidates||[]).length+' to review'),1) : ''],
     ['questions', T('问题库','Questions'), (d.questions||[]).length ? tag(T((d.questions||[]).length+' 题',(d.questions||[]).length+' qs')) : ''],
+    ['voice', T('语气指南','Voice'), V ? tag(T('待你填','yours to fill'),1) : ''],
+    ['strategy', T('内容计划','Content plan'), S ? tag(T(S.pieces.length+' 篇',S.pieces.length+' pieces')) : ''],
   ];
   el.innerHTML = h2(T('档案','Profile'))
     + '<h3>'+esc(brand)+'</h3><div class="sub">'+esc(d.brand?.description||'')+'</div>'
@@ -435,6 +438,7 @@ function md(src){
 }
 
 function showDoc(kind, d){
+  const NL = String.fromCharCode(10);
   const F = d.facts || {};
   let title = kind, body = '';
   if (kind === 'product'){
@@ -454,6 +458,22 @@ function showDoc(kind, d){
     body = T('这些全部是从你的网站文字里猜的。真正的竞争集来自采样 AI 的回答，不是来自读你的首页。\\n\\n',
       'All of these are guesses from your site text. A real competitive set comes from sampling AI answers, not from reading a homepage.\\n\\n')
       + (d.competitorCandidates||[]).map(c => '['+c.confidence+'] '+c.name+'\\n    '+c.why).join('\\n\\n');
+  } else if (kind === 'voice'){
+    const V = P.voice;
+    title = T('语气指南','Voice guide');
+    body = V.intro + NL + NL
+      + V.slots.map(x => x + NL + '  ' + T('（待你填）','(yours to fill)')).join(NL + NL)
+      + NL + NL + '— ' + V.evidenceLabel + ' —' + NL + NL
+      + V.evidence.map(e => '  ' + e.text).join(NL + NL);
+  } else if (kind === 'strategy'){
+    const S = P.strategy;
+    title = T('内容计划','Content plan');
+    body = T('每一篇都对着一个买家真会问的问题 —— 对不上问题的选题不会出现在这里。' + NL + NL,
+             'Every piece answers a question buyers actually ask. A topic that maps to no question does not appear here.' + NL + NL)
+      + S.pieces.map((x,i) => (i+1) + '. ' + x.title + NL
+          + '   ' + T('回答：','Answers: ') + x.question + '  [' + x.market + ']' + NL
+          + '   ' + T('可引用块：','Citable block: ') + (x.block||'-') + '  ·  ' + (x.format||'') + NL
+          + '   ' + x.why).join(NL + NL);
   } else {
     title = T('问题库','Question bank');
     body = T('探测题会点名你的品牌，用来测 AI 认不认识你，严格排除在可见度指标之外。\\n\\n',
