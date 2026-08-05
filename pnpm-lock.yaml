@@ -353,9 +353,15 @@ importers:
       '@fastergeo/audit':
         specifier: workspace:^
         version: link:../packages/audit
+      '@fastergeo/content':
+        specifier: workspace:^
+        version: link:../packages/content
       '@fastergeo/rules':
         specifier: workspace:^
         version: link:../packages/rules
+      '@fastergeo/tickets':
+        specifier: workspace:^
+        version: link:../packages/tickets
 
 packages:
 

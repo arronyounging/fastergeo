@@ -7,7 +7,7 @@
  * word-equivalent self-contained sections.
  */
 
-import { isCjkDominant } from '@fastergeo/rules';
+import { isCjkDominant } from '@fastergeo/rules/text';
 import type { FactStore, Outline } from './types.js';
 
 export function buildOutline(question: string, store: FactStore): Outline {
@@ -67,7 +67,12 @@ export function buildOutline(question: string, store: FactStore): Outline {
 }
 
 /** Render outline + constraints as an LLM drafting prompt (信任型模板精神). */
-export function draftPrompt(outline: Outline, store: FactStore): string {
+/**
+ * @param voice the user's own voice guide, verbatim. Optional because it is a
+ *   document we refuse to generate — if the user never filled it in, drafting
+ *   proceeds without it rather than inventing a house style for them.
+ */
+export function draftPrompt(outline: Outline, store: FactStore, voice?: string): string {
   const zh = outline.market === 'cn';
   const factsBlock = store.facts
     .filter(f => f.status === 'confirmed' && f.grade !== 'E')
@@ -91,6 +96,11 @@ export function draftPrompt(outline: Outline, store: FactStore): string {
     zh ? '【结构（按大纲，每节开头直接给结论）】' : '[STRUCTURE — answer-first in every section]',
     sections,
     '',
+    // The user wrote this by hand; it is the one part of the prompt we did not
+    // derive. Passed through verbatim rather than summarised.
+    ...(voice?.trim()
+      ? [zh ? '【语气 — 品牌自己写的，照此写作】' : '[VOICE — written by the brand; follow it]', voice.trim(), '']
+      : []),
     zh
       ? '【红线】没把握的数据不写；不贬低具体竞品；最高级表述（最好/第一/领先）除非事实库背书否则禁用。'
       : '[HARD RULES] No unsourced data. No competitor disparagement. No superlatives unless backed by a listed fact.',

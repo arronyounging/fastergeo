@@ -48,11 +48,27 @@ const INPUT: ReportInput = {
 describe('renderHtmlReport', () => {
   const html = renderHtmlReport(INPUT);
 
-  it('puts blockers in a red banner with confusion evidence', () => {
-    expect(html).toContain('Fix these before anything else');
-    expect(html).toContain('spa-shell');
-    expect(html).toContain('Brand confusion');
+  it('leads with the verbatim quotes, above the score', () => {
+    expect(html).toContain('said about you');
     expect(html).toContain('汽车外观改装件'); // evidence quotes stay verbatim
+    // The wall comes before the gauge: a reader meets the evidence first.
+    expect(html.indexOf('class="wall"')).toBeGreaterThan(-1);
+    expect(html.indexOf('class="wall"')).toBeLessThan(html.indexOf('class="gauge"'));
+  });
+
+  it('does not repeat the quotes in the blocker banner', () => {
+    expect(html).toContain('Fix these before anything else');
+    expect(html).toContain('spa-shell'); // technical blockers still listed
+    expect(html).not.toContain('Brand confusion'); // the wall already carried it
+    // Counting the same finding twice would inflate the blocker count.
+    const banner = html.slice(html.indexOf('class="blockers"'));
+    expect(banner.slice(0, banner.indexOf('</section>'))).not.toContain('汽车外观改装件');
+  });
+
+  it('says nothing on the wall rather than implying "all clear" when unsampled', () => {
+    const unsampled = renderHtmlReport({ brandName: 'B', audit: INPUT.audit });
+    expect(unsampled).not.toContain('class="wall"');
+    expect(unsampled).not.toContain('said about you');
   });
 
   it('escapes HTML in evidence quotes (no script injection)', () => {
@@ -156,7 +172,19 @@ describe('renderHtmlReport — answer replay', () => {
   });
 
   it('omits the section entirely without samples', () => {
-    expect(renderHtmlReport(INPUT)).not.toContain('Answer Replay');
+    // Structural, not prose: other copy may legitimately mention the section by
+    // name, and asserting on the words made this test fail for the wrong reason.
+    expect(renderHtmlReport(INPUT)).not.toContain('class="replay"');
+    expect(renderHtmlReport(INPUT)).not.toContain('rp-ans');
+  });
+
+  it('closes with a way back for whoever the report was forwarded to', () => {
+    const html = renderHtmlReport(INPUT);
+    expect(html).toContain('How to reproduce this');
+    expect(html).toContain('npx fastergeo report');
+    expect(html).toContain('fastergeo.co');
+    // Must not point at a section that did not render.
+    expect(html).not.toContain('Answer Replay below');
   });
 
   it('uses metric word-boundary rules — no mention chip or highlight for lookalike names', () => {
@@ -230,8 +258,10 @@ describe('renderHtmlReport — answer replay', () => {
     });
     expect(withSentiment).toContain('+4');
     expect(withSentiment).toContain('−1');
-    expect(withSentiment).toContain('Negative mention');
+    // Negative evidence is quoted on the wall, tagged, not buried in the banner.
     expect(withSentiment).toContain('不推荐使用该品牌');
+    expect(withSentiment).toContain('negative');
+    expect(withSentiment).not.toContain('Negative mention (');
   });
 
   it('mention rate carries a Wilson CI tooltip, and 0% is an interval too', () => {
@@ -261,14 +291,16 @@ describe('renderHtmlReport — fix-first card (Pass 6)', () => {
     { id: 'T-003', title: 'Add statistics blocks', priority: 'P1' as const, rationale: 'stats', status: 'todo' as const,
       history: [], acceptance: { type: 'auto' as const, check: 'pages.issue_lte:block-gap:statistics:0', desc: 'stats' } },
   ];
-  it('executive summary leads with the top-3 impact-ordered tickets as action cards', () => {
+  it('surfaces the top-3 impact-ordered tickets as today\'s action cards, above the score', () => {
     const html = renderHtmlReport({ brandName: 'B', tickets });
-    expect(html).toContain('What to fix first');
+    expect(html).toContain('Today — fix these first');
     expect(html).toContain('Unblock AI SEARCH crawlers');
     expect(html).toContain('done when');
     expect(html).toContain('T-001');
     expect(html).toContain('Fix empty shells');
     expect(html).toContain('Add statistics blocks');
+    // What to do comes before how you scored.
+    expect(html.indexOf('class="action"')).toBeLessThan(html.indexOf('class="gauge"'));
   });
   it('action cards absent with no tickets; gauge renders unmeasured without an audit', () => {
     const html = renderHtmlReport({ brandName: 'B' });

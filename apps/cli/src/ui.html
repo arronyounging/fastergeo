@@ -1,253 +1,490 @@
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
+<!doctype html><html><head><meta charset="utf-8">
+<title>FasterGEO</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>FasterGEO Dashboard</title>
+<!-- Paper, serif, mono — the same design language as the report and the site.
+     The dashboard used to be dark and was the odd one out of three surfaces. -->
 <style>
-/* ── FasterGEO 设计语言：精密仪器 ─────────────────────────────
-   深墨底 · 单强调色 · 等宽数字 · 8px 网格 · 克制的色彩语义     */
-:root{
-  --bg:#0B0E14; --surface:#121826; --surface-2:#0D1420;
-  --line:rgba(148,163,184,.10); --line-strong:rgba(148,163,184,.18);
-  --tx:#E8EDF5; --dim:#8A96A8; --faint:#5B6675;
-  --acc:#8B7CF6; --acc-soft:rgba(139,124,246,.12);
-  --red:#F4536E; --red-soft:rgba(244,83,110,.10);
-  --green:#2FD08C; --green-soft:rgba(47,208,140,.10);
-  --amber:#F0B24A; --amber-soft:rgba(240,178,74,.10);
-  --r:14px;
-}
+@import url('https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+:root{--paper:#F3F1EA;--card:#FFF;--well:#F8F6F0;--line:#E4E0D4;--rule:#D8D3C4;
+--tx:#1C1A15;--dim:#5C574D;--faint:#98917F;--red:#B23A26;--red-soft:#F8ECE8;
+--ok:#20714A;--ok-soft:#EAF1EB;--amber:#8A6100;--amber-soft:#F5EFDE}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--tx);
-  font:14px/1.65 -apple-system,"SF Pro Text","PingFang SC","Microsoft YaHei",sans-serif;
-  -webkit-font-smoothing:antialiased}
-.num{font-variant-numeric:tabular-nums}
-.mono{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:12px}
-
-/* Header */
-header{position:sticky;top:0;z-index:10;display:flex;align-items:center;gap:20px;
-  padding:0 28px;height:60px;background:rgba(11,14,20,.85);backdrop-filter:blur(12px);
-  border-bottom:1px solid var(--line)}
-.logo{font-size:16px;font-weight:700;letter-spacing:-.02em}
-.logo b{color:var(--acc);font-weight:800}
-.project-chip{display:flex;align-items:center;gap:8px;padding:5px 12px;
-  background:var(--surface);border:1px solid var(--line);border-radius:999px;
-  font-size:12px;color:var(--dim)}
-.project-chip .dot{width:6px;height:6px;border-radius:50%;background:var(--green)}
-nav{display:flex;gap:2px;margin-left:auto;background:var(--surface);
-  border:1px solid var(--line);border-radius:999px;padding:3px}
-nav button{background:none;border:none;color:var(--dim);font-size:13px;font-weight:500;
-  padding:7px 18px;border-radius:999px;cursor:pointer;transition:all .15s}
-nav button:hover{color:var(--tx)}
-nav button.active{background:var(--acc);color:#fff}
-
-main{max-width:1120px;margin:0 auto;padding:28px}
-
-/* Cards */
-.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
-  padding:24px 28px;margin-bottom:20px}
-.card-label{font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;
-  color:var(--faint);margin-bottom:16px}
-
-iframe{width:100%;height:calc(100vh - 120px);border:1px solid var(--line);
-  border-radius:var(--r);background:var(--bg)}
-
-/* Ticket rows */
-.trow{display:flex;align-items:flex-start;gap:16px;padding:16px 4px;
-  border-bottom:1px solid var(--line)}
-.trow:last-child{border-bottom:none}
-.trow:hover{background:var(--surface-2);border-radius:8px}
-.pill{display:inline-flex;align-items:center;font-size:11px;font-weight:700;
-  padding:3px 10px;border-radius:999px;letter-spacing:.02em;white-space:nowrap}
-.pill.P0{background:var(--red-soft);color:var(--red)}
-.pill.P1{background:var(--amber-soft);color:var(--amber)}
-.pill.P2{background:var(--surface-2);color:var(--dim)}
-.pill.done{background:var(--green-soft);color:var(--green)}
-.pill.todo{background:var(--surface-2);color:var(--dim)}
-.pill.regressed{background:var(--red-soft);color:var(--red)}
-.pill.pending-manual{background:var(--amber-soft);color:var(--amber)}
-.t-main{flex:1;min-width:0}
-.t-title{font-weight:600;font-size:14px}
-.t-title .tid{color:var(--faint);font-weight:400;margin-right:8px}
-.t-rationale{color:var(--dim);font-size:12.5px;margin-top:3px}
-.t-acc{margin-top:8px;display:inline-flex;align-items:center;gap:6px;
-  font-size:11.5px;color:var(--faint);background:var(--surface-2);
-  padding:3px 10px;border-radius:6px}
-.t-side{display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex-shrink:0}
-select{background:var(--surface-2);color:var(--dim);border:1px solid var(--line);
-  border-radius:8px;padding:5px 10px;font-size:12px;cursor:pointer}
-select:hover{border-color:var(--line-strong);color:var(--tx)}
-.verify-note{font-size:11px;color:var(--faint)}
-
-/* Trends */
-.alert{display:flex;gap:12px;align-items:flex-start;padding:14px 18px;
-  border-radius:12px;margin-bottom:10px;font-size:13.5px}
-.alert.P0{background:var(--red-soft);border:1px solid rgba(244,83,110,.25)}
-.alert.warn{background:var(--amber-soft);border:1px solid rgba(240,178,74,.2)}
-.period-strip{display:flex;align-items:center;gap:10px;color:var(--dim);
-  font-size:12.5px;margin-bottom:20px}
-.period-strip .p{padding:4px 12px;background:var(--surface-2);border-radius:999px}
-.period-strip .p.latest{background:var(--acc-soft);color:var(--acc);font-weight:600}
-.drow{display:grid;grid-template-columns:minmax(200px,1.2fr) 90px 30px 90px 1fr;
-  align-items:center;gap:8px;padding:12px 4px;border-bottom:1px solid var(--line)}
-.drow:last-child{border-bottom:none}
-.d-key{color:var(--dim)}
-.d-val{font-size:15px;font-weight:600;text-align:right}
-.d-arrow{text-align:center;color:var(--faint)}
-.d-arrow.up{color:var(--green)}.d-arrow.down{color:var(--red)}
-.d-verdict{font-size:12px;color:var(--faint)}
-.d-verdict.trend{color:var(--acc);font-weight:600}
-.empty{color:var(--dim);text-align:center;padding:64px 20px;font-size:14px}
-.empty .hint{color:var(--faint);font-size:12.5px;margin-top:8px}
-.na{color:var(--faint)}
-code{background:var(--surface-2);padding:1px 6px;border-radius:5px;font-size:12px}
-.footnote{color:var(--faint);font-size:12px;margin-top:16px;padding-top:14px;
-  border-top:1px solid var(--line)}
-</style>
-</head>
-<body>
-<header>
-  <div class="logo">Faster<b>GEO</b></div>
-  <div class="project-chip"><span class="dot"></span><span id="brandName"></span></div>
-  <nav>
-    <button data-tab="overview" class="active" id="nav-overview"></button>
-    <button data-tab="tickets" id="nav-tickets"></button>
-    <button data-tab="trends" id="nav-trends"></button>
-  </nav>
-</header>
-<main>
-  <div id="tab-overview"><iframe src="/api/report"></iframe></div>
-  <div id="tab-tickets" style="display:none"></div>
-  <div id="tab-trends" style="display:none"></div>
-</main>
+body{margin:0;background:var(--paper);color:var(--tx);
+font:13.5px/1.6 -apple-system,"SF Pro Text","PingFang SC","Microsoft YaHei",sans-serif}
+.wrap{max-width:1560px;margin:0 auto;padding:16px}
+.mono{font-family:ui-monospace,"IBM Plex Mono",Menlo,monospace}
+.beat{display:flex;align-items:center;gap:14px;background:#1C1A15;color:#E8E4D8;
+border-radius:10px 10px 0 0;padding:11px 18px;font-size:12.5px;flex-wrap:wrap}
+.dot{width:7px;height:7px;border-radius:50%;background:#4ADE80;box-shadow:0 0 8px #4ADE80;flex:none}
+.beat .sp{flex:1}
+.btn{background:#F3F1EA;color:#1C1A15;border:none;border-radius:6px;padding:6px 13px;
+font-size:12px;font-weight:600;cursor:pointer;font-family:inherit}
+.btn.ghost{background:transparent;color:#B9B3A3;border:1px solid #4A453B}
+.btn:hover{opacity:.85}
+.panes{display:grid;grid-template-columns:236px minmax(0,1fr) 320px 258px;gap:1px;background:var(--line);
+border:1px solid var(--line);border-top:none;border-radius:0 0 10px 10px}
+@media(max-width:1180px){.panes{grid-template-columns:1fr}}
+.pane{background:var(--card);padding:16px 15px;min-width:0}
+.ph{font:500 10.5px/1 ui-monospace,"IBM Plex Mono",Menlo,monospace;letter-spacing:.14em;
+text-transform:uppercase;color:var(--dim);display:flex;justify-content:space-between;
+align-items:center;gap:8px;padding-bottom:9px;border-bottom:1px solid var(--line);margin-bottom:13px}
+.ph b{color:var(--tx);font-weight:600}
+.brandname{font:700 19px "Newsreader",Georgia,"Songti SC",serif;margin-bottom:2px}
+.sub{color:var(--faint);font-size:11.5px;margin-bottom:14px;word-break:break-all}
+.doc{display:flex;justify-content:space-between;align-items:center;gap:6px;padding:7px 0;
+border-bottom:1px dotted var(--rule);font-size:12.5px;cursor:pointer}
+.doc:last-child{border-bottom:none}
+.doc:hover{color:var(--red)}
+.doc .e{color:var(--faint);font-size:11px;flex:none}
+.tag{display:inline-block;font-size:9.5px;padding:1px 6px;border-radius:3px;
+background:var(--ok-soft);color:var(--ok);margin-left:5px;font-weight:600;white-space:nowrap}
+.tag.warn{background:var(--amber-soft);color:var(--amber)}
+.tag.off{background:var(--well);color:var(--faint)}
+.sect{font:500 10px ui-monospace,Menlo,monospace;letter-spacing:.12em;text-transform:uppercase;
+color:var(--faint);margin:18px 0 7px}
+.chip{display:inline-block;font-size:11.5px;background:var(--well);border:1px solid var(--line);
+border-radius:20px;padding:2px 10px;margin:0 4px 5px 0}
+.rules{margin-top:20px;padding:11px 12px;background:var(--well);border-radius:7px;
+font-size:11px;line-height:1.75;color:var(--dim)}
+.rules b{color:var(--tx)}
+.tabs{display:flex;gap:3px;margin-bottom:15px;flex-wrap:wrap}
+.tab{font-size:11.5px;padding:5px 11px;border-radius:6px;color:var(--dim);cursor:pointer;
+border:1px solid transparent;user-select:none}
+.tab:hover{background:var(--well)}
+.tab.on{background:#1C1A15;color:#F3F1EA;font-weight:600}
+.tab.soon{color:#BEB8A8}
+.quote{background:var(--red-soft);border-left:3px solid var(--red);border-radius:0 8px 8px 0;
+padding:16px 18px;margin-bottom:11px}
+.quote.calm{background:var(--well);border-left-color:var(--rule)}
+.quote .q{font:italic 500 16px/1.55 "Newsreader",Georgia,"Songti SC",serif}
+.quote.calm .q{font-style:normal;font-size:14px}
+.qmeta{margin-top:9px;font:500 10.5px ui-monospace,Menlo,monospace;color:var(--dim);letter-spacing:.04em}
+.qtag{display:inline-block;padding:1px 7px;border-radius:3px;background:var(--red);color:#fff;
+margin-right:7px;font-size:9px;letter-spacing:.06em}
+.qtag.warn{background:var(--amber)}
+.meter{margin-top:12px;padding:12px 14px;border:1px dashed var(--rule);border-radius:8px;
+display:flex;align-items:center;gap:12px;background:#FCFBF7;flex-wrap:wrap}
+.meter .n{font:500 21px ui-monospace,Menlo,monospace}
+.meter .t{flex:1;min-width:200px;font-size:12px;color:var(--dim)}
+.meter .t b{color:var(--tx)}
+.funnel{display:flex;margin:20px 0 6px;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.st{flex:1;padding:11px 6px;text-align:center;border-right:1px solid var(--line);font-size:11px}
+.st:last-child{border-right:none}
+.st .v{font:500 15px ui-monospace,Menlo,monospace;display:block;margin-bottom:3px}
+.st.bad{background:var(--red-soft)} .st.bad .v{color:var(--red)}
+.st.good{background:var(--ok-soft)} .st.good .v{color:var(--ok)}
+.st.na{background:var(--well)} .st.na .v{color:var(--faint)}
+.cap{font-size:10.5px;color:var(--faint);margin-bottom:18px;line-height:1.7}
+.cap b{color:var(--dim)}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;font:500 10px ui-monospace,Menlo,monospace;letter-spacing:.1em;
+text-transform:uppercase;color:var(--faint);padding:6px 8px;border-bottom:1px solid var(--rule)}
+td{padding:6px 8px;border-bottom:1px solid var(--line)}
+td.num{font-family:ui-monospace,Menlo,monospace;text-align:right}
+tr.off td{color:#BEB8A8}
+.nokey{font-size:10px;color:var(--faint);border:1px solid var(--line);border-radius:3px;padding:0 5px;white-space:nowrap}
+.card{border:1px solid var(--line);border-radius:8px;padding:12px 13px;margin-bottom:9px;background:var(--well)}
+.card .k{display:flex;gap:7px;align-items:center;margin-bottom:6px}
+.pr{font:600 9.5px ui-monospace,Menlo,monospace;padding:1px 6px;border-radius:3px}
+.pr.P0{background:var(--red);color:#fff}
+.pr.P1{background:var(--amber-soft);color:var(--amber)}
+.pr.P2{background:var(--well);color:var(--dim);border:1px solid var(--line)}
+.card .t{font-weight:600;font-size:13px;margin-bottom:4px}
+.card .w{font-size:11.5px;color:var(--dim);margin-bottom:8px}
+.card .acc{font-size:11px;color:var(--dim);padding-top:7px;border-top:1px dotted var(--rule)}
+.card .acc b{color:var(--ok)}
+.state{display:flex;gap:8px;margin:13px 0;font-size:11.5px}
+.state span{flex:1;text-align:center;padding:7px 4px;border-radius:6px;background:var(--well)}
+.state .g{color:var(--ok)} .state .r{color:var(--amber)}
+.soonbox{border:1px dashed var(--rule);border-radius:8px;padding:18px 20px;background:#FCFBF7}
+.soonbox h3{font:600 15px "Newsreader",Georgia,"Songti SC",serif;margin:0 0 6px}
+.soonbox p{margin:0 0 12px;font-size:12.5px;color:var(--dim);line-height:1.7}
+.soonbox .caps{font-size:11.5px;color:var(--dim);line-height:1.8}
+.soonbox .caps b{color:var(--tx)}
+.ask{background:var(--well);border:1px dashed var(--rule);border-radius:8px;padding:14px;
+font-size:11.5px;color:var(--dim);text-align:center;margin-top:22px}
+.ask b{display:block;color:var(--tx);font-size:12.5px;margin-bottom:5px}
+.brief{font-size:12px;line-height:1.75;padding-left:16px;margin:0}
+.brief li{margin-bottom:9px}
+.note{font-size:10.5px;color:var(--faint)}
+.empty{color:var(--faint);font-size:12.5px;padding:22px 0;text-align:center}
+dialog{border:1px solid var(--line);border-radius:10px;padding:0;max-width:860px;width:92vw;
+background:var(--card);color:var(--tx)}
+dialog::backdrop{background:rgba(28,26,21,.4)}
+.dlg-h{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:13px 18px;
+border-bottom:1px solid var(--line);font:600 13px ui-monospace,Menlo,monospace}
+.dlg-b{padding:16px 20px;max-height:70vh;overflow:auto;white-space:pre-wrap;
+font:12px/1.75 ui-monospace,"IBM Plex Mono",Menlo,monospace}
+a{color:var(--red)}
+</style></head><body>
+<div class="wrap">
+  <div class="beat">
+    <span class="dot"></span>
+    <span><b id="bName">…</b></span>
+    <span style="color:#B9B3A3" id="bMeta"></span>
+    <span class="sp"></span>
+    <span class="mono" style="color:#B9B3A3;font-size:11px" id="bKeys"></span>
+    <button class="btn ghost" id="bReport"></button>
+    <button class="btn" id="bHire"></button>
+  </div>
+  <div class="panes">
+    <div class="pane" id="pProfile"></div>
+    <div class="pane" id="pEvidence"></div>
+    <div class="pane" id="pToday"></div>
+    <div class="pane" id="pAsk"></div>
+  </div>
+</div>
+<dialog id="dlg"><div class="dlg-h"><span id="dlgT"></span><button class="btn" id="dlgX"></button></div><div class="dlg-b" id="dlgB"></div></dialog>
 <script>
-// i18n: English default; zh via ?lang=zh or browser language
-const UI_LANG = new URLSearchParams(location.search).get('lang')
-  ?? (navigator.language?.startsWith('zh') ? 'zh' : 'en');
-const T = UI_LANG === 'zh' ? {
-  overview: '总览', tickets: '工单', trends: '趋势',
-  loading: '加载中…', unnamed: '未命名', periods: n => `${n} 期数据`, latest: '最新',
-  noData: '暂无数据',
-  noTickets: '暂无工单', noTicketsHint: '跑一期 <code>fastergeo cycle</code> 自动生成',
-  ticketsLabel: (n, a) => `行动工单 · ${n} 条 · ${a} 条机器自动验收`,
-  manual: '👤 人工验收', mark: '标记…', verifyOnly: 'verify 自动判定',
-  ticketsFootnote: '自动验收工单由 <code>fastergeo verify</code> / <code>cycle</code> 重抓判定，看板不可手改——机器验收的状态不接受口头确认。',
-  needTwo: n => `${n} 期数据 — 至少两期才能对比。`,
-  discipline: '口径：单期变化只作观察，连续两期同向才算趋势。',
-  periodLabel: '期间对比', unmeasured: '未测',
-  trendVerdict: d => '📈 趋势（连续' + (d === 'up' ? '上升' : '下降') + '）',
-  obsVerdict: '观察（不定性）', insufficient: '数据不足',
-  thMetric: '指标', thPrev: '上期', thCurr: '本期', thVerdict: '判定',
-} : {
-  overview: 'Overview', tickets: 'Tickets', trends: 'Trends',
-  loading: 'loading…', unnamed: 'unnamed', periods: n => `${n} period(s)`, latest: 'latest',
-  noData: 'no data yet',
-  noTickets: 'No tickets yet', noTicketsHint: 'run <code>fastergeo cycle</code> to generate them',
-  ticketsLabel: (n, a) => `Action tickets · ${n} · ${a} machine-verifiable`,
-  manual: '👤 manual', mark: 'mark…', verifyOnly: 'verify-judged',
-  ticketsFootnote: 'Auto-acceptance tickets are judged by <code>fastergeo verify</code> / <code>cycle</code> re-crawls and cannot be hand-edited here — machine-verified status does not accept verbal confirmation.',
-  needTwo: n => `${n} period(s) — at least two are needed to compare.`,
-  discipline: 'Discipline: single-period changes are observations; only two consecutive same-direction changes count as a trend.',
-  periodLabel: 'Period comparison', unmeasured: 'unmeasured',
-  trendVerdict: d => `📈 trend (${d === 'up' ? 'rising' : 'falling'} twice)`,
-  obsVerdict: 'observation (no conclusion)', insufficient: 'insufficient data',
-  thMetric: 'metric', thPrev: 'prev', thCurr: 'curr', thVerdict: 'verdict',
-};
-document.documentElement.lang = UI_LANG === 'zh' ? 'zh-CN' : 'en';
-const $ = s => document.querySelector(s);
-let project = null;
+const ZH = (navigator.language || '').toLowerCase().startsWith('zh');
+const T = (zh, en) => ZH ? zh : en;
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const pct = v => (v === null || v === undefined) ? null : Math.round(v * 100) + '%';
+/** Unmeasured renders as a dash. A zero is a measurement; a dash is its absence. */
+const NA = '<span style="color:var(--faint)">—</span>';
 
-document.querySelectorAll('nav button').forEach(btn => btn.onclick = () => {
-  document.querySelectorAll('nav button').forEach(b => b.classList.toggle('active', b === btn));
-  for (const tab of ['overview', 'tickets', 'trends']) {
-    $('#tab-' + tab).style.display = tab === btn.dataset.tab ? '' : 'none';
-  }
-  if (btn.dataset.tab === 'tickets') renderTickets();
-  if (btn.dataset.tab === 'trends') renderTrends();
-});
+/**
+ * All seven domains are listed even when unwired. The tab strip is the
+ * capability statement — a buyer's main fear is "this thing only looks at SEO" —
+ * and an unwired tab that says what it will cover and what backs it reads as a
+ * roadmap rather than a dead link.
+ */
+/**
+ * Three states, and the third one is the honest one:
+ *   live — wired into this panel
+ *   cli  — the capability exists as a fastergeo command; the panel has not
+ *          caught up yet
+ *   none — we do not do this. Said plainly rather than implied by an empty tab.
+ *
+ * An earlier version named third-party marketplace skills here as "backed by".
+ * Two problems: users could not obtain them, and the names are not ours to
+ * depend on — half of them were renamed upstream overnight. Everything listed
+ * now is a command in this repo or an honest "not covered".
+ */
+const DOMAINS = [
+  { id: 'demand', zh: '需求', en: 'Demand', state: 'cli',
+    d: T('谁在找你、用什么词找。', 'Who is looking, and in whose words.'),
+    cmds: ['fastergeo expand --seed "…"   ' + T('百度下拉 + Google 补全挖真实搜索需求', 'mines real demand from Baidu/Google autocomplete'),
+      'questions.json                ' + T('AI 上正在被问的题库', 'the question bank actually asked of AI')] },
+  { id: 'visible', zh: '可见', en: 'Visible', state: 'live' },
+  { id: 'content', zh: '内容', en: 'Content', state: 'cli',
+    d: T('写什么，以及写出来的东西敢不敢发。', 'What to write, and whether what came out is safe to publish.'),
+    cmds: ['fastergeo outline / draft    ' + T('只用已确认事实生成', 'generated from confirmed facts only'),
+      'fastergeo fabcheck           ' + T('编造门禁：无来源的数字一律拦下', 'fabrication gate: unsourced numbers are refused')] },
+  { id: 'convert', zh: '转化', en: 'Convert', state: 'none',
+    d: T('人来了留不留得下。', 'Whether arrivals turn into anything.'),
+    why: T('我们不做落地页和注册流的优化。这是真话，不是「还没做」—— 它需要你的分析数据和产品内部，跟我们「看 AI 怎么说你」的能力不搭。',
+      'We do not optimise landing pages or signup flows. That is a decision, not a backlog item: it needs your analytics and your product internals, and it does not share anything with measuring what AI says about you.'),
+    note: T('但有一件事我们能替你判断：<b>流量涨而注册不动，问题就在这一栏，不在可见性</b> —— 别拿这个去买更多流量。',
+      'One thing we can tell you: <b>traffic up with signups flat is a problem here, not in visibility</b> — do not answer it by buying more traffic.') },
+  { id: 'author', zh: '权威', en: 'Authority', state: 'cli',
+    d: T('AI 在你的品类里信任谁。', 'Who AI trusts in your category.'),
+    cmds: ['fastergeo sources            ' + T('AI 实际引用了哪些域名 → 你的公关靶单', 'domains AI actually cited → your PR target list')],
+    note: T('外链分析我们不做 —— 市面上做得好的工具很多，我们只给你「AI 信任谁」这份别处拿不到的清单。',
+      'We do not analyse backlinks — plenty of tools do that well. We give you the one list they cannot: who AI trusts.') },
+  { id: 'dist', zh: '分发', en: 'Distribute', state: 'cli',
+    d: T('写完发到哪里去。', 'Where the work goes once it is written.'),
+    cmds: ['fastergeo publish            ' + T('WordPress / GitHub / 签名 webhook，发布前强制过门禁', 'WordPress / GitHub / signed webhook, gated before it ships')] },
+  { id: 'watch', zh: '监测', en: 'Watch', state: 'live' },
+  { id: 'social', zh: '社交', en: 'Social', state: 'none',
+    d: T('谁在公开场合问同类问题。', 'Who is asking about this in public.'),
+    why: T('还没做。HN 走 Algolia 公开 API 是免费的，Reddit 官方 API 有免费层 —— 成本不是障碍，只是还没排上。X 不做（官方 API 太贵），达人不做（需要真达人库）。',
+      'Not built. HN via the public Algolia API is free and Reddit has a free tier — cost is not the obstacle, it simply has not been scheduled. X is out (the API is expensive) and influencers are out (needs a real creator database).') },
+];
 
-for (const k of ['overview','tickets','trends']) $('#nav-' + k).textContent = T[k];
-$('#brandName').textContent = T.loading;
-// pass lang to the embedded report
-document.querySelector('#tab-overview iframe').src = '/api/report?lang=' + UI_LANG;
+let S = null, tab = 'visible';
 
-async function load() {
-  project = await (await fetch('/api/project')).json();
-  const n = project.periods.length;
-  $('#brandName').textContent = (project.brand.name ?? T.unnamed) + (n ? ` · ${T.periods(n)} · ${T.latest} ${project.periods[n-1]}` : ` · ${T.noData}`);
+fetch('/api/project?lang=' + (ZH ? 'zh' : 'en')).then(r => r.json()).then(d => { S = d; render(); })
+  .catch(e => { document.getElementById('pProfile').innerHTML = '<div class="empty">' + esc(String(e)) + '</div>'; });
+
+function render() { beat(); profile(); evidence(); today(); ask(); }
+
+function beat() {
+  const b = S.brand || {}, n = S.periods.length;
+  document.getElementById('bName').textContent = b.name || T('未命名项目', 'Untitled project');
+  const pages = (S.latest && S.latest.audit && S.latest.audit.pages) ? S.latest.audit.pages.length : 0;
+  document.getElementById('bMeta').textContent = n === 0
+    ? T('还没跑过', 'no period yet')
+    : T(`第 ${n} 期 · ${S.periods[n - 1]} · ${pages} 页已体检`, `period ${n} · ${S.periods[n - 1]} · ${pages} pages audited`);
+  const on = S.engines.filter(e => e.configured).length;
+  document.getElementById('bKeys').textContent =
+    T(`${S.engines.length} 引擎 · ${on} 已配 Key`, `${S.engines.length} engines · ${on} keyed`);
+  const rb = document.getElementById('bReport');
+  rb.textContent = T('看完整报告', 'Full report');
+  rb.onclick = () => window.open('/api/report?lang=' + (ZH ? 'zh' : 'en'), '_blank');
+  const hb = document.getElementById('bHire');
+  hb.textContent = T('雇它每天跑 →', 'Run it daily →');
+  hb.onclick = () => show(T('每天自动跑', 'Run it daily'), T(
+    '在终端跑：\n\n  fastergeo schedule --dir <项目目录> --every 7d\n\n它会装一个定时任务，按期自动跑完整一期：\n采样 → 指标 → 体检 → 工单验收 → 报告。\n\n第 2 期开始，「监测」栏才会出现期对比 ——\n单期只算观察，连续两期同向才叫趋势。',
+    'In your terminal:\n\n  fastergeo schedule --dir <project> --every 7d\n\nInstalls a scheduled job that runs a full period:\nsample → metrics → audit → verify → report.\n\nPeriod comparison appears from period 2 onward —\none period is an observation; two consecutive same-direction changes are a trend.'));
+  document.getElementById('dlgX').textContent = T('关闭', 'Close');
 }
 
-async function setStatus(id, status) {
-  if (!status) return;
-  await fetch('/api/ticket', { method: 'POST', body: JSON.stringify({ id, status }) });
-  project.tickets.find(t => t.id === id).status = status;
-  renderTickets();
+function profile() {
+  const b = S.brand || {}, dos = S.dossier || {};
+  const facts = (S.facts && S.facts.facts) ? S.facts.facts : [];
+  const sourced = facts.filter(f => f.status === 'confirmed').length;
+  const comps = b.competitors || [];
+  const qs = S.questions || [];
+  const voiceFilled = dos['voice.md'] && !/待填|to fill in/.test(dos['voice.md']);
+  const docs = [
+    ['product.md', T('产品档案', 'Product'), ''],
+    ['facts.md', T('品牌事实库', 'Brand facts'), sourced ? `<span class="tag">${T(sourced + ' 条带来源', sourced + ' sourced')}</span>` : ''],
+    ['competitors.md', T('竞品分析', 'Competitors'), comps.length ? `<span class="tag warn">${T(comps.length + ' 待核', comps.length + ' to review')}</span>` : ''],
+    ['questions.md', T('问题库', 'Questions'), qs.length ? `<span class="tag">${T(qs.length + ' 题', qs.length + ' qs')}</span>` : ''],
+    ['voice.md', T('语气指南', 'Voice'), voiceFilled ? '' : `<span class="tag warn">${T('待你填', 'yours to fill')}</span>`],
+  ];
+  document.getElementById('pProfile').innerHTML = `
+    <div class="ph"><b>${T('档案', 'Profile')}</b><span>✎</span></div>
+    <div class="brandname">${esc(b.name || '—')}</div>
+    <div class="sub">${esc((b.domains || []).join(' · '))}</div>
+    <div class="sect">${T('五份档案', 'Five documents')}</div>
+    ${docs.map(([f, label, tag]) => dos[f]
+      ? `<div class="doc" data-doc="${f}"><span>${label}${tag}</span><span class="e">›</span></div>`
+      : `<div class="doc" style="cursor:default"><span style="color:var(--faint)">${label}<span class="tag off">${T('未生成', 'not generated')}</span></span></div>`).join('')}
+    ${comps.length ? `<div class="sect">${T('竞品 · 待人工核对', 'Competitors · to review')}</div>
+      ${comps.map(c => `<span class="chip">${esc(c.name)}</span>`).join('')}` : ''}
+    <div class="rules"><b>${T('我们的纪律', 'Our discipline')}</b><br>
+      ${T('· 每个数字都能点开看原话<br>· 打勾是重爬证明的，退步自动打回<br>· 18 引擎，中国 + 海外<br>· <b>算不出就写「未测」，绝不写 0</b>',
+      '· Every number traces to a verbatim quote<br>· Done means re-crawled; regressions flip back<br>· 18 engines, China + global<br>· <b>Unmeasured stays unmeasured, never a zero</b>')}
+    </div>`;
+  document.querySelectorAll('[data-doc]').forEach(el => {
+    el.onclick = () => show(el.dataset.doc, S.dossier[el.dataset.doc]);
+  });
 }
 
-function renderTickets() {
-  const el = $('#tab-tickets');
-  const ts = project.tickets;
-  if (!ts.length) {
-    el.innerHTML = `<div class="card"><div class="empty">${T.noTickets}<div class="hint">${T.noTicketsHint}</div></div></div>`;
-    return;
+function evidence() {
+  const suffix = { live: '', cli: ' · ' + T('命令行', 'CLI'), none: ' · ' + T('不做', 'not covered') };
+  const strip = DOMAINS.map(d =>
+    `<span class="tab ${d.id === tab ? 'on' : ''} ${d.state === 'live' ? '' : 'soon'}" data-tab="${d.id}">` +
+    `${ZH ? d.zh : d.en}${suffix[d.state]}</span>`).join('');
+  document.getElementById('pEvidence').innerHTML = `
+    <div class="ph"><b>${T('证据', 'Evidence')}</b><span class="mono">${samplesLine()}</span></div>
+    <div class="tabs">${strip}</div>
+    <div>${tab === 'visible' ? visibleTab() : tab === 'watch' ? watchTab() : soonTab(tab)}</div>`;
+  document.querySelectorAll('[data-tab]').forEach(el => {
+    el.onclick = () => { tab = el.dataset.tab; evidence(); };
+  });
+}
+
+function samplesLine() {
+  const m = S.latest && S.latest.metrics;
+  if (!m) return T('还没采样', 'not sampled yet');
+  const eng = new Set(m.platforms.map(p => p.providerId)).size;
+  return T(`${eng} 个引擎 · ${m.totalSamples} 个样本`, `${eng} engines · ${m.totalSamples} samples`);
+}
+
+function soonTab(id) {
+  const d = DOMAINS.find(x => x.id === id);
+  if (d.state === 'cli') {
+    return `<div class="soonbox">
+        <h3>${ZH ? d.zh : d.en} · ${T('命令行里已经能用', 'available in the CLI')}</h3>
+        <p>${esc(d.d)}</p>
+        <div class="caps"><b>${T('现在就能跑：', 'Run it now:')}</b>
+          <pre style="margin:8px 0 0;font:12px/1.9 ui-monospace,Menlo,monospace;white-space:pre-wrap">${d.cmds.map(esc).join('\n')}</pre></div>
+        ${d.note ? `<div class="caps" style="margin-top:12px">${d.note}</div>` : ''}
+      </div>
+      <div class="cap" style="margin-top:14px">${T('能力有了，这个面板还没接上它。',
+        'The capability exists; this panel has not caught up to it yet.')}</div>`;
   }
-  const auto = ts.filter(t => t.acceptance.type === 'auto').length;
-  el.innerHTML = `<div class="card">
-    <div class="card-label">${T.ticketsLabel(ts.length, auto)}</div>
-    ${ts.map(t => `
-      <div class="trow">
-        <span class="pill ${t.priority}">${t.priority}</span>
-        <div class="t-main">
-          <div class="t-title"><span class="tid mono">${t.id}</span>${esc(t.title)}</div>
-          <div class="t-rationale">${esc(t.rationale.slice(0, 110))}</div>
-          <div class="t-acc">${t.acceptance.type === 'auto'
-            ? `⚙ <span class="mono">${esc(t.acceptance.check)}</span>`
-            : T.manual} · ${esc(t.acceptance.desc.slice(0, 46))}</div>
-        </div>
-        <div class="t-side">
-          <span class="pill ${t.status}">${t.status}</span>
-          ${t.acceptance.type === 'manual'
-            ? `<select onchange="setStatus('${t.id}', this.value)">
-                <option value="">${T.mark}</option>
-                <option value="done">done</option>
-                <option value="pending-manual">pending</option>
-              </select>`
-            : `<span class="verify-note">${T.verifyOnly}</span>`}
-        </div>
-      </div>`).join('')}
-    <div class="footnote">${T.ticketsFootnote}</div>
+  // "We do not do this" is a legitimate answer and gets said in plain words.
+  // An empty tab that implies "coming soon" forever is the dishonest version.
+  return `<div class="soonbox" style="border-color:var(--line);background:var(--well)">
+      <h3>${ZH ? d.zh : d.en} · ${T('我们不做这个', 'we do not do this')}</h3>
+      <p>${esc(d.d)}</p>
+      <div class="caps">${d.why}</div>
+      ${d.note ? `<div class="caps" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--line)">${d.note}</div>` : ''}
+    </div>
+    <div class="cap" style="margin-top:14px">${T('说清楚不做，比无限期挂个「即将推出」诚实。',
+      'Saying we do not do it beats an indefinite “coming soon”.')}</div>`;
+}
+
+function watchTab() {
+  const n = S.periods.length;
+  if (n >= 2) {
+    return `<div class="empty">${T('期对比在完整报告里', 'Period comparison lives in the full report')} —
+      <a href="/api/report?lang=${ZH ? 'zh' : 'en'}" target="_blank">${T('打开报告', 'open report')}</a></div>`;
+  }
+  return `<div class="soonbox">
+    <h3>${T('期对比 · 还差一期', 'Period comparison · one more period')}</h3>
+    <p>${T(`你现在有 ${n} 期数据。<b>单期变化只算观察，连续两期同向才叫趋势</b> —— 所以第 2 期跑完，这里才会出现真正的对比。`,
+      `You have ${n} period(s). <b>A single-period change is an observation; only two consecutive same-direction changes make a trend</b> — real comparison appears after period 2.`)}</p>
+    <div class="caps">${T('这不是被锁住的功能。<b>趋势在物理上就需要时间。</b>', 'This is not a locked feature. <b>A trend physically requires time.</b>')}</div>
   </div>`;
 }
 
-async function renderTrends() {
-  const el = $('#tab-trends');
-  const t = await (await fetch('/api/trends?lang=' + UI_LANG)).json();
-  if (t.periods.length < 2) {
-    el.innerHTML = `<div class="card"><div class="empty">${T.needTwo(t.periods.length)}
-      <div class="hint">${T.discipline}</div></div></div>`;
-    return;
+function visibleTab() {
+  const m = S.latest && S.latest.metrics, a = S.latest && S.latest.audit;
+  if (!m && !a) {
+    return `<div class="empty">${T('还没有数据 —— 先跑一期：<span class="mono">fastergeo cycle --dir &lt;项目&gt;</span>',
+      'No data yet — run <span class="mono">fastergeo cycle --dir &lt;project&gt;</span>')}</div>`;
   }
-  const pct = v => v === null ? `<span class="na">${T.unmeasured}</span>` : (v <= 1 ? (v * 100).toFixed(0) + '%' : v);
-  el.innerHTML = `
-    ${t.alerts.map(a => `<div class="alert ${a.level}"><span>${a.level === 'P0' ? '🔴' : '⚠️'}</span><span>${esc(a.message)}</span></div>`).join('')}
-    <div class="card">
-      <div class="card-label">${T.periodLabel}</div>
-      <div class="period-strip">${t.periods.map((p, i) =>
-        `<span class="p num ${i === t.periods.length - 1 ? 'latest' : ''}">${p}</span>${i < t.periods.length - 1 ? '→' : ''}`).join('')}</div>
-      ${t.deltas.map(d => `<div class="drow">
-        <span class="d-key mono">${esc(d.key)}</span>
-        <span class="d-val num">${pct(d.prev)}</span>
-        <span class="d-arrow ${d.direction}">${d.direction === 'up' ? '↑' : d.direction === 'down' ? '↓' : '→'}</span>
-        <span class="d-val num">${pct(d.curr)}</span>
-        <span class="d-verdict ${d.verdict.kind}">${
-          d.verdict.kind === 'trend' ? '📈 趋势 · 连续' + (d.verdict.direction === 'up' ? '上升' : '下降')
-          : d.verdict.kind === 'observation' ? '观察 · 单期波动不定性' : '数据不足'}</span>
-      </div>`).join('')}
+  const quotes = [];
+  for (const p of (m ? m.platforms : [])) {
+    const who = `${p.providerId} · ${p.market === 'cn' ? T('国内市场', 'China') : T('海外市场', 'Global')}`;
+    for (const e of (p.probe && p.probe.confusedEvidence) || []) quotes.push({ kind: 'confused', who, text: e });
+    for (const e of (p.sentiment && p.sentiment.negativeEvidence) || []) quotes.push({ kind: 'negative', who, text: e });
+  }
+  // "Not run" means no data this period — not merely "no key". An engine that
+  // produced samples has run, however it was keyed, and counting it as missing
+  // would contradict the table directly below.
+  const sampled = new Set((m ? m.platforms : []).map(p => p.providerId));
+  const unkeyed = S.engines.filter(e => e.driver === 'api' && !e.configured && !sampled.has(e.id));
+  const quoteHtml = quotes.length
+    ? quotes.slice(0, 4).map(q => `<div class="quote">
+        <div class="q">“${esc(q.text.trim())}”</div>
+        <div class="qmeta"><span class="qtag ${q.kind === 'negative' ? 'warn' : ''}">${q.kind === 'confused' ? T('认错了', 'mistaken identity') : T('负面', 'negative')}</span>${esc(q.who)}</div>
+      </div>`).join('')
+    : m ? `<div class="quote calm"><div class="q">${T('本期没有发现认错或负面的原话。', 'No mistaken-identity or negative quotes this period.')}</div>
+        <div class="qmeta">${T('全部采样原文在完整报告的「答案回放」里', 'Every sampled answer is in the report’s Answer Replay')}</div></div>` : '';
+  const meterHtml = unkeyed.length ? `<div class="meter">
+      <span class="n">${unkeyed.length}</span>
+      <span class="t"><b>${T(unkeyed.length + ' 个引擎没跑', unkeyed.length + ' engine' + (unkeyed.length > 1 ? 's' : '') + ' not run')}</b> —
+        ${T('你还没配它们的 Key，所以<b>没有采样，也就没有原话</b>。', 'no key is configured, so <b>nothing was sampled and no quote exists</b>.')}<br>
+        <span style="color:var(--faint)">${T('这里不会放模糊的占位内容：没测过的东西，我们不会假装手里有。',
+          'No blurred placeholders here: we do not pretend to hold what we never measured.')}</span></span>
+      <button class="btn" style="background:#1C1A15;color:#F3F1EA" id="howKey">${T('怎么配 Key →', 'How to add keys →')}</button>
+    </div>` : '';
+  return quoteHtml + meterHtml + funnelHtml(m) + engineTable(m);
+}
+
+function funnelHtml(m) {
+  if (!m) return '';
+  const agg = k => {
+    const ps = m.platforms.filter(p => p[k] !== null && p[k] !== undefined);
+    if (!ps.length) return null;
+    const n = ps.reduce((s, p) => s + p.samples, 0);
+    return n ? ps.reduce((s, p) => s + p[k] * p.samples, 0) / n : null;
+  };
+  const rec = m.platforms.reduce((o, p) => {
+    const r = (p.probe && p.probe.recognition) || {};
+    for (const k of Object.keys(r)) o[k] = (o[k] || 0) + r[k];
+    return o;
+  }, {});
+  const judged = (rec.knows || 0) + (rec.confused || 0) + (rec.unknown || 0) > 0;
+  const mention = agg('mentionRate');
+  const st = (cls, v, label) => `<div class="st ${cls}"><span class="v">${v}</span>${label}</div>`;
+  return `<div class="funnel">
+      ${judged ? st(rec.knows > 0 ? 'good' : 'bad', rec.knows > 0 ? '✓' : '✕', T('① 认识你', '① Knows you'))
+      : st('na', '—', T('① 认识你', '① Knows you'))}
+      ${judged ? st(rec.confused > 0 ? 'bad' : 'good', rec.confused > 0 ? '✕ ' + rec.confused : '✓', T('② 没认错', '② Not confused'))
+      : st('na', '—', T('② 没认错', '② Not confused'))}
+      ${st(mention ? 'good' : 'bad', mention === null ? '—' : pct(mention), T('③ 想到你', '③ Considered'))}
+      ${st('na', mention ? (pct(agg('top3Rate')) || '—') : '—', T('④ 排前面', '④ Top-3'))}
+      ${st(agg('ownDomainCiteRate') ? 'good' : 'na', pct(agg('ownDomainCiteRate')) || '—', T('⑤ 引用你', '⑤ Cited'))}
+    </div>
+    <div class="cap">
+      ${!judged ? T('①② 显示「—」是因为没跑认知裁判：加 <b>--judge</b> 才能判定 AI 是否认识你、有没有认错。<br>',
+        'Stations ①② read “—” because no recognition judge ran: add <b>--judge</b> to measure them.<br>') : ''}
+      ${T('④ 显示「—」不是 0%：提及率为 0 时你根本没进候选集，<b>没有位次可言</b>。',
+        '④ reads “—”, not 0%: with no mentions you are not in the candidate set, so <b>no rank exists</b>.')}
     </div>`;
 }
 
-function esc(s) { return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
-load();
-</script>
-</body>
-</html>
+function engineTable(m) {
+  const byId = new Map(((m && m.platforms) || []).map(p => [p.providerId, p]));
+  const rows = S.engines.filter(e => e.driver === 'api').map(e => {
+    const mkt = e.market === 'cn' ? T('国内', 'CN') : T('海外', 'Global');
+    const p = byId.get(e.id);
+    if (!p) {
+      return `<tr class="off"><td>${esc(e.name)}</td><td>${mkt}</td><td class="num">—</td><td class="num">—</td>
+        <td><span class="nokey">${e.configured ? T('本期未跑', 'not run') : T('未配 Key', 'no key')}</span></td></tr>`;
+    }
+    const r = (p.probe && p.probe.recognition) || {};
+    const conf = r.confused || 0;
+    const cog = conf > 0 ? `<span style="color:var(--red)">${T('认错 ×' + conf, 'confused ×' + conf)}</span>`
+      : (r.knows || 0) > 0 ? T('认识', 'knows')
+        : p.probe ? T('不认识', 'unknown') : NA;
+    return `<tr><td>${esc(e.name)}</td><td>${mkt}</td><td class="num">${p.samples}</td>
+      <td class="num">${pct(p.mentionRate) || NA}</td><td>${cog}</td></tr>`;
+  }).join('');
+  return `<table><thead><tr>
+      <th>${T('引擎', 'Engine')}</th><th>${T('市场', 'Market')}</th>
+      <th style="text-align:right">${T('样本', 'Samples')}</th>
+      <th style="text-align:right">${T('提及率', 'Mention')}</th>
+      <th>${T('认知', 'Recognition')}</th></tr></thead><tbody>${rows}</tbody></table>
+    <div class="cap" style="margin-top:9px">${T('没跑的引擎显示「—」，不是 0。<b>0 是一个测量结果，「—」是没测。</b>',
+      'Engines that did not run read “—”, not 0. <b>A zero is a measurement; a dash is its absence.</b>')}</div>`;
+}
+
+function today() {
+  // Ranking comes from the server, which uses the same rankTickets() the CLI
+  // uses. Re-implementing "which three" here would guarantee the workbench and
+  // the daily digest eventually disagree about what today's three are.
+  const top = S.today || [];
+  const c = S.ticketCounts || { done: 0, regressed: 0, all: (S.tickets || []).length };
+  const done = c.done, regressed = c.regressed;
+  document.getElementById('pToday').innerHTML = `
+    <div class="ph"><b>${T('今天', 'Today')}</b><span>${T('修 ' + top.length + ' 件', 'fix ' + top.length)}</span></div>
+    ${top.length ? top.map(t => `<div class="card"${t.status === 'regressed' ? ' style="border-color:var(--red)"' : ''}>
+        <div class="k"><span class="pr ${esc(t.priority)}">${esc(t.priority)}</span>
+          ${t.status === 'regressed' ? `<span class="pr" style="background:var(--red);color:#fff">${T('回归', 'regressed')}</span>` : ''}
+          <span class="mono" style="font-size:10.5px;color:var(--faint)">${esc(t.id)}</span></div>
+        <div class="t">${esc(t.title)}</div>
+        <div class="w">${esc(String(t.rationale || '').slice(0, 150))}</div>
+        <div class="acc"><b>${T('修到这样算好：', 'Done when:')}</b> ${esc((t.acceptance && t.acceptance.desc) || '—')}</div>
+      </div>`).join('') : `<div class="empty">${T('没有待办 —— 先跑一期', 'Nothing queued — run a period first')}</div>`}
+    <div class="state">
+      <span class="g">${T('已验收 ' + done, 'verified ' + done)}</span>
+      <span class="r">${T('回归 ' + regressed, 'regressed ' + regressed)}</span>
+      <span>${T('全部 ' + c.all, 'all ' + c.all)}</span>
+    </div>
+    <div class="cap">${T('修完跑一次 <span class="mono">fastergeo verify</span>，机器重爬打勾。<b>你说好了不算，重爬说了算。</b>',
+      'After fixing, run <span class="mono">fastergeo verify</span>. <b>Done means re-crawled, not asserted.</b>')}</div>`;
+}
+
+function ask() {
+  const m = S.latest && S.latest.metrics, a = S.latest && S.latest.audit;
+  const items = [];
+  const conf = ((m && m.platforms) || []).reduce((n, p) => n + ((p.probe && p.probe.recognition && p.probe.recognition.confused) || 0), 0);
+  if (conf > 0) {
+    items.push(T(`有 <b>${conf} 个回答把你认成了别的公司</b>。这是最贵的一种失败 —— AI 不是不推荐你，是不知道你是谁。`,
+      `<b>${conf} answers mistake you for another company.</b> The most expensive failure mode: AI is not declining to recommend you, it does not know who you are.`));
+  }
+  const shells = ((a && a.pages) || []).filter(p => (p.blockers || []).some(b => /shell|render/i.test(b))).length;
+  if (shells > 0) {
+    items.push(T(`<b>${shells} 个页面对 AI 是空白</b> —— 内容是 JavaScript 画出来的，爬虫读不到。修好它之前，别的优化都白做。`,
+      `<b>${shells} page${shells > 1 ? 's are' : ' is'} blank to an AI crawler</b> — content is drawn by JavaScript. Nothing else moves until this is fixed.`));
+  }
+  if (a && a.entity && !a.entity.organizationSchema) {
+    items.push(T('你的<b>实体声明是空的</b>（没有 Organization JSON-LD）。如果上面出现了认错，这两件很可能是同一件事。',
+      'Your <b>entity declaration is empty</b> (no Organization JSON-LD). If there is confusion above, these are probably the same problem.'));
+  }
+  if (!items.length) {
+    items.push(m ? T('本期没有发现致命问题。完整体检在报告里。', 'No blockers this period. The full audit is in the report.')
+      : T('还没跑过。终端里跑 <span class="mono">fastergeo start &lt;你的网址&gt;</span>。', 'Nothing run yet. Try <span class="mono">fastergeo start &lt;your site&gt;</span>.'));
+  }
+  const n = S.periods.length;
+  document.getElementById('pAsk').innerHTML = `
+    <div class="ph"><b>${T('问它', 'Ask')}</b><span class="mono">${T('未接', 'not wired')}</span></div>
+    <div class="sect">${T('今日简报', 'Today’s brief')}</div>
+    <ul class="brief">
+      ${items.map(i => `<li>${i}</li>`).join('')}
+      ${n < 2 ? `<li class="note">${T(`第 ${n} 期没有期对比。<b>单期只算观察，连续两期同向才叫趋势</b> —— 下一期才会出现这一栏。`,
+        `Period ${n} has no comparison. <b>One period is an observation; two consecutive same-direction changes are a trend</b> — it appears next period.`)}</li>` : ''}
+    </ul>
+    ${S.contract ? `<div class="sect">${T('每天你会拿到什么', 'What you get every day')}</div>
+      <div style="background:var(--well);border-radius:7px;padding:11px 12px;font-size:11.5px;
+        line-height:1.75;color:var(--dim);white-space:pre-wrap">${esc(S.contract)}</div>
+      ${S.digest ? `<div class="cap" style="margin-top:8px">${T('最近一次的摘要在 <span class="mono">today.md</span> 里，', 'The latest digest is in <span class="mono">today.md</span>, ')}<a href="#" id="seeDigest">${T('点这里看', 'read it here')}</a>。</div>` : ''}` : ''}
+    <div class="ask"><b>${T('对话入口还没接', 'Chat is not wired yet')}</b>
+      ${T('MCP 的 9 个工具已经在跑，<br>界面还没做。', 'The 9 MCP tools already run.<br>The interface does not exist yet.')}<br>
+      <span class="note">${T('占位标清楚，比假装能用强。', 'A labelled placeholder beats a fake feature.')}</span></div>`;
+  const sd = document.getElementById('seeDigest');
+  if (sd) sd.onclick = e => { e.preventDefault(); show('today.md', S.digest); };
+}
+
+function show(title, body) {
+  document.getElementById('dlgT').textContent = title;
+  document.getElementById('dlgB').textContent = body || '';
+  document.getElementById('dlg').showModal();
+}
+document.getElementById('dlgX').onclick = () => document.getElementById('dlg').close();
+document.addEventListener('click', e => {
+  if (e.target && e.target.id === 'howKey') {
+    show(T('配置引擎 Key', 'Configure engine keys'), T(
+      '每个引擎读一个环境变量。Key 只在你本机，永不上传。\n\n  export ARK_API_KEY=…        # 豆包\n  export DEEPSEEK_API_KEY=…   # DeepSeek\n  export ZHIPUAI_API_KEY=…    # 智谱 GLM\n  export OPENAI_API_KEY=…     # ChatGPT\n\n配好后跑 fastergeo check 看健康状态，再跑一期。\n\n一个 Key 都不想配？跑 fastergeo sheet：\n把问题贴进 AI 网页版，把回答贴回来，指标照样算。',
+      'Each engine reads one environment variable. Keys stay on your machine and are never uploaded.\n\n  export ARK_API_KEY=…\n  export DEEPSEEK_API_KEY=…\n  export ZHIPUAI_API_KEY=…\n  export OPENAI_API_KEY=…\n\nThen run fastergeo check, then a cycle.\n\nNo keys at all? Run fastergeo sheet: paste the questions into any AI web app by hand, paste the answers back, and the metrics still compute.'));
+  }
+});
+</script></body></html>

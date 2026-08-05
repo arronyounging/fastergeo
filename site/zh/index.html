@@ -123,6 +123,21 @@ font-family:var(--mono);font-size:14px;text-decoration:none;letter-spacing:.02em
 .scan-note{font-family:var(--mono);font-size:12px;color:var(--faint);margin-top:10px}
 .scan-steps{font-family:var(--mono);font-size:13px;color:var(--ink2);margin-top:18px;line-height:2}
 #scanResult{max-width:760px}
+.scan-focus{margin-top:14px;padding:12px 14px;border-left:3px solid var(--red);
+background:var(--red-wash);border-radius:0 6px 6px 0;font-size:13.5px;line-height:1.75}
+.scan-na{margin-top:10px;font-size:12px;color:var(--faint)}
+.scan-raw{margin-top:5px;font:11.5px var(--mono);color:var(--faint);font-weight:400}
+.scan-keep{margin-top:14px;font:13px var(--mono)}
+.scan-keep a{color:var(--red);text-decoration-color:var(--red)}
+.scan-keep span{color:var(--faint)}
+.scan-pending{margin-bottom:14px;font:13px var(--mono);color:var(--faint)}
+.scan-said{background:var(--panel);border:1px solid var(--rule2);border-left:4px solid var(--rule2);
+padding:20px 24px;margin-bottom:18px}
+.scan-said.v-bad{border-left-color:var(--red);background:var(--red-wash)}
+.scan-said.v-good{border-left-color:var(--green);background:var(--green-wash)}
+.scan-said .said-q{font:12px var(--mono);color:var(--faint);margin-bottom:12px}
+.scan-said blockquote{margin:0;font-size:18px;line-height:1.85;font-style:normal}
+.scan-said .said-foot{margin-top:14px;font:12px var(--mono);color:var(--ink2);line-height:1.85}
 .scan-card{margin-top:22px;border:1px solid var(--rule2);background:var(--panel)}
 .scan-head{display:flex;gap:18px;align-items:center;padding:18px 22px;border-bottom:1px solid var(--rule)}
 .scan-grade{width:52px;height:52px;border:2px solid var(--ink);display:flex;align-items:center;
@@ -136,7 +151,7 @@ font-family:var(--mono);font-size:14px;text-decoration:none;letter-spacing:.02em
 .scan-verdict.v-bad{color:var(--red)}
 .scan-verdict.v-good{color:var(--green)}
 .scan-dims{padding:14px 22px 18px}
-.sdim{display:grid;grid-template-columns:150px 1fr 64px;gap:12px;align-items:center;
+.sdim{display:grid;grid-template-columns:minmax(200px,240px) 1fr 88px;gap:12px;align-items:center;
   font:13px var(--mono);padding:4px 0;color:var(--ink2)}
 .sdim .bar{height:6px;background:var(--paper2);position:relative}
 .sdim .bar i{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--ink);transition:width .7s ease}
@@ -542,10 +557,36 @@ async function runTerm() {
 }
 
 /* ── Scan ── */
+/* The point is the quote, not the essay. Live, a 700-char answer in raw
+   markdown pushed the audit card below the fold and showed ** as literal
+   characters. Cut to a sentence boundary and strip the markers. */
+function excerpt(s, max) {
+  const t = String(s || '').replace(/[*_`#]+/g, '').replace(/\s+/g, ' ').trim();
+  if (t.length <= max) return t;
+  const cut = t.slice(0, max);
+  const at = Math.max(cut.lastIndexOf('。'), cut.lastIndexOf('. '), cut.lastIndexOf('！'), cut.lastIndexOf('？'));
+  return (at > max * 0.45 ? cut.slice(0, at + 1) : cut) + '…';
+}
+
 const form = document.getElementById('scanForm');
 const out = document.getElementById('scanResult');
 const btn = document.getElementById('scanBtn');
-const DIMS = { crawlability: '可抓取性', length: '内容长度', structure: '结构', blocks: '可抽取块', authority: '权威信号', relevance: '对题性' };
+/* 读这一页的是品牌主，不是工程师。「可抽取块 15/25」他既看不懂、也没法跟另外五项比轻重。
+   每一维用人话说清是什么，以及分低了会付出什么代价。 */
+const DIMS = {
+  crawlability: { label: '能不能被 AI 读到',
+    why: 'AI 爬虫拿不到这页的文字。这条不修好，下面几项都没有意义。' },
+  length: { label: '内容够不够多',
+    why: '正文太少，AI 手里没有可用的东西。' },
+  structure: { label: '结构清不清楚',
+    why: '标题没告诉 AI 这页在讲什么，它就找不到能回答问题的那一段。' },
+  blocks: { label: '有没有值得被引用的段落',
+    why: 'AI 引用的是定义、数字、对比、步骤和问答。这页这类段落很少——所以就算 AI 读到你，也没有可以搬走的东西。' },
+  authority: { label: '有没有署名和日期',
+    why: '没有作者也没有日期。AI 判断该信谁的时候，这两样都算分。' },
+  relevance: { label: '内容对不对得上问题',
+    na: '这次没测——它需要你自己的问题库。' },
+};
 const STEPS = [
   '抓取原始 HTML——AI 爬虫收到什么就抓什么…',
   '提取可见正文、标题、JSON-LD…',
@@ -568,7 +609,7 @@ form.addEventListener('submit', async e => {
     }
   }, 650);
   try {
-    const r = await fetch('/api/scan?url=' + encodeURIComponent(url));
+    const r = await fetch('/api/scan?lang=zh&url=' + encodeURIComponent(url));
     const d = await r.json();
     clearInterval(stepTimer);
     if (!r.ok) throw new Error(d.error || 'scan failed');
@@ -576,17 +617,41 @@ form.addEventListener('submit', async e => {
     const dims = p.dimensions.map(x => {
       const ratio = x.score === null ? 0 : x.score / x.max;
       const low = x.score !== null && ratio < 0.4 ? 'low' : '';
-      const val = x.score === null ? 'n/a' : `${x.score}/${x.max}`;
-      return `<div class="sdim ${low}"><span>${DIMS[x.key] ?? x.key}</span><span class="bar"><i data-w="${Math.round(ratio*100)}"></i></span><span class="v">${val}</span></div>`;
+      const val = x.score === null ? '未测' : `${x.score}/${x.max}`;
+      const label = (DIMS[x.key]?.label) ?? x.key;
+      return `<div class="sdim ${low}"><span>${label}</span><span class="bar"><i data-w="${Math.round(ratio*100)}"></i></span><span class="v">${val}</span></div>`;
     }).join('');
-    const blockers = p.blockers.map(b => `<div class="scan-blocker">■ ${esc(b)}</div>`).join('');
+    /* 六根条不排序，读的人只能自己猜先动哪个。点名最弱的那一维，并说清代价。 */
+    /* 阻断项压过任何低分。判词说了「先修渲染，其他都白搭」，这里再指向别处，
+       卡片就自相矛盾了——而「修好它之前别的都白做」正是我们全部的论点。 */
+    const weakest = p.blockers.length
+      ? p.dimensions.find(x => x.key === 'crawlability')
+      : p.dimensions
+        .filter(x => x.score !== null && DIMS[x.key]?.why)
+        .sort((a, b) => (a.score / a.max) - (b.score / b.max))[0];
+    const focus = weakest && DIMS[weakest.key]?.why && (p.blockers.length || (weakest.score / weakest.max) < 0.75)
+      ? `<div class="scan-focus"><b>先看这个 —— ${DIMS[weakest.key].label}：</b>${DIMS[weakest.key].why}</div>`
+      : '';
+    const naDim = p.dimensions.find(x => x.score === null && DIMS[x.key]?.na);
+    const naNote = naDim ? `<div class="scan-na">${DIMS[naDim.key].na}</div>` : '';
+    /* 阻断项的代码是写给运维看的。先说它意味着什么，原始发现留在下面——
+       证据是重点，但不该是品牌主要先破译的第一样东西。 */
+    const blockers = p.blockers.map(b => {
+      const plain = /spa-shell/i.test(b)
+        ? '这页的内容是 JavaScript 画出来的。AI 爬虫不执行它，所以几乎什么都看不到。'
+        : /noindex/i.test(b) ? '这页在告诉搜索引擎不要收录它。'
+          : /block/i.test(b) ? '你的 robots 规则正在把 AI 爬虫挡在这页外面。' : '';
+      return `<div class="scan-blocker">■ ${plain ? `<b>${plain}</b><div class="scan-raw">${esc(b)}</div>` : esc(b)}</div>`;
+    }).join('');
     const site = d.site ? `<div class="scan-checks">${chk(d.site.robotsTxtFound)} robots.txt · ${chk(!(d.site.blockedSearchCrawlers ?? d.site.blockedAiCrawlers)?.length)} AI search crawlers allowed · ${chk(d.site.sitemapFound)} sitemap · ${chk(d.site.llmsTxtFound)} llms.txt</div>` : '';
-    out.innerHTML = `<div class="scan-card">
+    const said = '<div id="saidSlot"></div>';
+    out.innerHTML = `${said}<div class="scan-card">
       <div class="scan-head"><div class="scan-grade ${p.grade}">${p.grade}</div>
-        <div><div class="scan-score"><span id="scoreNum" class="num">0</span><small> /100 · ${p.wordCount} 可见词等效</small></div>
+        <div><div class="scan-score"><span id="scoreNum" class="num">0</span><small> /100 · AI 在这页读到 ${p.wordCount.toLocaleString()} 个词</small></div>
         <div style="font:12px var(--mono);color:var(--faint)">${esc(p.url)}</div></div></div>
       <div class="scan-verdict v-${verdict(p)[0]}">${verdict(p)[1]}</div>
-      <div class="scan-dims">${dims}</div>${blockers}${site}
+      <div class="scan-dims">${dims}</div>${naNote}${focus}${blockers}${site}
+      ${d.id ? `<div class="scan-keep"><a href="/r/${d.id}">保存这份报告 →</a><span> 一个可以回来看、也可以发给别人的链接</span></div>` : ''}
       <div class="scan-cta"><b>这只是第 0 关：AI 能不能读到你。</b>第 1–5 关——AI 认不认识你、有没有认错你、推不推荐你、排第几、引不引用你——需要对 18 个引擎做答案采样。一条命令，免费：
         <span class="mono" onclick="navigator.clipboard.writeText('npx fastergeo bootstrap --root ${esc(p.url)}')">npx fastergeo</span></div>
     </div>`;
@@ -601,6 +666,27 @@ form.addEventListener('submit', async e => {
       };
       requestAnimationFrame(tick);
     });
+    /* The probe is two calls to a reasoning model — about twenty seconds against
+       the audit's three. Loaded after the card so the half that already works
+       never waits on the half that might not answer. */
+    (async () => {
+      const slot = document.getElementById('saidSlot');
+      slot.innerHTML = '<div class="scan-pending">正在问 DeepSeek：你是一家什么公司…</div>';
+      try {
+        const pr = await fetch('/api/probe?lang=zh&url=' + encodeURIComponent(url) + (d.id ? '&id=' + d.id : ''));
+        const pd = await pr.json();
+        const q = pd.probe;
+        if (!q) { slot.innerHTML = ''; return; }
+        const V = { confused: ['bad', '它把你认成了别的公司'],
+      unknown: ['bad', '它不知道你是谁'],
+      knows: ['good', '它知道你是谁'],
+      unverified: ['mid', '你自己看 —— 这条我们不替你下结论'] };
+        slot.innerHTML = `<div class="scan-said v-${V[q.verdict][0]}">
+          <div class="said-q">${esc(q.question)}</div>
+          <blockquote>${esc(excerpt(q.answer, 260))}</blockquote>
+          <div class="said-foot"><b>${V[q.verdict][1]}</b> · 刚刚问的 DeepSeek · 一个问题、一个引擎 —— 它还说明不了 AI 会不会<i>推荐</i>你</div></div>`;
+      } catch { slot.innerHTML = ''; }
+    })();
   } catch (err) {
     clearInterval(stepTimer);
     out.innerHTML = `<div class="scan-err">${esc(err.message)}</div>`;

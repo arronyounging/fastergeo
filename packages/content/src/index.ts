@@ -9,5 +9,7 @@ export {
 export type {
   BootstrapResult, CompetitorCandidate, QuestionSeed, PageText,
 } from './bootstrap.js';
+export { renderDossier, parseFactsMd } from './dossier.js';
+export type { Dossier, DossierInput, DossierLang } from './dossier.js';
 export { mineSuggestions, parseBaiduSuggest, parseGoogleSuggest } from './suggest.js';
 export type { SuggestCandidate, SuggestReport, MineOptions } from './suggest.js';
