@@ -106,12 +106,12 @@ try {
     if (!cout.includes(need)) throw new Error(`console md() lost ${need}`);
   }
   // The roster must never imply work that did not happen.
-  for (const need of ['待命', '缺数据接入', '只问了 1 个引擎', '不把没测过的格子模糊起来卖你', '「—」是没测，不是 0']) {
+  for (const need of ['待命', '缺数据接入', '只问了 1 个引擎', '测不了', '未测', '联网引擎，能测引用']) {
     if (!cHtml.includes(need)) throw new Error(`console lost its honesty line "${need}"`);
   }
   // The pieces that make it a console rather than a report.
   for (const need of ['id="term"', 'id="sheet"', 'function workItem', 'data-a="done"', 'function ring(',
-                      'id="cJobs"', 'id="cStage"', 'function matrix(', 'const VIEWS', 'function wall(', '我们没读到你的网站，读到的是一堵墙']) {
+                      'id="cJobs"', 'id="cStage"', 'function gates(', 'function coverage(', 'const VIEWS', 'function wall(', '我们没读到你的网站，读到的是一堵墙']) {
     if (!cHtml.includes(need)) throw new Error(`console lost ${need}`);
   }
   console.log('✓ console parses, renders markdown, and keeps its not-wired disclosures');

@@ -223,6 +223,32 @@ text-overflow:ellipsis;white-space:nowrap}
 .wall{background:var(--red);color:#fff;padding:12px 16px;font:12.5px/1.75 var(--mono);flex:none}
 .wall b{font:500 15px var(--serif);display:block;margin-bottom:3px}
 .wall code{background:rgba(0,0,0,.22);padding:1px 5px}
+/* Hierarchy. The verdict is the one thing the eye should land on first; the
+   gates support it; the raw answer sits underneath. Same-weight tables stacked
+   on each other is what made the previous version unreadable. */
+.verdict{border-left:3px solid var(--red);padding:2px 0 2px 13px;margin:2px 0 16px}
+.verdict b{display:block;font:500 26px/1.3 var(--serif)}
+.verdict span{font:11px var(--mono);color:var(--faint)}
+.mkts{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:900px){.mkts{grid-template-columns:1fr}}
+.mkt h4{font:500 10.5px var(--mono);letter-spacing:.13em;text-transform:uppercase;color:var(--faint);
+margin:0 0 7px;padding-bottom:5px;border-bottom:1px solid var(--rule)}
+.gate{display:flex;gap:10px;align-items:baseline;padding:7px 0;border-bottom:1px dotted var(--rule)}
+.gate:last-child{border-bottom:none}
+.gate .gv{flex:none;width:74px;font:500 16px var(--mono);text-align:right}
+.gate.pass .gv{color:var(--green)}
+.gate.fail .gv{color:var(--red)}
+.gate.un .gv,.gate.cant .gv{font-size:11.5px;color:var(--faint)}
+.gate.cant .gv{color:var(--amber)}
+.gate .gn{flex:1;min-width:0}
+.gate .gn b{display:block;font:500 14px var(--serif)}
+.gate .gn span{display:block;font:10.5px/1.55 var(--mono);color:var(--faint)}
+/* Coverage. Eighteen engines as a strip, not a grid — no empty cells to read. */
+.covrow{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:5px}
+.eng{font:10.5px var(--mono);padding:2px 7px;border:1px solid transparent}
+.eng.on{background:var(--green);color:#fff}
+.eng.off{background:#EFEBE0;color:#A69E8B}
+.eng.man{background:transparent;border-color:var(--amber);color:var(--amber)}
 /* Chat */
 .ask{display:flex;gap:6px;margin-bottom:10px}
 .ask input{flex:1;background:#0E0C09;border:1px solid var(--line);color:var(--hi);
@@ -549,83 +575,125 @@ function ring(v, label){
 
 /* The 18 engines we can drive, in the order that makes the China half legible
    as a block — that half is the part no comparable product measures at all. */
+/* The 18 engines, with the fact that decides what each can answer. Thirteen are
+   non-web API models: they never return a citation, so the last gate is not
+   "unmeasured" for them, it is unmeasurable — a different word, because the fix
+   is a different engine rather than another run. */
 const ENGINES = [
-  ['glm','智谱GLM','cn'],['doubao','豆包','cn'],['deepseek','DeepSeek','cn'],['kimi','Kimi','cn'],
-  ['minimax','MiniMax','cn'],['qwen','通义千问','cn'],['ernie','文心一言','cn'],['spark','讯飞星火','cn'],
-  ['nano','纳米AI搜索','cn'],['baidu-ai','百度AI搜索','cn'],
-  ['openai','ChatGPT','global'],['anthropic','Claude','global'],['gemini','Gemini','global'],
-  ['grok','Grok','global'],['perplexity','Perplexity','global'],['chatgpt-web','ChatGPT 网页','global'],
-  ['claude-web','Claude 网页','global'],['ai-overview','Google AI Overviews','global'],
+  ['glm','智谱GLM','cn','api'],['doubao','豆包','cn','api'],['deepseek','DeepSeek','cn','api'],
+  ['kimi','Kimi','cn','api'],['minimax','MiniMax','cn','api'],['qwen','通义千问','cn','api'],
+  ['ernie','文心一言','cn','api'],['spark','讯飞星火','cn','api'],
+  ['nano','纳米AI搜索','cn','web'],['baidu-ai','百度AI搜索','cn','web'],
+  ['openai','ChatGPT','global','api'],['anthropic','Claude','global','api'],
+  ['gemini','Gemini','global','api'],['grok','Grok','global','api'],
+  ['perplexity','Perplexity','global','api'],
+  ['chatgpt-web','ChatGPT 网页','global','web'],['claude-web','Claude 网页','global','web'],
+  ['ai-overview','Google AI Overviews','global','web'],
 ];
-/* The five gates a brand passes before an AI will cite it. Each is a separate
-   failure with a separate fix, which is why they are five columns and not one
-   visibility score. */
-const GATES = ZH
-  ? [['knows','知道'],['unconfused','不混淆'],['mentions','提及'],['ranks','排名'],['cites','引用']]
-  : [['knows','knows'],['unconfused','not confused'],['mentions','mentions'],['ranks','ranks'],['cites','cites']];
+const WEB_ENGINES = ENGINES.filter(e => e[3] === 'web').length;
 
-/* What we have actually measured for a given engine and gate. Returns null for
-   "not measured", which the matrix renders as a stated gap. It is never a zero:
-   a zero is a measurement, and we did not take one. */
-function gateState(engineId, gate){
-  const pr = P.probe;
+/* Five gates, two markets. The earlier version drew 18 × 5 = 90 cells with 88
+   dashes — accurate and unreadable, the density hiding the two cells that had
+   anything in them. The CLI report has always drawn it this way and it is the
+   better design: one row per gate, the rate beside the method that produced it
+   and the denominator it was computed over.
+   A rate without its denominator is the same lie as a fabricated zero. */
+function gates(market){
   const m = (P.metrics && P.metrics.platforms) || [];
-  const row = m.filter(x => x.providerId === engineId)[0];
-  if (row){
-    if (gate === 'mentions') return row.mentionRate == null ? null : row.mentionRate > 0;
-    if (gate === 'ranks') return row.top3Rate == null ? null : row.top3Rate > 0;
-    if (gate === 'cites') return row.ownDomainCiteRate == null ? null : row.ownDomainCiteRate > 0;
-    const rec = row.probe && row.probe.recognition;
-    if (rec){
-      if (gate === 'knows') return (rec.knows || 0) > 0;
-      if (gate === 'unconfused') return (rec.confused || 0) === 0;
-    }
-    return null;
-  }
-  // The single web probe fills exactly two cells on one row. Saying so beats
-  // spreading one engine's answer across a grid it did not cover.
-  if (pr && pr.verdict && pr.engine && String(pr.engine).indexOf(engineId) >= 0){
-    if (gate === 'knows') return pr.verdict === 'knows';
-    if (gate === 'unconfused') return pr.verdict !== 'confused';
-  }
-  return null;
-}
+  const rows = m.filter(x => x.market === market);
+  const pr = P.probe;
+  const probeHere = pr && pr.verdict && market === (pr.market || 'cn') ? pr : null;
 
-function matrix(){
-  let filled = 0;
-  const row = e => {
-    const cells = GATES.map(g => {
-      const v = gateState(e[0], g[0]);
-      if (v === null) return '<td><span class="cell un" title="'+T('未测','not measured')+'">—</span></td>';
-      filled++;
-      return '<td><span class="cell '+(v?'pass':'fail')+'">'+(v?'✓':'✗')+'</span></td>';
-    }).join('');
-    return '<tr><td class="e">'+esc(e[1])+'</td>'+cells+'</tr>';
+  const sum = f => {
+    let num = 0, den = 0;
+    for (const r of rows){ const v = f(r); if (v && v.den > 0){ num += v.num; den += v.den; } }
+    return den > 0 ? { num, den } : null;
   };
-  const cn = ENGINES.filter(e => e[2] === 'cn').map(row).join('');
-  const gl = ENGINES.filter(e => e[2] === 'global').map(row).join('');
-  const total = ENGINES.length * GATES.length;
-  return '<table class="mx"><thead><tr><th>'+T('引擎','Engine')+'</th>'
-    + GATES.map(g => '<th>'+esc(g[1])+'</th>').join('') + '</tr></thead><tbody>'
-    + '<tr class="mk"><td colspan="6">'+T('中国 · 10 个','China · 10')+'</td></tr>' + cn
-    + '<tr class="mk"><td colspan="6">'+T('海外 · 8 个','Global · 8')+'</td></tr>' + gl
-    + '</tbody></table>'
-    + '<div class="legend">'+T(filled+' / '+total+' 个格子有实测数据。「—」是没测，不是 0 —— 把没测过的画成零，等于替你的品牌认了一个从没发生的失败。',
-        filled+' / '+total+' cells measured. A dash means not measured, not zero — rendering an unmeasured gate as a zero would blame your brand for a failure nobody observed.')+'</div>';
+  const rec = k => {
+    let num = 0, den = 0;
+    for (const r of rows){
+      const p = r.probe && r.probe.recognition;
+      if (!p) continue;
+      // Undecided probes are excluded from the denominator, not counted as a
+      // miss. On a real run ten of twelve came back undecided.
+      const decided = (p.knows||0) + (p.unknown||0) + (p.confused||0);
+      if (!decided) continue;
+      den += decided; num += (p[k] || 0);
+    }
+    if (!den && probeHere){ den = 1; num = probeHere.verdict === k ? 1 : 0; }
+    return den > 0 ? { num, den } : null;
+  };
+  const confused = rec('confused');
+
+  const G = [
+    { zh:'知道你', en:'Knows you', method:T('点名题 · LLM 判定','probes · LLM-judged'), v:rec('knows') },
+    { zh:'不混淆', en:'Not confused', method:T('点名题 · LLM 判定','probes · LLM-judged'),
+      v: confused ? { num: confused.den - confused.num, den: confused.den } : null },
+    { zh:'被考虑', en:'Considered', method:T('不点名题的提及率','unprompted mention rate'),
+      v: sum(r => r.mentionRate == null ? null : { num: Math.round(r.mentionRate * r.samples), den: r.samples }) },
+    { zh:'进前三', en:'Top-3', method:T('不点名题的前三率','unprompted top-3 rate'),
+      v: sum(r => r.top3Rate == null ? null : { num: Math.round(r.top3Rate * r.samples), den: r.samples }) },
+    { zh:'被引用', en:'Cited', method:T('自有域名引用率','own-domain citation rate'),
+      v: sum(r => r.ownDomainCiteRate == null ? null : { num: Math.round(r.ownDomainCiteRate * r.samples), den: r.samples }),
+      unmeasurable: rows.every(r => (ENGINES.filter(e => e[0] === r.providerId)[0] || [])[3] !== 'web'),
+      why: T('这一档引擎不返回引用来源 —— 18 个里只有 '+WEB_ENGINES+' 个联网引擎能测这道闸',
+             'these engines return no sources — only '+WEB_ENGINES+' of the 18 are web-connected') },
+  ];
+  return G.map(g => {
+    const cls = g.v ? (g.v.num / g.v.den >= 0.5 ? 'pass' : 'fail') : g.unmeasurable ? 'cant' : 'un';
+    const val = g.v ? Math.round(g.v.num / g.v.den * 100) + '%'
+      : g.unmeasurable ? T('测不了','unmeasurable') : T('未测','not measured');
+    const note = g.v ? g.method + ' · ' + g.v.num + '/' + g.v.den : (g.unmeasurable ? g.why : g.method);
+    return '<div class="gate ' + cls + '"><span class="gv">' + esc(val) + '</span>'
+      + '<span class="gn"><b>' + esc(ZH ? g.zh : g.en) + '</b><span>' + esc(note) + '</span></span></div>';
+  }).join('');
 }
 
-/* ── per-job evidence views ────────────────────────────────────────────── */
+/* Eighteen engines kept visible as coverage rather than as a grid. Which ones
+   we can drive, which answered, which need a manual sheet — the shape of this
+   strip is the argument for hosted sampling, and it needs no empty cells. */
+function coverage(){
+  const m = (P.metrics && P.metrics.platforms) || [];
+  const sampled = {};
+  for (const x of m) sampled[x.providerId] = 1;
+  const pr = P.probe;
+  if (pr && pr.engine) for (const e of ENGINES) if (String(pr.engine).indexOf(e[0]) >= 0) sampled[e[0]] = 1;
+  const chip = e => '<span class="eng ' + (sampled[e[0]] ? 'on' : e[3] === 'web' ? 'man' : 'off')
+    + '" title="' + esc(e[3] === 'web'
+        ? T('联网引擎，能测引用；需要手工采样表','web engine, can measure citations; needs a manual sheet')
+        : T('API 引擎，不返回引用','API engine, returns no citations')) + '">' + esc(e[1]) + '</span>';
+  const n = Object.keys(sampled).length;
+  return '<div class="covrow">' + ENGINES.filter(e => e[2] === 'cn').map(chip).join('') + '</div>'
+    + '<div class="covrow">' + ENGINES.filter(e => e[2] === 'global').map(chip).join('') + '</div>'
+    + '<div class="legend">' + T(n + ' / 18 个引擎这一轮真的问过。实心 = 问过，浅色 = 能问没问，描边 = 联网引擎（能测引用，但要手工采样表）。',
+        n + ' of 18 engines were actually asked this run. Solid = asked, pale = configured but not asked, outlined = web engine (can measure citations, needs a manual sheet).') + '</div>';
+}
+
 const VIEWS = {
   'ai-seo': () => {
     const pr = P.probe;
-    return '<div class="stagehead"><h3>'+T('品牌实体漏斗 × 引擎','Brand entity funnel × engines')+'</h3>'
-      + '<span class="sub">'+T('AI 引用你之前要过的五道闸','five gates before an AI will cite you')+'</span></div>'
-      + matrix()
-      + (pr && pr.verdict ? '<div class="sect">'+T('引擎原话','What the engine said')+'</div>'
-          + '<p class="mini">'+esc(pr.question||'')+' · '+esc(pr.engine||'')+'</p>'
-          + '<div class="quote">'+esc(String(pr.answer||'').slice(0,1100))+'</div>' : '')
-      + '<div class="note">'+T('要填满这张表需要托管多引擎采样，还没做。我们不把没测过的格子模糊起来卖你 —— 空格子本身就是报价单。',
-          'Filling this table needs hosted multi-engine sampling, which is not built. We do not blur cells we never measured — the empty ones are the quote.')+'</div>';
+    const m = (P.metrics && P.metrics.platforms) || [];
+    const total = m.reduce((a, x) => a + (x.samples || 0), 0) + (pr && pr.verdict ? 1 : 0);
+    // One headline, then the gates, then the raw answers. The previous version
+    // gave the grid, the quote and the caveat identical weight, and the eye had
+    // nowhere to land — which is what "less readable than Okara" meant.
+    const head = pr && pr.verdict
+      ? ({knows:T('AI 认识你','AI knows you'),confused:T('AI 把你认错了','AI has you confused'),
+          unknown:T('AI 不知道你','AI does not know you')}[pr.verdict] || pr.verdict)
+      : T('还没问过引擎','no engine asked yet');
+    return '<div class="verdict"><b>' + esc(head) + '</b><span>'
+      + esc(T(total + ' 条采样 · ' + ((pr && pr.engine) || '—') + ' · 单期只算观察，不算趋势',
+          total + ' samples · ' + ((pr && pr.engine) || '—') + ' · one period is an observation, not a trend'))
+      + '</span></div>'
+      + '<div class="mkts">'
+      + '<div class="mkt"><h4>' + T('中国市场','China market') + '</h4>' + gates('cn') + '</div>'
+      + '<div class="mkt"><h4>' + T('海外市场','Global market') + '</h4>' + gates('global') + '</div>'
+      + '</div>'
+      + '<div class="sect">' + T('引擎覆盖','Engine coverage') + '</div>'
+      + coverage()
+      + (pr && pr.verdict ? '<div class="sect">' + T('原话回放','Answer replay') + '</div>'
+          + '<p class="mini">' + esc(pr.question||'') + ' · ' + esc(pr.engine||'') + '</p>'
+          + '<div class="quote">' + esc(String(pr.answer||'').slice(0,1400)) + '</div>' : '');
   },
   'seo-audit': () => {
     const a = P.audit || {};
