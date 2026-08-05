@@ -67,10 +67,10 @@ font:12px/1.75 var(--mono);height:170px;overflow-y:auto}
 .term div{white-space:pre-wrap;color:var(--txt)}
 .term .tg{color:#7FA88A}
 .term .day{color:var(--dim);text-align:center;margin:7px 0}
-.grid{display:grid;grid-template-columns:250px 350px minmax(0,1fr) 340px;gap:1px;background:var(--line);
+.grid{display:grid;grid-template-columns:240px 250px minmax(0,1fr) 330px;gap:1px;background:var(--line);
 height:calc(100vh - 44px - 170px);overflow:hidden}
 .grid.tall{height:calc(100vh - 44px)}
-@media(max-width:1340px){.grid{grid-template-columns:230px 310px minmax(0,1fr)}#cCmo{display:none}}
+@media(max-width:1340px){.grid{grid-template-columns:220px 230px minmax(0,1fr)}#cCmo{display:none}}
 @media(max-width:1000px){.grid,.grid.tall{grid-template-columns:1fr;height:auto;overflow:auto}
 body{overflow:auto}.term{height:auto;max-height:150px}}
 .col{background:var(--paper);color:var(--ink);overflow-y:auto;padding:13px 14px;min-width:0}
@@ -172,6 +172,51 @@ font:11px var(--mono);cursor:pointer;margin-top:9px}
 .grp{margin:13px 0 5px}
 .grp summary{font:500 10.5px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--faint);
 cursor:pointer;padding:6px 0;border-top:1px solid var(--rule)}
+/* The job list. Narrow on purpose: it is a switcher, not a place to read. */
+.job{display:flex;gap:9px;align-items:center;padding:9px 8px;cursor:pointer;border-left:3px solid transparent}
+.job:hover{background:var(--panel)}
+.job.sel{background:var(--panel);border-left-color:var(--red)}
+.job .ico{width:24px;height:24px;flex:none;border-radius:5px;display:grid;place-items:center;
+font:600 9px var(--mono);color:#fff;background:var(--faint)}
+.job .nm{flex:1;min-width:0}
+.job .nm b{display:block;font:500 13.5px var(--serif);font-weight:500}
+.job .nm span{display:block;font:10.5px var(--mono);color:var(--faint);overflow:hidden;
+text-overflow:ellipsis;white-space:nowrap}
+.job.has .nm span{color:var(--green)}
+.job .ct{font:600 9px var(--mono);padding:1px 5px;background:var(--red);color:#fff;flex:none}
+/* The matrix. Rows are engines, columns are the five gates a brand has to pass
+   before an AI will cite it. Its empty cells are the point: an unmeasured gate
+   says so, and never renders as a zero. */
+.mx{width:100%;border-collapse:collapse;font:11px var(--mono);margin:8px 0}
+.mx th{font-weight:500;color:var(--faint);padding:5px 4px;text-align:center;font-size:10px;
+border-bottom:1px solid var(--rule)}
+.mx th:first-child{text-align:left;padding-left:2px}
+.mx td{padding:0;border-bottom:1px solid var(--paper)}
+.mx td.e{font-size:11px;color:var(--ink2);padding:4px 6px 4px 2px;white-space:nowrap}
+.mx .cell{display:block;height:20px;line-height:20px;text-align:center;font-size:10px;
+border:1px solid var(--paper)}
+.mx .pass{background:#DCE8DC;color:var(--green)}
+.mx .fail{background:#F2DAD4;color:var(--red)}
+.mx .un{background:#EFEBE0;color:#BBB4A2}
+.mx tr.mk td{padding-top:9px;font:600 9.5px var(--mono);letter-spacing:.1em;color:var(--faint)}
+/* Page × signal grids. Same idea at page scale: a missing block is a gap you
+   can go fill, which a single site-wide average never tells you. */
+.hm{width:100%;border-collapse:collapse;font:10.5px var(--mono);margin:6px 0}
+.hm th{font-weight:500;color:var(--faint);padding:4px 3px;text-align:center;font-size:9.5px;
+border-bottom:1px solid var(--rule)}
+.hm th:first-child{text-align:left}
+.hm td{padding:2px 3px;border-bottom:1px solid var(--paper)}
+.hm td.u{font-size:10.5px;color:var(--ink2);max-width:210px;overflow:hidden;
+text-overflow:ellipsis;white-space:nowrap}
+.hm .c{display:block;height:18px;line-height:18px;text-align:center;border:1px solid var(--paper)}
+.hm .hi{background:#DCE8DC;color:var(--green)}
+.hm .mid{background:#F5EFDE;color:var(--amber)}
+.hm .lo{background:#F2DAD4;color:var(--red)}
+.hm .no{background:#EFEBE0;color:#BBB4A2}
+.legend{font:10.5px var(--mono);color:var(--faint);margin-top:5px}
+.stagehead{display:flex;align-items:baseline;gap:10px;margin-bottom:3px}
+.stagehead h3{margin:0}
+.stagehead .sub{font:11px var(--mono);color:var(--faint)}
 /* Chat */
 .ask{display:flex;gap:6px;margin-bottom:10px}
 .ask input{flex:1;background:#0E0C09;border:1px solid var(--line);color:var(--hi);
@@ -217,8 +262,8 @@ font:11.5px/1.7 var(--mono);overflow-x:auto;white-space:pre-wrap}
 <div class="term" id="term"></div>
 <div class="grid" id="grid">
   <div class="col" id="cCtx"></div>
-  <div class="col" id="cAna"></div>
-  <div class="col" id="cAgents"></div>
+  <div class="col" id="cJobs"></div>
+  <div class="col" id="cStage"></div>
   <div class="col dark" id="cCmo"></div>
 </div>
 <div class="over" id="over"></div>
@@ -368,7 +413,7 @@ function render(){
   document.getElementById('brand').textContent = brand;
   let h = P.url; try { h = new URL(P.url).hostname; } catch {}
   document.getElementById('host').textContent = h;
-  terminal(); lamp(); context(d, brand); analytics(); agents(); cmo(); tail();
+  terminal(); lamp(); context(d, brand); jobs(); stage(); cmo(); tail();
 }
 
 /* The terminal, in the system's own voice, split by day — "when did this
@@ -448,7 +493,13 @@ function context(d, brand){
 }
 
 /* ── column 2 · analytics ───────────────────────────────────────────────── */
-let anaTab = 'health';
+/* ── the stage ─────────────────────────────────────────────────────────────
+   One job = one capability = one evidence view = one queue. Okara keeps its
+   analytics and its agents in different columns, which leaves the reader
+   splicing the two together in their head. Here, picking a job swaps the stage
+   to that job's evidence with its work sitting underneath it. */
+let SEL = 'ai-seo';
+
 function ring(v, label){
   const col = v >= 80 ? 'var(--green)' : v >= 50 ? 'var(--amber)' : 'var(--red)';
   const r = 20, len = 2 * Math.PI * r;
@@ -459,123 +510,278 @@ function ring(v, label){
     + '<text class="n" x="26" y="30" text-anchor="middle">'+v+'</text></svg>'
     + '<span class="l">'+esc(label)+'</span></div>';
 }
-function analytics(){
-  const a = P.audit || {};
-  const all = issues(P);
-  const crit = all.filter(i => i.sev === 'crit');
-  const DIM = ZH
-    ? {crawlability:'爬得到',length:'讲够了',structure:'结构读得懂',blocks:'能被摘走',
-       authority:'有出处',relevance:'答对题'}
-    : {crawlability:'crawlable',length:'substantial',structure:'structured',blocks:'extractable',
-       authority:'sourced',relevance:'on-question'};
-  // Dimensions are scored out of their own max, not out of 100.
-  const dims = {};
-  for (const pg of a.pages || []) for (const d of pg.dimensions || []) {
-    const k = DIM[d.key] || d.key || '—';
-    dims[k] = dims[k] || { s:0, m:0 };
-    dims[k].s += d.score; dims[k].m += (d.max || 0);
-  }
-  const tabs = [['health',T('体检','Health')],['issues',T('问题 '+all.length,'Issues '+all.length)],
-                ['geo','GEO'],['site',T('站点','Site')]];
-  let body = '';
-  if (anaTab === 'health'){
-    body = '<p class="mini">'+T('上次体检 '+String(a.generatedAt||'').slice(0,10)+' · '+((a.pages||[]).length)+' 页',
-        'Last audited '+String(a.generatedAt||'').slice(0,10)+' · '+((a.pages||[]).length)+' pages')+'</p>'
-      + '<div class="rings">'
-      + ring(Math.round(a.avgScore || 0), T('AI 就绪度','AI readiness'))
-      + Object.keys(dims).map(n => ring(dims[n].m ? Math.round(dims[n].s/dims[n].m*100) : 0, n)).join('')
-      + '</div>'
-      + '<p class="mini">'+T('这些不需要任何 Key 就能测 —— 爬得到、渲染得出、结构读得懂。',
-          'Measured with no keys at all — reachable, renderable, machine-readable.')+'</p>';
-  } else if (anaTab === 'issues'){
-    body = crit.concat(all.filter(i => i.sev === 'warn')).slice(0,80).map(i =>
-      '<div class="iss"><span class="sev '+i.sev+'">'+(i.sev==='crit'?T('阻断','BLOCK'):T('警告','WARN'))+'</span>'
-      + '<span>'+esc(i.t)+'<br><span class="mini">'+esc(i.u)+'</span></span></div>').join('')
-      || '<div class="empty">'+T('没有问题。','No issues.')+'</div>';
-  } else if (anaTab === 'geo'){
-    const pr = P.probe;
-    if (pr && pr.verdict){
-      const bad = pr.verdict !== 'knows';
-      body = '<div class="cards"><div class="card'+(bad?' bad':'')+'"><span class="k"><i></i>'
-        + T('引擎判定','Engine verdict')+'</span><span class="v">'+esc(pr.verdict)+'</span>'
-        + '<span class="s">'+esc(pr.engine||'')+'</span></div>'
-        + '<div class="card"><span class="k"><i></i>'+T('问过的引擎','Engines asked')+'</span>'
-        + '<span class="v">1</span><span class="s">'+T('共 18 个可跑','of 18 available')+'</span></div></div>'
-        + '<div class="sect">'+T('原话','What it said')+'</div>'
-        + '<p class="mini">'+esc(pr.question||'')+'</p>'
-        + '<div class="quote">'+esc(String(pr.answer||'').slice(0,900))+'</div>';
-    } else {
-      body = '<div class="empty">'+T('还没问过引擎。','No engine asked yet.')+'</div>';
+
+/* The 18 engines we can drive, in the order that makes the China half legible
+   as a block — that half is the part no comparable product measures at all. */
+const ENGINES = [
+  ['glm','智谱GLM','cn'],['doubao','豆包','cn'],['deepseek','DeepSeek','cn'],['kimi','Kimi','cn'],
+  ['minimax','MiniMax','cn'],['qwen','通义千问','cn'],['ernie','文心一言','cn'],['spark','讯飞星火','cn'],
+  ['nano','纳米AI搜索','cn'],['baidu-ai','百度AI搜索','cn'],
+  ['openai','ChatGPT','global'],['anthropic','Claude','global'],['gemini','Gemini','global'],
+  ['grok','Grok','global'],['perplexity','Perplexity','global'],['chatgpt-web','ChatGPT 网页','global'],
+  ['claude-web','Claude 网页','global'],['ai-overview','Google AI Overviews','global'],
+];
+/* The five gates a brand passes before an AI will cite it. Each is a separate
+   failure with a separate fix, which is why they are five columns and not one
+   visibility score. */
+const GATES = ZH
+  ? [['knows','知道'],['unconfused','不混淆'],['mentions','提及'],['ranks','排名'],['cites','引用']]
+  : [['knows','knows'],['unconfused','not confused'],['mentions','mentions'],['ranks','ranks'],['cites','cites']];
+
+/* What we have actually measured for a given engine and gate. Returns null for
+   "not measured", which the matrix renders as a stated gap. It is never a zero:
+   a zero is a measurement, and we did not take one. */
+function gateState(engineId, gate){
+  const pr = P.probe;
+  const m = (P.metrics && P.metrics.platforms) || [];
+  const row = m.filter(x => x.providerId === engineId)[0];
+  if (row){
+    if (gate === 'mentions') return row.mentionRate == null ? null : row.mentionRate > 0;
+    if (gate === 'ranks') return row.top3Rate == null ? null : row.top3Rate > 0;
+    if (gate === 'cites') return row.ownDomainCiteRate == null ? null : row.ownDomainCiteRate > 0;
+    const rec = row.probe && row.probe.recognition;
+    if (rec){
+      if (gate === 'knows') return (rec.knows || 0) > 0;
+      if (gate === 'unconfused') return (rec.confused || 0) === 0;
     }
-    // Said in words, not blurred. Hiding a number we never measured behind a
-    // paywall would be selling the appearance of data.
-    body += '<div class="note">'
-      + T('这里只问了 1 个引擎。中外 18 个引擎的托管采样还没做 —— 我们不会把没测过的数字模糊起来卖你。',
-          'One engine asked here. Hosted sampling across 18 engines is not built — we will not blur a number we never measured and sell it to you.')
-      + '</div>';
-  } else {
-    const s = a.site || {};
-    const blocked = s.blockedSearchCrawlers || [];
-    const sig = [
-      ['llms.txt', s.llmsTxtFound ? T('有','present') : T('没有','absent'), !s.llmsTxtFound],
-      ['robots.txt', s.robotsFound ? T('有','present') : T('没有','absent'), !s.robotsFound],
-      ['sitemap.xml', s.sitemapFound ? T('有','present') : T('没有','absent'), !s.sitemapFound],
-      [T('被挡的爬虫','Blocked crawlers'), blocked.join(', ') || T('无','none'), blocked.length > 0],
-    ];
-    body = sig.map(x => '<div class="sig"><span>'+esc(x[0])+'</span><span class="'+(x[2]?'w':'')+'">'
-      + (x[2]?'⚠ ':'')+esc(x[1])+'</span></div>').join('');
+    return null;
   }
-  document.getElementById('cAna').innerHTML = '<h2>'+T('分析','Analytics')+'</h2>'
-    + '<div class="tabs">'+tabs.map(x => '<button data-tab="'+x[0]+'" class="'+(anaTab===x[0]?'on':'')+'">'+esc(x[1])+'</button>').join('')+'</div>'
-    + body;
-  document.querySelectorAll('[data-tab]').forEach(e => e.onclick = () => { anaTab = e.dataset.tab; analytics(); });
+  // The single web probe fills exactly two cells on one row. Saying so beats
+  // spreading one engine's answer across a grid it did not cover.
+  if (pr && pr.verdict && pr.engine && String(pr.engine).indexOf(engineId) >= 0){
+    if (gate === 'knows') return pr.verdict === 'knows';
+    if (gate === 'unconfused') return pr.verdict !== 'confused';
+  }
+  return null;
 }
 
-/* ── column 3 · the roster, with the work inside it ─────────────────────── */
-function agents(){
-  const on = [], idle = [];
-  ROSTER.forEach((a, i) => {
+function matrix(){
+  let filled = 0;
+  const row = e => {
+    const cells = GATES.map(g => {
+      const v = gateState(e[0], g[0]);
+      if (v === null) return '<td><span class="cell un" title="'+T('未测','not measured')+'">—</span></td>';
+      filled++;
+      return '<td><span class="cell '+(v?'pass':'fail')+'">'+(v?'✓':'✗')+'</span></td>';
+    }).join('');
+    return '<tr><td class="e">'+esc(e[1])+'</td>'+cells+'</tr>';
+  };
+  const cn = ENGINES.filter(e => e[2] === 'cn').map(row).join('');
+  const gl = ENGINES.filter(e => e[2] === 'global').map(row).join('');
+  const total = ENGINES.length * GATES.length;
+  return '<table class="mx"><thead><tr><th>'+T('引擎','Engine')+'</th>'
+    + GATES.map(g => '<th>'+esc(g[1])+'</th>').join('') + '</tr></thead><tbody>'
+    + '<tr class="mk"><td colspan="6">'+T('中国 · 10 个','China · 10')+'</td></tr>' + cn
+    + '<tr class="mk"><td colspan="6">'+T('海外 · 8 个','Global · 8')+'</td></tr>' + gl
+    + '</tbody></table>'
+    + '<div class="legend">'+T(filled+' / '+total+' 个格子有实测数据。「—」是没测，不是 0 —— 把没测过的画成零，等于替你的品牌认了一个从没发生的失败。',
+        filled+' / '+total+' cells measured. A dash means not measured, not zero — rendering an unmeasured gate as a zero would blame your brand for a failure nobody observed.')+'</div>';
+}
+
+/* ── per-job evidence views ────────────────────────────────────────────── */
+const VIEWS = {
+  'ai-seo': () => {
+    const pr = P.probe;
+    return '<div class="stagehead"><h3>'+T('品牌实体漏斗 × 引擎','Brand entity funnel × engines')+'</h3>'
+      + '<span class="sub">'+T('AI 引用你之前要过的五道闸','five gates before an AI will cite you')+'</span></div>'
+      + matrix()
+      + (pr && pr.verdict ? '<div class="sect">'+T('引擎原话','What the engine said')+'</div>'
+          + '<p class="mini">'+esc(pr.question||'')+' · '+esc(pr.engine||'')+'</p>'
+          + '<div class="quote">'+esc(String(pr.answer||'').slice(0,1100))+'</div>' : '')
+      + '<div class="note">'+T('要填满这张表需要托管多引擎采样，还没做。我们不把没测过的格子模糊起来卖你 —— 空格子本身就是报价单。',
+          'Filling this table needs hosted multi-engine sampling, which is not built. We do not blur cells we never measured — the empty ones are the quote.')+'</div>';
+  },
+  'seo-audit': () => {
+    const a = P.audit || {};
+    const DIM = ZH
+      ? [['crawlability','爬得到'],['length','讲够了'],['structure','结构'],['blocks','抽取块'],
+         ['authority','出处'],['relevance','答对题']]
+      : [['crawlability','crawl'],['length','length'],['structure','structure'],['blocks','blocks'],
+         ['authority','authority'],['relevance','relevance']];
+    const pages = a.pages || [];
+    const cls = v => v >= 80 ? 'hi' : v >= 50 ? 'mid' : v > 0 ? 'lo' : 'no';
+    const grid = '<table class="hm"><thead><tr><th>'+T('页面','Page')+'</th>'
+      + DIM.map(d => '<th>'+esc(d[1])+'</th>').join('')+'<th>'+T('总分','Score')+'</th></tr></thead><tbody>'
+      + pages.map(pg => {
+          const by = {};
+          for (const d of pg.dimensions || []) by[d.key] = d.max ? Math.round(d.score/d.max*100) : 0;
+          return '<tr><td class="u" title="'+esc(pg.url)+'">'+esc(String(pg.url).replace(/^https?:[/][/][^/]+/,'') || '/')+'</td>'
+            + DIM.map(d => { const v = by[d[0]] ?? 0;
+                return '<td><span class="c '+cls(v)+'">'+v+'</span></td>'; }).join('')
+            + '<td><span class="c '+cls(pg.score||0)+'">'+(pg.score||0)+'</span></td></tr>';
+        }).join('') + '</tbody></table>';
+    return '<div class="stagehead"><h3>'+T('页面 × 六维','Pages × six dimensions')+'</h3>'
+      + '<span class="sub">'+T('上次体检 '+String(a.generatedAt||'').slice(0,10), 'last audited '+String(a.generatedAt||'').slice(0,10))+'</span></div>'
+      + '<div class="rings">'+ring(Math.round(a.avgScore||0), T('全站 AI 就绪度','site AI readiness'))+'</div>'
+      + grid
+      + '<div class="legend">'+T('一个全站平均分不会告诉你去改哪一页。这张表会。',
+          'A site-wide average never tells you which page to open. This does.')+'</div>';
+  },
+  'schema': () => {
+    // Free data we had all along and were not drawing: which extractable block
+    // each page is missing. This is the most directly actionable grid we own.
+    const BL = ZH
+      ? [['definition','定义'],['comparison','对比'],['statistics','数字'],['steps','步骤'],['faq','FAQ']]
+      : [['definition','definition'],['comparison','comparison'],['statistics','statistics'],
+         ['steps','steps'],['faq','faq']];
+    const pages = (P.audit && P.audit.pages) || [];
+    const s = (P.audit && P.audit.site) || {};
+    const grid = '<table class="hm"><thead><tr><th>'+T('页面','Page')+'</th>'
+      + BL.map(b => '<th>'+esc(b[1])+'</th>').join('')+'</tr></thead><tbody>'
+      + pages.map(pg => {
+          const b = pg.blocks || {};
+          return '<tr><td class="u" title="'+esc(pg.url)+'">'+esc(String(pg.url).replace(/^https?:[/][/][^/]+/,'') || '/')+'</td>'
+            + BL.map(x => '<td><span class="c '+(b[x[0]]?'hi':'no')+'">'+(b[x[0]]?'✓':'—')+'</span></td>').join('')
+            + '</tr>';
+        }).join('') + '</tbody></table>';
+    const sig = [
+      ['llms.txt', s.llmsTxtFound, T('有','present'), T('没有','absent')],
+      ['robots.txt', s.robotsFound, T('有','present'), T('没有','absent')],
+      ['sitemap.xml', s.sitemapFound, T('有','present'), T('没有','absent')],
+    ];
+    return '<div class="stagehead"><h3>'+T('抽取块地图','Extractable block map')+'</h3>'
+      + '<span class="sub">'+T('AI 直接摘走的是这五种块','these five blocks are what an AI lifts')+'</span></div>'
+      + grid
+      + '<div class="legend">'+T('一整列都是「—」，说明全站没有这种块 —— 那正是 AI 回答这类问题时不会引用你的原因。',
+          'A whole column of dashes means the site has none of that block — which is why an AI answering that kind of question does not quote you.')+'</div>'
+      + '<div class="sect">'+T('机器可读入口','Machine-readable entry points')+'</div>'
+      + sig.map(x => '<div class="sig"><span>'+esc(x[0])+'</span><span class="'+(x[1]?'':'w')+'">'
+          +(x[1]?'':'⚠ ')+esc(x[1]?x[2]:x[3])+'</span></div>').join('');
+  },
+  'technical-seo-checker': () => {
+    const s = (P.audit && P.audit.site) || {};
+    const blocked = s.blockedSearchCrawlers || [];
+    const pages = ((P.audit && P.audit.pages) || []).filter(p => (p.blockers||[]).length);
+    // Two different questions that look like one: are they allowed in, and did
+    // they actually come. We can answer the first today; the second needs logs.
+    return '<div class="stagehead"><h3>'+T('爬虫准入 vs 真到访','Crawler access vs actual visits')+'</h3></div>'
+      + '<table class="hm"><thead><tr><th>'+T('爬虫','Crawler')+'</th><th>'+T('允许进','allowed')+'</th>'
+      + '<th>'+T('真来过','visited')+'</th></tr></thead><tbody>'
+      + ['GPTBot','ClaudeBot','PerplexityBot','Google-Extended','Bytespider','Baiduspider'].map(c => {
+          const ok = blocked.indexOf(c) < 0;
+          return '<tr><td class="u">'+esc(c)+'</td>'
+            + '<td><span class="c '+(ok?'hi':'lo')+'">'+(ok?'✓':'✗')+'</span></td>'
+            + '<td><span class="c no" title="'+T('需要服务器日志','needs server logs')+'">—</span></td></tr>';
+        }).join('') + '</tbody></table>'
+      + '<div class="legend">'+T('右边那一列要靠你的服务器日志 —— 命令行里的 botlog 能算，网页版还没接。允许进不等于真来过，这两件事经常不一样。',
+          'The right column needs your server logs — botlog computes it in the CLI, not wired to the web yet. Allowed in is not the same as actually came, and they often differ.')+'</div>'
+      + (pages.length ? '<div class="sect">'+T('爬虫读不到的页面','Pages crawlers cannot read')+'</div>'
+          + pages.map(p => '<div class="iss"><span class="sev crit">'+T('阻断','BLOCK')+'</span><span>'
+              + esc(p.url)+'<br><span class="mini">'+esc((p.blockers||[]).join(' · '))+'</span></span></div>').join('') : '');
+  },
+  'competitor-analysis': () => {
+    const c = (P.dossier && P.dossier.competitorCandidates) || [];
+    return '<div class="stagehead"><h3>'+T('竞争集','Competitive set')+'</h3></div>'
+      + (c.length ? c.map(x => '<div class="sig"><span>'+esc(x.name)+(x.why?' <span class="mini">'+esc(x.why)+'</span>':'')
+          + '</span><span class="mini">'+esc(x.by === 'owner' ? T('你加的','yours') : T('猜的','guessed'))+'</span></div>').join('')
+        : '<div class="empty">'+T('还没找到。','None found yet.')+'</div>')
+      + '<div class="note">'+T('这些是从你自己网站的文字里猜的。真正的竞争集是「买家问 AI 时，AI 报了谁的名字」—— 那要靠采样，还没做。声量份额同理。',
+          'Guessed from your own copy. The real competitive set is who an AI names when a buyer asks — that needs sampling, which is not built. Share of voice likewise.')+'</div>';
+  },
+  'product-marketing': () => {
+    const f = ((P.dossier && P.dossier.facts && P.dossier.facts.facts) || []);
+    // The fabrication gate, shown as a gate: only confirmed non-E facts may
+    // enter anything we generate. Seeing the split is what makes the rule real.
+    const usable = f.filter(x => x.status !== 'unconfirmed' && x.grade !== 'E');
+    const held = f.filter(x => !(x.status !== 'unconfirmed' && x.grade !== 'E'));
+    const list = xs => xs.map(x => '<div class="sig"><span><span class="pr pr-'
+      + (x.grade === 'A' ? 'P0' : x.grade === 'E' ? 'P2' : 'P1')+'">'+esc(x.grade)+'</span> '
+      + esc(x.claim)+'</span><span class="mini">'+esc(x.by === 'owner' ? T('你改的','yours') : T('站上取的','from site'))+'</span></div>').join('');
+    return '<div class="stagehead"><h3>'+T('事实库与编造门禁','Fact base and fabrication gate')+'</h3>'
+      + '<span class="sub">'+T(usable.length+' 条可用于生成 · '+held.length+' 条被拦',
+          usable.length+' usable · '+held.length+' held')+'</span></div>'
+      + '<div class="sect">'+T('可以进生成内容','Cleared for generated content')+'</div>'
+      + (usable.length ? list(usable) : '<div class="empty">'+T('一条都没有。','None.')+'</div>')
+      + '<div class="sect">'+T('被门禁拦下','Held by the gate')+'</div>'
+      + (held.length ? list(held) : '<div class="empty">'+T('没有被拦的。','Nothing held.')+'</div>')
+      + '<div class="legend">'+T('只有 confirmed 且非 E 级的事实允许进入我们替你生成的任何内容。这条规则是硬的 —— 编不出来的东西，就不编。',
+          'Only confirmed, non-E facts may enter anything generated for you. The rule is hard: what cannot be sourced does not get written.')+'</div>';
+  },
+  'content-strategy': () => {
+    const pieces = ((P.docs && P.docs.strategy && P.docs.strategy.pieces) || []);
+    return '<div class="stagehead"><h3>'+T('该写什么','What to publish')+'</h3>'
+      + '<span class="sub">'+T('每篇都对着一个买家真会问的问题','each against a question buyers actually ask')+'</span></div>'
+      + (pieces.length ? pieces.map(p => '<div class="wi"><div class="h"><span class="t">'+esc(p.title)+'</span>'
+          + '<span class="stn">'+esc(p.format||'')+'</span></div>'
+          + '<p class="acc"><b>'+T('对着这个问题：','Answers: ')+'</b>'+esc(p.question||'')+'</p>'
+          + (p.why ? '<p class="acc">'+esc(p.why)+'</p>' : '')+'</div>').join('')
+        : '<div class="empty">'+T('还没有选题。','No topics yet.')+'</div>')
+      + '<div class="note">'+T('选题有了，稿子没有。生成加编造门禁在命令行里跑得通，网页还没接。',
+          'Topics yes, drafts no. Generation with the fabrication gate works in the CLI and is not wired to the web.')+'</div>';
+  },
+  'marketing-loops': () => {
+    const l = P.loop || {};
+    const c = P.feedCounts || {};
+    const done = (P.feedDone || []);
+    return '<div class="stagehead"><h3>'+T('循环','The loop')+'</h3></div>'
+      + '<div class="cards">'
+      + '<div class="card"><span class="k"><i></i>'+T('上次检查','last check')+'</span><span class="v">'
+        + (l.lastCheck ? new Date(l.lastCheck).toISOString().slice(5,10) : '—')+'</span>'
+        + '<span class="s">'+T('每天 03:00 UTC','daily 03:00 UTC')+'</span></div>'
+      + '<div class="card"><span class="k"><i></i>'+T('连续没事可做','quiet runs')+'</span><span class="v">'
+        + (l.quietRuns || 0)+'</span><span class="s">'+T('这是好事','this is the good case')+'</span></div>'
+      + '</div>'
+      + '<div class="legend">'+T('铁律：大多数运行应该是「查过了，没事可做」。天天有话说的循环会在一周内把人训练成无视它。',
+          'The rule: most runs should end with "checked, nothing to do". A loop that speaks daily trains people to ignore it within a week.')+'</div>'
+      + (done.length ? '<div class="sect">'+T('已经修好的 '+done.length+' 件','fixed: '+done.length)+'</div>'
+          + done.map(x => '<div class="sig"><span>'+esc(x.title)+'</span><span class="mini">'
+            + esc(x.doneBy === 'owner' ? T('你标的','you marked it') : T('重爬确认','confirmed by crawl'))
+            + (x.resolvedAt ? ' · '+String(x.resolvedAt).slice(0,10) : '')+'</span></div>').join('') : '');
+  },
+};
+
+function jobs(){
+  const c = P.feedCounts || {};
+  const rows = ROSTER.map(a => {
     const out = a.read(P);
-    const items = itemsFor(P, a.id, i === 0);
-    (out ? on : idle).push(card(a, out, items));
-  });
+    const n = itemsFor(P, a.id, a.id === 'seo-audit').length;
+    return '<div class="job'+(SEL===a.id?' sel':'')+(out?' has':'')+'" data-job="'+esc(a.id)+'">'
+      + '<span class="ico" style="background:'+esc(a.c)+'">'+esc(a.ic)+'</span>'
+      + '<span class="nm"><b>'+esc(ZH?a.zh:a.en)+'</b><span>'+esc(out || T('待命','standing by'))+'</span></span>'
+      + (n ? '<span class="ct">'+n+'</span>' : '')+'</div>';
+  }).join('');
   const bench = Object.keys(BENCH).map(k => {
     const g = BENCH[k];
     return '<details class="grp"><summary>'+esc(ZH?g.zh:g.en)+' · '+g.ids.length+'</summary>'
-      + g.ids.map(id => card({ id, ic:id.slice(0,3).toUpperCase(), c:'#B5AE9C', bench:true }, null, [])).join('')
+      + g.ids.map(id => '<div class="job" data-job="bench:'+esc(id)+'">'
+          + '<span class="ico" style="background:#B5AE9C">'+esc(id.slice(0,3).toUpperCase())+'</span>'
+          + '<span class="nm"><b>'+esc(id)+'</b><span>'+T('方法论就位','playbook ready')+'</span></span></div>').join('')
       + '</details>';
   }).join('');
-  const c = P.feedCounts || {};
-  document.getElementById('cAgents').innerHTML = '<h2>'+T('岗位','Agents')
-    + '<span class="mini">'+T(on.length+'/'+ROSTER.length+' 有产出 · '+(c.open||0)+' 件待修',
-        on.length+'/'+ROSTER.length+' producing · '+(c.open||0)+' open')+'</span></h2>'
-    + on.join('') + idle.join('')
-    + '<div class="sect">'+T('在册待命 · 方法论就位，缺数据接入','On the bench · playbook ready, data not wired')+'</div>'
+  document.getElementById('cJobs').innerHTML = '<h2>'+T('岗位','Jobs')
+    + '<span class="mini">'+(c.open||0)+T(' 件待修',' open')+'</span></h2>'
+    + rows
+    + '<div class="sect">'+T('在册待命 · 缺数据接入','On the bench · data not wired')+'</div>'
     + bench;
+  document.querySelectorAll('[data-job]').forEach(e => e.onclick = () => { SEL = e.dataset.job; jobs(); stage(); });
+}
+
+function stage(){
+  const el = document.getElementById('cStage');
+  if (SEL.indexOf('bench:') === 0){
+    const id = SEL.slice(6);
+    el.innerHTML = '<h2>'+esc(id)+'</h2>'
+      + '<div class="note">'+T('这个岗位的方法论已经在系统里，可以读；要它产出还需要接上对应的数据源。',
+          'The playbook for this job is in the system and readable. Producing output needs its data source wired.')+'</div>'
+      + '<button class="pbtn" data-pb="'+esc(id)+'">'+T('读方法论','read the playbook')+'</button><div class="pbody"></div>';
+    document.querySelectorAll('.pbtn').forEach(b => b.onclick = () => openPlaybook(b));
+    return;
+  }
+  const a = ROSTER.filter(x => x.id === SEL)[0] || ROSTER[0];
+  const items = itemsFor(P, a.id, a.id === 'seo-audit');
+  const view = VIEWS[a.id] ? VIEWS[a.id]() : '';
+  el.innerHTML = '<h2>'+esc(ZH?a.zh:a.en)
+    + '<span class="mini">'+esc(a.read(P) || T('待命','standing by'))+'</span></h2>'
+    + view
+    + (a.need ? '<div class="need">'+esc(a.need)+'</div>' : '')
+    + (items.length ? '<div class="sect">'+T('这个岗位名下的活 · '+items.length+' 件',
+        'queue for this job · '+items.length)+'</div>' + items.map(workItem).join('') : '')
+    + '<button class="pbtn" data-pb="'+esc(a.id)+'">'+T('读方法论','read the playbook')+'</button><div class="pbody"></div>';
   document.querySelectorAll('.pbtn').forEach(b => b.onclick = () => openPlaybook(b));
   document.querySelectorAll('.act[data-k]').forEach(b => b.onclick = () => act(b.dataset.k, b.dataset.a, b));
 }
 
-function card(a, out, items){
-  const name = a.bench ? a.id : (ZH ? a.zh : a.en);
-  const n = items.length;
-  return '<details class="ag '+(out?'on':'idle')+'"'+(n && !a.bench ? ' open' : '')+'>'
-    + '<summary><span class="ico" style="background:'+esc(a.c||'#B5AE9C')+'">'+esc(a.ic||'···')+'</span>'
-    + '<span class="who">'+esc(name)+'</span>'
-    + '<span class="out'+(out?'':' none')+'">'+esc(out || T('待命','standing by'))
-    + (n ? esc(T(' · '+n+' 件待修', ' · '+n+' to fix')) : '')+'</span></summary>'
-    + '<div class="body">'
-    + (a.need ? '<div class="need">'+esc(a.need)+'</div>' : '')
-    + (a.bench ? '<p class="mini" style="margin:7px 0 0">'+T('这个岗位的方法论已经在系统里，可以读；要它产出还需要接上对应的数据源。',
-        'The playbook for this job is in the system and readable. Producing output needs its data source wired.')+'</p>' : '')
-    + items.map(workItem).join('')
-    + '<button class="pbtn" data-pb="'+esc(a.id)+'">'+T('读方法论','read the playbook')+'</button>'
-    + '<div class="pbody"></div></div></details>';
-}
 
-/* One work item, actionable where it is read. The point of putting these inside
-   the job is that "who is on this" and "what is the task" stop being two
-   different screens. */
 function workItem(t){
   const badge = t.state === 'regressed'
     ? '<span class="rg">'+(t.neverVerified ? T('还在','still there') : T('又坏了','came back'))+'</span>'
