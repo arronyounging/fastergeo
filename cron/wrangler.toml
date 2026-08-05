@@ -1,0 +1,12 @@
+name = "fastergeo-cron"
+main = "index.js"
+compatibility_date = "2026-01-01"
+
+# 03:00 UTC — 11am China, early morning US. Chosen so the digest is waiting when
+# the people who use this start their day, not delivered at 3am to either.
+[triggers]
+crons = ["0 3 * * *"]
+
+[vars]
+SWEEP_URL = "https://fastergeo.co/api/sweep"
+# SWEEP_TOKEN is a secret: wrangler secret put SWEEP_TOKEN

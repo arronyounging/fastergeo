@@ -1,7 +1,7 @@
 /**
  * The scheduled sweep. Runs the daily check over every watched project.
  *
- * Bound to a Cron Trigger in production; callable by hand with SWEEP_TOKEN so a
+ * Woken by the cron Worker in ../../cron, and callable by hand with SWEEP_TOKEN so a
  * run can be forced without waiting a day. Deliberately thin: the loop's own
  * discipline (check often, act rarely, idempotent state) lives in _loop.js, and
  * this only decides who to look at and how much work one invocation may do.
@@ -59,7 +59,12 @@ export async function onRequestGet({ request, env }) {
   });
 }
 
-/** Cron Trigger entry point. */
-export async function onSchedule({ env }) {
-  await sweep(env);
-}
+/*
+ * There is deliberately no `onSchedule` export here.
+ *
+ * Pages Functions only run on a request; Cron Triggers are a Workers feature.
+ * An exported scheduled handler would look like a working daily job, never be
+ * called, and leave us telling users we check every day while nothing checks
+ * anything. The clock is a separate Worker in ../../cron that calls the GET
+ * handler above with SWEEP_TOKEN.
+ */
