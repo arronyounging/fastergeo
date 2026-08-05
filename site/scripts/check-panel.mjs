@@ -106,8 +106,12 @@ try {
     if (!cout.includes(need)) throw new Error(`console md() lost ${need}`);
   }
   // The roster must never imply work that did not happen.
-  for (const need of ['待命', '缺数据接入', '只问了 1 个引擎']) {
+  for (const need of ['待命', '缺数据接入', '只问了 1 个引擎', '不会把没测过的数字模糊起来卖你']) {
     if (!cHtml.includes(need)) throw new Error(`console lost its honesty line "${need}"`);
+  }
+  // The pieces that make it a console rather than a report.
+  for (const need of ['id="term"', 'id="sheet"', 'function workItem', 'data-a="done"', 'function ring(']) {
+    if (!cHtml.includes(need)) throw new Error(`console lost ${need}`);
   }
   console.log('✓ console parses, renders markdown, and keeps its not-wired disclosures');
 } catch (e) {
