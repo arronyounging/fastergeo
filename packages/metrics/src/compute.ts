@@ -127,8 +127,16 @@ async function computePlatform(
     top3Rate: ratio(top3, unprompted.length),
     avgRank: ranks.length > 0 ? ranks.reduce((a, b) => a + b, 0) / ranks.length : null,
     earlyMentionRate: ratio(earlyMentions, mentioned),
-    shareOfVoice: ratio(brandVoice, brandVoice + competitorVoice),
-    ownDomainCiteRate: ratio(ownCiteSamples, unprompted.length),
+    // Undefined, not perfect. With no competitor set configured, competitorVoice
+    // can only be 0, so the ratio is 1.0 by arithmetic — and a report saying
+    // "you hold 100% of the conversation" when nobody looked for anyone else is
+    // the same failure as rendering an unmeasured gate as a zero, inverted.
+    shareOfVoice: comps.length > 0 ? ratio(brandVoice, brandVoice + competitorVoice) : null,
+    // Only meaningful if the engine cites anything at all. Thirteen of the
+    // eighteen engines are non-web API models that never return citations, so a
+    // flat 0% here reads as "nobody links to you" when it means "this engine
+    // cannot answer that question". Undefined is the honest value.
+    ownDomainCiteRate: allCitations > 0 ? ratio(ownCiteSamples, unprompted.length) : null,
     citationShare: ratio(ownCitations, allCitations),
     competitorMentions,
     sentiment: mentioned > 0

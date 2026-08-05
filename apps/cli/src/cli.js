@@ -1211,11 +1211,24 @@ async function cmdCycle() {
   say(`Working out what those answers mean.`, `我在算这些回答说明了什么。`);
   let judge;
   let sentimentJudge;
-  if (flags.judge) {
-    const jp = resolveProvider(flags.judge);
+  // The judge decides the flagship question — does this engine know you, or has
+  // it confused you with someone else. Leaving it off by default made `start`,
+  // the one command we tell everyone to run, return 'unverified' for 10 of 12
+  // probes on a real run. If an engine is configured we already have everything
+  // needed, so the default is on and the fallback is stated rather than silent.
+  const judgeId = flags.judge || configuredProviders()[0]?.id;
+  if (judgeId) {
+    const jp = resolveProvider(judgeId);
     const askJudge = async prompt => (await ask(jp, { question: prompt, maxTokens: 500, temperature: 0, timeoutMs: 300_000 })).answer;
     judge = makeLlmJudge(askJudge);
     sentimentJudge = makeSentimentJudge(askJudge);
+    if (!flags.judge) {
+      say(`Using ${jp.name} to judge whether each engine knows you (--judge picks a different one).`,
+        `用 ${jp.name} 来判定每个引擎到底认不认识你（想换用 --judge 指定）。`);
+    }
+  } else {
+    say(`No engine configured, so "does AI know you" cannot be decided this run — it will read 'unverified', not zero.`,
+      `没有配置任何引擎，所以这一轮判不了「AI 到底认不认识你」—— 它会显示「未判定」，不是 0。`);
   }
   const metricsReport = samples.length
     ? await computeMetrics(samples, brand, { judge, sentimentJudge, brandDescription: brand.description })
