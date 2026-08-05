@@ -10,6 +10,7 @@
  * vanished in output. The only honest check renders it first.
  */
 import { onRequestGet } from '../functions/p/[id].js';
+import { onRequestGet as myGet } from '../functions/my.js';
 
 const res = await onRequestGet({
   params: { id: 'TESTID123' },
@@ -77,6 +78,16 @@ try {
   if (!watched.includes('每天重爬核对')) throw new Error('a project the loop has run on should say so');
   console.log('✓ today() renders the queue, its states, its actions and its empty case');
   console.log('✓ the daily-re-crawl claim only appears once the loop has actually run');
+  // /my is the same shape of risk: one big template literal whose script only
+  // fails once a browser runs it.
+  const myHtml = await (await myGet({ request: new Request('https://x/my?lang=zh') })).text();
+  const mm = myHtml.match(/<script>([\s\S]*?)<\/script>/);
+  if (!mm) throw new Error('no <script> in rendered /my');
+  new Function(mm[1]);
+  for (const need of ['fastergeo.projects', '这台浏览器', '都清了']) {
+    if (!myHtml.includes(need)) throw new Error(`/my lost "${need}"`);
+  }
+  console.log('✓ /my parses and keeps its local-only disclosure');
 } catch (e) {
   console.error(`✗ rendered panel is broken: ${e.message}`);
   const lines = m[1].split('\n');

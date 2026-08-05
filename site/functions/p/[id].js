@@ -185,7 +185,8 @@ background:#fff;font:12px/1.75 var(--mono);color:var(--ink);resize:vertical}
 <div class="wrap">
   <div class="beat"><span class="dot" id="dot"></span><b id="brand">…</b>
     <span class="meta" id="meta"></span><span class="sp"></span>
-    <span class="meta" id="stage"></span></div>
+    <span class="meta" id="stage"></span>
+    <a class="btn" href="/my${lang === 'zh' ? '?lang=zh' : ''}">${lang === 'zh' ? '我的站点' : 'My sites'}</a></div>
   <div class="term" id="term"></div>
   <div id="funnel"></div>
   <div class="panes">
@@ -244,9 +245,24 @@ async function loop(){
   document.getElementById('stage').textContent = '';
 }
 
+/* There is no login here — the URL is the console, which is the right call for
+   a first visit and a bad one a week later, when the tab is gone and so is the
+   only way back. So every panel you open remembers itself, locally. It is not
+   an account and /my says so; it is the difference between losing your work and
+   not. */
+function remember(brand){
+  try {
+    const k = 'fastergeo.projects';
+    const all = JSON.parse(localStorage.getItem(k) || '[]').filter(x => x && x.id !== ID);
+    all.unshift({ id: ID, url: P.url, brand: brand, at: Date.now(), lang: ZH ? 'zh' : 'en' });
+    localStorage.setItem(k, JSON.stringify(all.slice(0, 50)));
+  } catch { /* private browsing, or storage full. Not worth a message. */ }
+}
+
 function render(){
   const d = P.dossier, a = P.audit, q = P.probe;
   const brand = d?.brand?.name || new URL(P.url).hostname;
+  remember(brand);
   document.getElementById('brand').textContent = brand;
   document.getElementById('meta').textContent = new URL(P.url).hostname + ' · ' + P.createdAt.slice(0,10)
     + (P.pageCount ? ' · ' + T(P.pageCount+' 页已读', P.pageCount+' pages read') : '');
