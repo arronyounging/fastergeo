@@ -10,6 +10,7 @@
  */
 import { kv } from './_store.js';
 import { STAGES } from './_pipeline.js';
+import { sortFeed, feedCounts } from '@fastergeo/tickets';
 
 const BAD_HOSTS = /^(localhost|127\.|0\.|10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|\[|.*\.(local|internal)$)/i;
 const JSON_H = { 'Content-Type': 'application/json; charset=utf-8' };
@@ -69,6 +70,18 @@ export async function onRequestGet({ request, env }) {
   if (!p) return new Response(JSON.stringify({ error: 'not found' }), { status: 404, headers: JSON_H });
   // Page text is only an input to the dossier prompt; shipping it to the
   // browser would multiply the payload for something nothing renders.
-  const { pages, ...lite } = p;
-  return new Response(JSON.stringify({ ...lite, pageCount: pages.length }), { headers: JSON_H });
+  const { pages, feed, ...lite } = p;
+  // Order and counts are computed here, not in the browser. Two implementations
+  // of "which of these is unread" drift, and the one the user sees would be the
+  // one nothing tests.
+  const now = new Date().toISOString();
+  return new Response(JSON.stringify({
+    ...lite, pageCount: pages.length,
+    ...(feed?.length ? {
+      feedOpen: sortFeed(feed, now),
+      feedDone: feed.filter(i => i.state === 'done')
+        .sort((a, b) => String(b.resolvedAt ?? '').localeCompare(String(a.resolvedAt ?? ''))),
+      feedCounts: feedCounts(feed, now),
+    } : {}),
+  }), { headers: JSON_H });
 }

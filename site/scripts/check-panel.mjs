@@ -33,6 +33,42 @@ try {
     if (!out.includes(need)) throw new Error(`md() lost ${need}`);
   }
   console.log('✓ md() renders headings, tables, lists and bold');
+
+  // The queue renderer, run against the shape the API actually returns. A panel
+  // that parses can still render an empty pane, and "the fix list is blank" is
+  // exactly the failure a user would report as the whole product being broken.
+  // Everything in this file is declared at the top level: one-line consts end at
+  // the newline, functions end at the first unindented closing brace.
+  const take = h => {
+    const i = m[1].indexOf(h);
+    if (i < 0) throw new Error(`panel lost ${h.trim()}`);
+    const rest = m[1].slice(i);
+    if (!h.startsWith('function')) return rest.slice(0, rest.indexOf('\n'));
+    const end = rest.indexOf('\n}');
+    if (end < 0) throw new Error(`could not find the end of ${h.trim()}`);
+    return rest.slice(0, end + 2);
+  };
+  const src = ['const T = ', 'const esc = ', 'const h2 = ', 'const waiting = ',
+    'function chip(', 'function today('].map(take).join('\n');
+
+  const el = { innerHTML: '', querySelectorAll: () => [] };
+  const feed = [
+    { key: 'k1', state: 'regressed', priority: 'P0', title: 'llms.txt 不见了',
+      rationale: 'r', acceptance: { desc: 'd' }, playbook: { skill: 's', covers: 'c' } },
+    { key: 'k2', state: 'new', priority: 'P1', title: '首页读不到', acceptance: { desc: 'd' } },
+  ];
+  const doneItems = [{ key: 'k3', state: 'done', title: '已修', resolvedAt: '2026-08-01T00:00:00Z', doneBy: 'owner' }];
+  const run = new Function('document', 'P', 'ZH', 'ID',
+    src + '\nreturn (a,b,c) => { today(a,b,c); return document.getElementById("pToday").innerHTML; };')(
+    { getElementById: () => el }, { stage: 'done', url: 'https://x.com' }, true, 'TESTID123');
+  const pane = run(feed, { unread: 2 }, doneItems);
+  for (const need of ['又坏了', '未读', '我修好了', '放回去', 'llms.txt']) {
+    if (!pane.includes(need)) throw new Error(`today() lost "${need}"`);
+  }
+  // The empty state must still say something. A blank pane reads as a crash.
+  const empty = run([], { unread: 0 }, []);
+  if (!empty.includes('没有待办')) throw new Error('today() renders nothing when the queue is empty');
+  console.log('✓ today() renders the queue, its states, its actions and its empty case');
 } catch (e) {
   console.error(`✗ rendered panel is broken: ${e.message}`);
   const lines = m[1].split('\n');

@@ -15,7 +15,7 @@
  * last-checked marker. That is the loop working, not the loop failing.
  */
 import { auditPage, checkSite } from '@fastergeo/audit';
-import { generateTickets } from '@fastergeo/tickets';
+import { generateTickets, mergeFeed, feedCounts, stationForTicket, playbookFor } from '@fastergeo/tickets';
 
 const DAY = 86400e3;
 /** How long a given kind of finding stays quiet after being reported once. */
@@ -133,7 +133,33 @@ export async function runDailyCheck(p, env) {
   /* ── persist ──────────────────────────────────────────────────────────── */
 
   p.audit = after;
-  p.tickets = generateTickets(after, undefined, lang);
+  const fresh = generateTickets(after, undefined, lang).map(t => ({
+    ...t, station: stationForTicket(t), playbook: playbookFor(t),
+  }));
+  // Same merge as the pipeline. Two paths writing the queue differently is how
+  // a user's "done" quietly becomes "new" again overnight.
+  const merged = mergeFeed(p.feed ?? [], fresh);
+  p.feed = merged.items;
+  p.feedCounts = feedCounts(p.feed);
+  p.tickets = fresh;
+  // The queue already knows what cleared; say it in the user's words rather
+  // than re-deriving it from page blockers.
+  for (const r of merged.resolved) {
+    say(lines, lang, `Fixed: ${r.title}`, `修好了：${r.title}`);
+    reasons.push('ticket cleared');
+  }
+  for (const r of merged.regressed) {
+    if (r.neverVerified) {
+      say(lines, lang,
+        `Still there: ${r.title}. You marked this done, but the crawl still finds it.`,
+        `还在：${r.title}。你标了修好，但重爬还是能看到。`);
+      reasons.push('claim not confirmed');
+    } else {
+      say(lines, lang, `Came back: ${r.title} — this was verified fixed before.`,
+        `又坏了：${r.title} —— 这条之前是重爬确认修好的。`);
+      reasons.push('regressed');
+    }
+  }
   state.lastCheck = now;
 
   if (!lines.length) {

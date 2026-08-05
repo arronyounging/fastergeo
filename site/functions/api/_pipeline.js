@@ -13,7 +13,7 @@
  * dossier does not cost you the audit that already succeeded.
  */
 import { auditPage, checkSite, fetchPage } from '@fastergeo/audit';
-import { generateTickets, diagnose, stationForTicket, playbookFor, stationOf } from '@fastergeo/tickets';
+import { generateTickets, diagnose, stationForTicket, playbookFor, stationOf, mergeFeed, feedCounts } from '@fastergeo/tickets';
 import { bootstrapProject } from '@fastergeo/content';
 import { askLlm, parseJsonish } from './_llm.js';
 import { buildVoice, buildContentStrategy } from './_docs.js';
@@ -188,9 +188,16 @@ const STAGE_FNS = {
 
   async tickets(p, env) {
     say(p, `Turning all of that into a fix list.`, `我在把这些变成一张修复清单。`);
-    p.tickets = generateTickets(p.audit, undefined, p.lang).map(t => ({
+    const fresh = generateTickets(p.audit, undefined, p.lang).map(t => ({
       ...t, station: stationForTicket(t), playbook: playbookFor(t),
     }));
+    // Merged, never replaced: what the user has already seen, snoozed or
+    // finished is the only state they create here, and a queue that resets
+    // every run teaches them nothing they do is recorded.
+    const merged = mergeFeed(p.feed ?? [], fresh);
+    p.feed = merged.items;
+    p.feedCounts = feedCounts(p.feed);
+    p.tickets = fresh;
     // The funnel is the product's spine: a flat list of eight tickets is a
     // to-do list, and a to-do list is not a methodology. This says where the
     // break is, so work downstream of it can wait.

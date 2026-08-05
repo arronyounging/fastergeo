@@ -137,6 +137,24 @@ font:11.5px var(--mono);white-space:pre-wrap}
 .pbody code{font:12px var(--mono);background:var(--paper);padding:1px 4px}
 .pbody .attr{margin-top:10px;font:10.5px var(--mono);color:var(--faint)}
 .pb .nt{margin-top:7px;font:11.5px var(--mono);color:var(--ink2);opacity:.8}
+.ch{font:600 9.5px var(--mono);padding:2px 6px;flex:none;letter-spacing:.05em}
+.ch.nw{background:var(--ink);color:var(--paper)}
+.ch.rg{background:var(--red);color:#fff}
+.ch.sn{background:#EFEBE0;color:var(--faint)}
+.unread{color:var(--red)}
+.lnk{background:none;border:0;padding:0;margin:0 0 9px;color:var(--ink2);
+font:11.5px var(--mono);cursor:pointer;text-decoration:underline}
+.lnk:hover{color:var(--red)}
+.rgw{color:var(--red)}
+.acts{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 12px 11px}
+.act{background:none;border:1px solid var(--rule);color:var(--ink2);
+padding:4px 9px;font:11px var(--mono);cursor:pointer}
+.act:hover{border-color:var(--ink);color:var(--ink)}
+.act[disabled]{opacity:.5;cursor:default}
+.dn{margin-top:14px;border-top:1px solid var(--rule);padding-top:10px}
+.dn summary{font:11.5px var(--mono);color:var(--faint);cursor:pointer}
+.dr{display:flex;gap:9px;align-items:baseline;flex-wrap:wrap;padding:7px 0;font-size:13px;color:var(--ink2)}
+.dr b{font-weight:500;text-decoration:line-through;color:var(--faint)}
 .pr{font:600 9.5px var(--mono);padding:2px 6px;flex:none}
 .pr-P0{background:var(--red);color:#fff}.pr-P1{background:var(--amber-wash);color:var(--amber)}
 .pr-P2{background:#EFEBE0;color:var(--ink2)}
@@ -235,7 +253,9 @@ function render(){
   funnel(P.diagnosis);
   profile(d, brand);
   evidence(q, a);
-  today(P.tickets || []);
+  // The queue if there is one; the flat list only for projects created before
+  // the queue existed. No migration — the next run merges them in for free.
+  today(P.feedOpen || P.tickets || [], P.feedCounts, P.feedDone || []);
 }
 
 function funnel(dg){
@@ -343,12 +363,32 @@ function evidence(q, a){
   el.innerHTML = html;
 }
 
-function today(ts){
+/* The state chip. Only shown when there is something to say — an item that is
+   simply still open needs no label, and labelling everything makes the two
+   states that matter (new, and came back) stop standing out. */
+function chip(k){
+  if (k.state === 'regressed') return k.neverVerified
+    ? '<span class="ch rg">'+T('还在','still there')+'</span>'
+    : '<span class="ch rg">'+T('又坏了','came back')+'</span>';
+  if (k.state === 'new') return '<span class="ch nw">'+T('新','new')+'</span>';
+  if (k.state === 'snoozed') return '<span class="ch sn">'+T('已推迟','snoozed')+'</span>';
+  return '';
+}
+
+function today(ts, counts, done){
   const el = document.getElementById('pToday');
-  if (!ts.length){ el.innerHTML = h2(T('今天','Today')) + (P.stage==='done' ? '<div class="empty">'+T('没有待办。','Nothing queued.')+'</div>' : waiting()); return; }
-  el.innerHTML = h2(T('今天','Today'), T('修 '+ts.length+' 件','fix '+ts.length))
+  done = done || [];
+  if (!ts.length && !done.length){ el.innerHTML = h2(T('今天','Today')) + (P.stage==='done' ? '<div class="empty">'+T('没有待办。','Nothing queued.')+'</div>' : waiting()); return; }
+  const unread = counts?.unread || 0;
+  el.innerHTML = h2(T('今天','Today'),
+      (ts.length ? T('修 '+ts.length+' 件','fix '+ts.length) : T('都清了','all clear'))
+      + (unread ? ' <span class="unread">'+unread+' '+T('未读','unread')+'</span>' : ''))
+    + (unread ? '<button class="lnk" id="markAll">'+T('全部标为已读','mark all read')+'</button>' : '')
     + ts.map((k,i) => '<details class="tk"'+(i===0?' open':'')+'>'
-      + '<summary><span class="pr pr-'+esc(k.priority)+'">'+esc(k.priority)+'</span><b>'+esc(k.title)+'</b></summary>'
+      + '<summary><span class="pr pr-'+esc(k.priority)+'">'+esc(k.priority)+'</span>'+chip(k)+'<b>'+esc(k.title)+'</b></summary>'
+      + (k.state === 'regressed' ? '<p class="why rgw">'+(k.neverVerified
+          ? T('你标了修好，但重爬还是能看到它。','You marked this done, but the crawl still finds it.')
+          : T('这条之前是重爬确认修好的，现在又出现了。','This was verified fixed by a crawl and has come back.'))+'</p>' : '')
       + (k.rationale ? '<p class="why">'+esc(k.rationale)+'</p>' : '')
       + '<p class="acc"><b>'+T('修到这样算好：','Done when: ')+'</b>'+esc(k.acceptance?.desc||'—')+'</p>'
       + (k.fixHint ? '<pre class="hint">'+esc(k.fixHint)+'</pre>' : '')
@@ -356,7 +396,21 @@ function today(ts){
           + '<button class="pbtn" data-pb="'+esc(k.playbook.skill)+'" data-sec="'+esc(k.playbook.start||'')+'">'
           + T('展开方法论','read the playbook')+'</button><div class="pbody"></div>'
           + (k.playbook.notThis?'<div class="nt">'+esc(k.playbook.notThis)+'</div>':'')+'</div>' : '')
+      + (k.key ? '<div class="acts">'
+          + '<button class="act" data-k="'+esc(k.key)+'" data-a="done">'+T('我修好了','I fixed this')+'</button>'
+          + '<button class="act" data-k="'+esc(k.key)+'" data-a="snooze">'+T('先放放','not now')+'</button>'
+          + '<span class="fine">'+T('下次重爬会核对 —— 说了修好但没修好，它会自己回来。',
+              'The next crawl checks. If it is not actually fixed, it comes back on its own.')+'</span></div>' : '')
       + '</details>').join('')
+    /* Kept, not deleted. The finished pile is the only record that any of this
+       worked, and a queue that empties itself leaves a user with nothing to
+       show for the month. */
+    + (done.length ? '<details class="dn"><summary>'+T('已经修好的 '+done.length+' 件','fixed: '+done.length)+'</summary>'
+        + done.map(k => '<div class="dr"><b>'+esc(k.title)+'</b>'
+            + '<span class="fine">'+(k.doneBy === 'owner' ? T('你标的','you marked it') : T('重爬确认','confirmed by crawl'))
+            + (k.resolvedAt ? ' · '+esc(String(k.resolvedAt).slice(0,10)) : '')+'</span>'
+            + (k.key ? '<button class="act" data-k="'+esc(k.key)+'" data-a="reopen">'+T('放回去','reopen')+'</button>' : '')
+            + '</div>').join('') + '</details>' : '')
     + '<div class="sect">'+T('要我替你盯着吗？','Want me to watch it?')+'</div>'
     + '<p class="fine">'+T('留个邮箱，我把这一页记下来。<b>发信还没接通</b> —— 接通之前，重爬的结果会更新在这个页面上，链接不会变。',
         'Leave an address and I will keep this page on the list. <b>Email is not wired yet</b> — until it is, re-crawl results land on this page and the link stays put.')+'</p>'
@@ -365,6 +419,9 @@ function today(ts){
     + '<p class="fine">'+T('这里问了 1 个引擎。命令行跑中外 18 个，并且每修一处都重爬验收。','This asked one engine. The CLI runs 18 across China and global, and re-crawls to verify every fix.')+'</p>'
     + '<code>npx fastergeo start '+esc(new URL(P.url).hostname)+'</code>';
   el.querySelectorAll('.pbtn').forEach(b => b.onclick = () => openPlaybook(b));
+  el.querySelectorAll('.act').forEach(b => b.onclick = () => act(b.dataset.k, b.dataset.a, b));
+  const ma = document.getElementById('markAll');
+  if (ma) ma.onclick = () => act(null, 'seen-all', ma);
   const f = document.getElementById('wf');
   if (f) f.onsubmit = async e => {
     e.preventDefault();
@@ -375,6 +432,23 @@ function today(ts){
     m.textContent = r.ok ? T('记下了。发信接通后你会第一批收到。','Noted. You will be in the first batch once email is wired.') : (d.error||'failed');
     m.className = 'wm ' + (r.ok?'ok':'err');
   };
+}
+
+/* Queue actions. The server is the only place that decides order and counts, so
+   this re-reads the project rather than patching the DOM — a local guess that
+   disagrees with the next reload is worse than a moment of waiting. */
+async function act(key, action, btn){
+  btn.disabled = true;
+  try {
+    const r = await fetch('/api/feed', {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({id: ID, key: key, action: action, days: 7})});
+    if (!r.ok) throw new Error('failed');
+    P = await (await fetch('/api/project?id='+ID)).json();
+    render();
+  } catch {
+    btn.disabled = false;
+    btn.textContent = T('没存上，再点一次','did not save — try again');
+  }
 }
 
 /* Read it where the work is. Sending someone to a JSON page in another tab to
