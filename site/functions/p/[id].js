@@ -155,6 +155,12 @@ dialog{border:1px solid var(--rule2);padding:0;max-width:820px;width:92vw;backgr
 dialog::backdrop{background:rgba(28,26,21,.45)}
 .dh{display:flex;justify-content:space-between;align-items:center;padding:12px 17px;
 border-bottom:1px solid var(--rule);font:600 12.5px var(--mono)}
+.dedit{display:none;border-top:1px solid var(--rule);padding:13px 19px;background:var(--paper)}
+.dedit.on{display:block}
+.dedit textarea{width:100%;min-height:220px;padding:11px 13px;border:1px solid var(--rule2);
+background:#fff;font:12px/1.75 var(--mono);color:var(--ink);resize:vertical}
+.drow{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:9px}
+.dhint{font:11px var(--mono);color:var(--faint);flex:1}
 .db{padding:15px 19px;max-height:70vh;overflow:auto;white-space:pre-wrap;font:12px/1.8 var(--mono)}
 .empty{color:var(--faint);font:12.5px var(--mono);padding:14px 0}
 </style></head><body>
@@ -170,8 +176,12 @@ border-bottom:1px solid var(--rule);font:600 12.5px var(--mono)}
     <div class="pane" id="pToday"></div>
   </div>
 </div>
-<dialog id="dlg"><div class="dh"><span id="dt"></span><button class="btn" id="dx">×</button></div>
-<div class="db" id="db"></div></dialog>
+<dialog id="dlg"><div class="dh"><span id="dt"></span>
+  <span><button class="btn" id="de"></button> <button class="btn" id="dx">×</button></span></div>
+<div class="db" id="db"></div>
+<div class="dedit" id="dedit"><textarea id="dta"></textarea>
+  <div class="drow"><span class="dhint" id="dhint"></span>
+    <button class="go" id="dsave"></button></div></div></dialog>
 <script>
 const ID = ${JSON.stringify(id)};
 const ZH = ${JSON.stringify(lang === 'zh')};
@@ -481,11 +491,104 @@ function showDoc(kind, d){
       'Probe questions name your brand — they measure recognition and are kept out of visibility metrics.\\n\\n')
       + (d.questions||[]).map(q => (q.brandInQuestion?'● ':'  ')+'['+q.market+'/'+q.group+'] '+q.text).join('\\n');
   }
+  curDoc = kind;
+  const deb = document.getElementById('de');
+  deb.style.display = EDITABLE[kind] ? '' : 'none';
+  deb.textContent = T('编辑','edit');
+  document.getElementById('dedit').classList.remove('on');
   document.getElementById('dt').textContent = title;
   document.getElementById('db').textContent = body;
   document.getElementById('dlg').showModal();
 }
-document.getElementById('dx').onclick = () => document.getElementById('dlg').close();
+/* Editing is the trust mechanism, not a convenience. The dossier is derived by
+   a model from four pages and will be wrong about something; a document you
+   cannot correct makes that permanent, and the reader stops believing the parts
+   that are right. Plain text in, parsed back — a form with thirty inputs would
+   be a worse way to fix a sentence. */
+const EDITABLE = { product:1, facts:1, competitors:1, questions:1, voice:1 };
+let curDoc = null;
+
+function editable(kind, d){
+  const NL = String.fromCharCode(10);
+  if (kind === 'product'){
+    const b = d.brand||{};
+    return [b.name||'', b.description||'', b.industry||'', (b.aliases||[]).join(', ')].join(NL);
+  }
+  if (kind === 'facts') return ((d.facts||{}).facts||[]).map(f => f.claim + ' | ' + (f.source||'')).join(NL);
+  if (kind === 'competitors') return (d.competitorCandidates||[]).map(c => c.name).join(NL);
+  if (kind === 'questions') return (d.questions||[]).map(q => (q.market||'cn') + ' | ' + q.text).join(NL);
+  if (kind === 'voice') return (P.voice && P.voice.filled) || '';
+  return '';
+}
+
+const HINT = ZH ? {
+  product:'四行：名称 / 一句话 / 行业 / 别名（逗号分隔）。别名漏了，你的可见度会被静默低估。',
+  facts:'每行一条：事实 | 来源链接。你改过的会标成「你说的」，跟「网站上写的」分开算。',
+  competitors:'每行一个竞品名。',
+  questions:'每行：cn 或 global | 问题。改题库会开启新的测量序列，前后期不可比。',
+  voice:'用你自己的话写。我们不会替你生成。',
+} : {
+  product:'Four lines: name / one-liner / industry / aliases (comma separated). A missing alias silently under-counts you.',
+  facts:'One per line: claim | source URL. Your edits are marked as yours, kept apart from what the site said.',
+  competitors:'One competitor name per line.',
+  questions:'Each line: cn or global | question. Editing the bank starts a new measurement series.',
+  voice:'In your own words. We will not generate this for you.',
+};
+
+function parseEdit(kind, txt){
+  const NL = String.fromCharCode(10);
+  const lines = txt.split(NL).map(l => l.trim());
+  if (kind === 'product'){
+    return { name:lines[0]||'', description:lines[1]||'', industry:lines[2]||'',
+      aliases:(lines[3]||'').split(',').map(x=>x.trim()).filter(Boolean) };
+  }
+  if (kind === 'facts'){
+    const prev = ((P.dossier.facts||{}).facts)||[];
+    const out = lines.filter(Boolean).map((l,i)=>{
+      const [claim, source] = l.split('|').map(x=>(x||'').trim());
+      return { id:(prev[i]||{}).id, claim, source, grade:(prev[i]||{}).grade||'A', status:'confirmed' };
+    });
+    out.definition = (P.dossier.facts||{}).definition;
+    return out;
+  }
+  if (kind === 'competitors') return lines.filter(Boolean).map(n=>({ name:n, by:'owner' }));
+  if (kind === 'questions') return lines.filter(Boolean).map(l=>{
+    const [m, ...rest] = l.split('|');
+    return { market:(m||'').trim()==='global'?'global':'cn', text:rest.join('|').trim() };
+  }).filter(q=>q.text);
+  return txt;
+}
+
+const dlg = document.getElementById('dlg');
+const de = document.getElementById('de'), ded = document.getElementById('dedit');
+de.onclick = () => {
+  if (ded.classList.contains('on')){ ded.classList.remove('on'); de.textContent = T('编辑','edit'); return; }
+  document.getElementById('dta').value = editable(curDoc, P.dossier||{});
+  document.getElementById('dhint').textContent = HINT[curDoc] || '';
+  ded.classList.add('on');
+  de.textContent = T('收起','close');
+};
+document.getElementById('dsave').textContent = T('保存','save');
+document.getElementById('dsave').onclick = async () => {
+  const btn = document.getElementById('dsave');
+  btn.disabled = true; btn.textContent = T('保存中…','saving…');
+  try {
+    const r = await fetch('/api/edit', { method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ id: ID, doc: curDoc, value: parseEdit(curDoc, document.getElementById('dta').value) }) });
+    if (!r.ok) throw new Error((await r.json().catch(()=>({}))).error || 'failed');
+    P = await (await fetch('/api/project?id='+ID)).json();
+    render();
+    showDoc(curDoc, P.dossier||{});
+    document.getElementById('dedit').classList.add('on');
+    document.getElementById('de').textContent = T('收起','close');
+    btn.textContent = T('已保存','saved');
+    setTimeout(()=>{ btn.textContent = T('保存','save'); btn.disabled=false; }, 1400);
+  } catch(e){
+    btn.textContent = T('保存失败：','failed: ') + e.message;
+    btn.disabled = false;
+  }
+};
+document.getElementById('dx').onclick = () => dlg.close();
 
 const h2 = (t, r) => '<h2><b>'+t+'</b>'+(r?'<span class="fine">'+r+'</span>':'')+'</h2>';
 const waiting = () => '<div class="empty">'+T('还在跑…','working…')+'</div>';
