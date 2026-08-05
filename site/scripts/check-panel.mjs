@@ -111,7 +111,7 @@ try {
   }
   // The pieces that make it a console rather than a report.
   for (const need of ['id="term"', 'id="sheet"', 'function workItem', 'data-a="done"', 'function ring(',
-                      'id="cJobs"', 'id="cStage"', 'function matrix(', 'const VIEWS']) {
+                      'id="cJobs"', 'id="cStage"', 'function matrix(', 'const VIEWS', 'function wall(', '我们没读到你的网站，读到的是一堵墙']) {
     if (!cHtml.includes(need)) throw new Error(`console lost ${need}`);
   }
   console.log('✓ console parses, renders markdown, and keeps its not-wired disclosures');

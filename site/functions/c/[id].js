@@ -217,6 +217,12 @@ text-overflow:ellipsis;white-space:nowrap}
 .stagehead{display:flex;align-items:baseline;gap:10px;margin-bottom:3px}
 .stagehead h3{margin:0}
 .stagehead .sub{font:11px var(--mono);color:var(--faint)}
+/* The wall banner. Full width, above everything, because it is not one finding
+   among many — it is the statement that none of the other findings are about
+   your site. */
+.wall{background:var(--red);color:#fff;padding:12px 16px;font:12.5px/1.75 var(--mono);flex:none}
+.wall b{font:500 15px var(--serif);display:block;margin-bottom:3px}
+.wall code{background:rgba(0,0,0,.22);padding:1px 5px}
 /* Chat */
 .ask{display:flex;gap:6px;margin-bottom:10px}
 .ask input{flex:1;background:#0E0C09;border:1px solid var(--line);color:var(--hi);
@@ -260,6 +266,7 @@ font:11.5px/1.7 var(--mono);overflow-x:auto;white-space:pre-wrap}
   <a href="/my${zh ? '?lang=zh' : ''}">${zh ? '我的站点' : 'My sites'}</a>
 </div>
 <div class="term" id="term"></div>
+<div id="wall"></div>
 <div class="grid" id="grid">
   <div class="col" id="cCtx"></div>
   <div class="col" id="cJobs"></div>
@@ -413,7 +420,7 @@ function render(){
   document.getElementById('brand').textContent = brand;
   let h = P.url; try { h = new URL(P.url).hostname; } catch {}
   document.getElementById('host').textContent = h;
-  terminal(); lamp(); context(d, brand); jobs(); stage(); cmo(); tail();
+  wall(); terminal(); lamp(); context(d, brand); jobs(); stage(); cmo(); tail();
 }
 
 /* The terminal, in the system's own voice, split by day — "when did this
@@ -442,11 +449,40 @@ function tail(){
     hid && log.length ? '> ' + log[log.length - 1].m : '';
 }
 
+/* Said before anything else, and it changes what everything else means. */
+function wall(){
+  const u = P.unusable;
+  const w = P.wall || (P.audit && P.audit.readable === false ? {} : null);
+  if (u && !u.usable){
+    const el0 = document.getElementById('wall');
+    el0.className = 'wall';
+    el0.innerHTML = '<b>' + T('这一轮我停下了，没往下算。','I stopped this run rather than compute on it.') + '</b>'
+      + esc(u.reason || '') + '<br>' + esc(u.fix || '');
+    return;
+  }
+  const el = document.getElementById('wall');
+  if (!w){ el.innerHTML = ''; el.className = ''; return; }
+  el.className = 'wall';
+  el.innerHTML = '<b>' + T('我们没读到你的网站，读到的是一堵墙。',
+      'We did not read your site. We read a wall.') + '</b>'
+    + T('返回的是 ' + esc(w.vendor || '机器人验证') + ' 的验证页'
+        + (w.evidence ? '（<code>' + esc(w.evidence) + '</code>）' : '')
+        + '。这一轮**没有**继续往下算 —— 档案、题库、引擎采样、分数全都会在描述这堵墙，而不是你的内容。'
+        + '把 AI 爬虫放行，或换一个被允许的网络，然后重跑。',
+      'The response was a ' + esc(w.vendor || 'bot check') + ' challenge page'
+        + (w.evidence ? ' (<code>' + esc(w.evidence) + '</code>)' : '')
+        + '. This run stopped there on purpose — a dossier, a question bank, engine answers and a '
+        + 'score would all have described the wall instead of your content. Allow AI crawlers '
+        + 'through, or run from an allowed network, then start again.');
+}
+
 function lamp(){
   const crit = issues(P).filter(i => i.sev === 'crit').length;
   const c = P.feedCounts || {};
   const el = document.getElementById('lamp');
-  el.className = 'lamp' + (crit ? ' bad' : c.unread ? ' warn' : '');
+  const walled = Boolean(P.wall) || (P.audit && P.audit.readable === false);
+  el.className = 'lamp' + (walled || crit ? ' bad' : c.unread ? ' warn' : '');
+  if (walled){ document.getElementById('lampT').textContent = T('没读到你的网站','site not read'); return; }
   document.getElementById('lampT').textContent = crit
     ? T(crit+' 个阻断', crit+' blocking')
     : c.unread ? T(c.unread+' 条未读', c.unread+' unread') : T('正常','healthy');

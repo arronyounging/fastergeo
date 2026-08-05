@@ -13,3 +13,5 @@ export { renderDossier, parseFactsMd } from './dossier.js';
 export type { Dossier, DossierInput, DossierLang } from './dossier.js';
 export { mineSuggestions, parseBaiduSuggest, parseGoogleSuggest } from './suggest.js';
 export type { SuggestCandidate, SuggestReport, MineOptions } from './suggest.js';
+export { assessDossier } from './usable.js';
+export type { Usability } from './usable.js';

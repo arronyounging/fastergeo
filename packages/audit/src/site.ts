@@ -5,6 +5,7 @@
 
 import { extractFeatures, detectBlocks } from './extract.js';
 import { scorePage } from './score.js';
+import { detectBotWall, wallBlocker } from './botwall.js';
 import { AI_CRAWLERS, AI_CRAWLER_PURPOSES, type AuditOptions, type PageAudit, type SiteAudit, type SiteChecks } from './types.js';
 
 const DEFAULT_TIMEOUT_MS = 20_000;
@@ -109,7 +110,15 @@ export async function auditPage(url: string, opts: AuditOptions = {}): Promise<P
     ...features,
     text: features.text.slice(0, Math.ceil(features.text.length * 0.3)),
   });
-  return scorePage(features, detectBlocks(features), opts.questions, { earlyBlocks });
+  const audit = scorePage(features, detectBlocks(features), opts.questions, { earlyBlocks });
+  // A challenge page scores well — it is well-formed HTML with plenty of text —
+  // so the score has to be suppressed, not just annotated. Reporting 87/100 for
+  // a wall is how a whole run of derived numbers ends up describing nothing.
+  const wall = detectBotWall(features, res.body);
+  if (wall) {
+    return { ...audit, wall, score: 0, grade: 'D', blockers: [wallBlocker(wall), ...audit.blockers] };
+  }
+  return audit;
 }
 
 /** Audit a set of URLs plus site-level checks. */
@@ -138,6 +147,17 @@ export async function auditSite(
       `robots-blocks-ai-search: robots.txt blocks ${searchBlocked.join(', ')} — these serve AI search answers; blocking them removes the site from those answers`,
     );
   }
+  // A wall on the entry page invalidates the run. Said first and said loudly:
+  // every downstream number was derived from the interception page.
+  const walled = pages.filter(p => p.wall);
+  if (walled.length > 0) {
+    blockers.unshift(
+      `bot-wall-site: ${walled.length}/${pages.length} pages returned an interception page `
+      + `(${walled[0].wall!.vendor}) instead of your site. Nothing measured in this run describes `
+      + `your content — it describes the wall. Allow-list AI crawlers or run the audit from an `
+      + `allowed network, then re-run.`,
+    );
+  }
   const shellPages = pages.filter(p => p.blockers.some(b => b.startsWith('spa-shell')));
   if (shellPages.length > 0 && shellPages.length >= pages.length / 2) {
     blockers.push(
@@ -163,5 +183,8 @@ export async function auditSite(
       : null,
     gradeDistribution,
     blockers,
+    // One boolean the whole product can branch on, rather than each consumer
+    // re-deriving "was this real" from a blocker string.
+    readable: walled.length === 0 && pages.length > 0,
   };
 }

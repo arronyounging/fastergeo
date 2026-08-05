@@ -14,7 +14,7 @@
  */
 import { auditPage, checkSite, fetchPage } from '@fastergeo/audit';
 import { generateTickets, diagnose, stationForTicket, playbookFor, stationOf, mergeFeed, feedCounts } from '@fastergeo/tickets';
-import { bootstrapProject } from '@fastergeo/content';
+import { bootstrapProject, assessDossier } from '@fastergeo/content';
 import { askLlm, parseJsonish } from './_llm.js';
 import { buildVoice, buildContentStrategy } from './_docs.js';
 
@@ -95,6 +95,31 @@ const STAGE_FNS = {
       avgScore: avg === null ? null : Math.round(avg * 10) / 10,
       gradeDistribution: { A: 0, B: 0, C: 0, D: 0, [grade]: ok.length }, blockers: [],
     };
+    // A bot wall ends the run. It cannot be a warning: a challenge page is
+    // well-formed HTML with plenty of text, so it scores well, and every stage
+    // after this one would derive real-looking numbers from it — a dossier of
+    // the wall, a question bank about the wall, engine answers about the wall.
+    // Refusing is the only honest option; annotating would ship the report.
+    const walled = ok.filter(x => x.wall);
+    if (walled.length && walled.length >= Math.max(1, ok.length / 2)) {
+      const w = walled[0].wall;
+      p.audit.readable = false;
+      p.audit.blockers = [
+        `bot-wall-site: ${walled.length}/${ok.length} pages returned an interception page (${w.vendor}).`,
+      ];
+      p.wall = { vendor: w.vendor, evidence: w.evidence, pages: walled.length, of: ok.length };
+      say(p,
+        `Stopping here. ${p.url} answered with a ${w.vendor} bot check, not your site — "${w.evidence}".`,
+        `我停在这里。${p.url} 返回的是 ${w.vendor} 的机器人验证页，不是你的网站 —— 「${w.evidence}」。`);
+      say(p,
+        `I could score that page and keep going, and every number after it would describe the wall. That is worse than stopping.`,
+        `我可以照样给这一页打分接着跑，后面每一个数字都会在描述这堵墙。那比停下来更糟。`);
+      say(p,
+        `Allow AI crawlers through, or run this from an allowed network, then start again.`,
+        `把 AI 爬虫放行，或者换一个被允许的网络重跑一次。`);
+      return 'done';
+    }
+    p.audit.readable = true;
     const thinnest = [...ok].sort((a, b) => a.wordCount - b.wordCount)[0];
     if (thinnest) {
       say(p, `Thinnest page an AI sees: ${thinnest.wordCount} words.`,
@@ -131,6 +156,21 @@ const STAGE_FNS = {
       say(p, `Competitors to review: ${names.join(', ')}`, `待你核对的竞品：${names.join('、')}`);
     }
     say(p, `Question bank: ${r.questions.length} buying questions.`, `问题库：${r.questions.length} 个购买意图问题。`);
+    // The grading system already knows when the crawl learned nothing: it marks
+    // unconfirmed facts E. Reading that grade is the whole point — a run against
+    // semrush.com once produced a dossier of a CAPTCHA page, four buyer questions
+    // about the CAPTCHA, six engines sampled on them, and a perfect 1.0 mention
+    // rate, with every stage reporting success.
+    const use = assessDossier(p.dossier, p.lang);
+    if (!use.usable) {
+      p.unusable = use;
+      say(p, use.reason, use.reason);
+      say(p,
+        `I am stopping rather than building a question bank, sampling engines and scoring pages on top of that — the numbers would look real and mean nothing.`,
+        `我停在这里，不去在这个基础上继续建题库、采样引擎、给页面打分 —— 那些数字会看着很像真的，但什么都不是。`);
+      say(p, use.fix, use.fix);
+      return 'done';
+    }
     return 'docs';
   },
 

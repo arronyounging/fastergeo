@@ -78,6 +78,8 @@ export interface PageAudit {
   wordCount: number;
   /** Blocker-level problems (SPA shell, noindex, blocked crawlers). */
   blockers: string[];
+  /** Set when this page was an interception page rather than the site. */
+  wall?: import('./botwall.js').BotWall;
 }
 
 /** The 9 crawlers whose access decides AI-search visibility. */
@@ -135,6 +137,9 @@ export interface SiteAudit {
   gradeDistribution: Record<'A' | 'B' | 'C' | 'D', number>;
   /** Site-wide blockers, e.g. all product pages are client-rendered shells. */
   blockers: string[];
+  /** False when a bot wall intercepted the crawl — every derived number in this
+   *  run then describes the wall, and consumers must refuse rather than annotate. */
+  readable?: boolean;
 }
 
 export interface AuditOptions {
