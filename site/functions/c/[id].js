@@ -1,28 +1,23 @@
 /**
  * GET /c/<id> — the console.
  *
- * The panel at /p answers "what is wrong with this site" — a report, read once.
- * This is the other thing a customer is buying: a place that looks like a team
- * is working, because one is.
+ * This is a port, not a design. The local workbench (`fastergeo ui`) already had
+ * the better one, and I spent a day iterating on a worse copy here — while
+ * writing in a planning document that two information architectures would
+ * eventually split into two products. They should never have been two.
  *
- * A terminal across the top, then four columns:
+ * So the layout, the copy, the domain strip and the honesty patterns all come
+ * from apps/cli/src/ui.html. What changes is the data source: the local surface
+ * reads a project directory, this one reads a KV project — and where the local
+ * one says "run this command", the hosted one says what is and is not wired on
+ * the hosted side.
  *
- *   terminal   full width, collapsible. What the system did, in its own words.
- *   company    what we know about you — the documents every job reads first
- *   analytics  what we measured, graded, failures first
- *   agents     a roster, and inside each job ITS OWN work items, actionable
- *   cmo        one place to ask
- *
- * The structural bet is the third column. A feed of findings and a roster of
- * agents are the same list seen twice; keeping them apart makes a person read
- * the roster, learn nothing, and go hunt for the work elsewhere. So each job
- * owns the items routed to its playbook, and every item can be acted on where
- * it is read.
- *
- * Nothing here implies an output that does not exist. A job with no data says
- * what it needs, in the card, instead of reporting a number it invented — and
- * the one panel we cannot measure yet says so in words rather than blurring a
- * fake figure behind a paywall.
+ * The patterns worth keeping intact, because they are the product:
+ *   · seven domains listed even when unwired, each labelled live / CLI / not
+ *     covered — "we do not do this" said plainly beats an indefinite soon
+ *   · engines that did not run read a dash, never 0, and the caption says why
+ *   · no blurred placeholders: we do not pretend to hold what we never measured
+ *   · done means re-crawled, not asserted
  */
 const esc = s => String(s ?? '')
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -37,1023 +32,622 @@ export async function onRequestGet({ params, request }) {
 function shell(id, lang) {
   const zh = lang === 'zh';
   return `<!doctype html><html lang="${zh ? 'zh-CN' : 'en'}"><head><meta charset="utf-8">
-<title>FasterGEO Console</title><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FasterGEO</title><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex">
-<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#12100C;--chrome:#1A1712;--line:#2C2823;--dim:#7E7768;--txt:#D9D3C4;--hi:#F3EEE1;
---paper:#F6F3EC;--panel:#FCFAF5;--ink:#1C1A15;--ink2:#4C4739;--faint:#8A8371;--rule:#DAD3C2;
---red:#C0492F;--green:#4E8455;--amber:#B08417;
---serif:"Newsreader","Songti SC",Georgia,serif;--mono:"IBM Plex Mono",ui-monospace,Menlo,monospace}
+:root{--paper:#F3F1EA;--card:#FFF;--well:#F8F6F0;--line:#E4E0D4;--rule:#D8D3C4;
+--tx:#1C1A15;--dim:#5C574D;--faint:#98917F;--red:#B23A26;--red-soft:#F8ECE8;
+--ok:#20714A;--ok-soft:#EAF1EB;--amber:#8A6100;--amber-soft:#F5EFDE}
 *{box-sizing:border-box}
-html,body{height:100%}
-body{margin:0;background:var(--bg);color:var(--txt);font:15px/1.65 var(--serif);overflow:hidden}
-.top{display:flex;align-items:center;gap:12px;padding:0 14px;height:44px;background:var(--chrome);
-border-bottom:1px solid var(--line);font:12px var(--mono);flex:none}
-.top b{font-family:var(--serif);font-size:16px;color:var(--hi);font-weight:500}
-.top .sep{color:var(--dim)}.top .sp{flex:1}
-.top a{color:var(--dim);text-decoration:none}.top a:hover{color:var(--hi)}
-.caret{background:none;border:0;color:var(--dim);cursor:pointer;font:13px var(--mono);padding:2px 5px}
-.caret:hover{color:var(--hi)}
-.tail{color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:44vw}
-.lamp{display:inline-flex;align-items:center;gap:6px;color:var(--dim)}
-.lamp i{width:7px;height:7px;border-radius:50%;background:var(--green);display:block}
-.lamp.warn i{background:var(--amber)}.lamp.bad i{background:var(--red);box-shadow:0 0 7px var(--red)}
-/* The terminal. Full width and on top because the thing it answers — is
-   anything actually happening — is the first question, not a sidebar detail. */
-.term{background:#0C0A07;border-bottom:1px solid var(--line);padding:9px 16px;flex:none;
-font:12px/1.75 var(--mono);height:170px;overflow-y:auto}
-.term.hide{display:none}
-.term div{white-space:pre-wrap;color:var(--txt)}
-.term .tg{color:#7FA88A}
-.term .day{color:var(--dim);text-align:center;margin:7px 0}
-.grid{display:grid;grid-template-columns:240px 250px minmax(0,1fr) 330px;gap:1px;background:var(--line);
-height:calc(100vh - 44px - 170px);overflow:hidden}
-.grid.tall{height:calc(100vh - 44px)}
-@media(max-width:1340px){.grid{grid-template-columns:220px 230px minmax(0,1fr)}#cCmo{display:none}}
-@media(max-width:1000px){.grid,.grid.tall{grid-template-columns:1fr;height:auto;overflow:auto}
-body{overflow:auto}.term{height:auto;max-height:150px}}
-.col{background:var(--paper);color:var(--ink);overflow-y:auto;padding:13px 14px;min-width:0}
-.col.dark{background:var(--chrome);color:var(--txt)}
-h2{font:500 10.5px var(--mono);letter-spacing:.15em;text-transform:uppercase;color:var(--faint);
-margin:0 0 11px;padding-bottom:7px;border-bottom:1px solid var(--rule);display:flex;
-justify-content:space-between;align-items:center;gap:8px}
-.col.dark h2{color:var(--dim);border-bottom-color:var(--line)}
-h3{font:500 17px var(--serif);margin:0 0 4px}
-.mini{font:11px var(--mono);color:var(--faint)}
-.col.dark .mini{color:var(--dim)}
-/* Nudges: only the profile fields that would change an output, each naming
-   what it unlocks, so it reads as a trade rather than a chore. */
-.nudge{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--rule);border-radius:16px;
-padding:3px 10px;margin:0 5px 6px 0;font:11px var(--mono);color:var(--ink2);cursor:pointer;background:var(--panel)}
-.nudge:hover{border-color:var(--ink);color:var(--ink)}
+body{margin:0;background:var(--paper);color:var(--tx);
+font:13.5px/1.6 -apple-system,"SF Pro Text","PingFang SC","Microsoft YaHei",sans-serif}
+.wrap{max-width:1560px;margin:0 auto;padding:16px}
+.mono{font-family:ui-monospace,"IBM Plex Mono",Menlo,monospace}
+.beat{display:flex;align-items:center;gap:14px;background:#1C1A15;color:#E8E4D8;
+border-radius:10px 10px 0 0;padding:11px 18px;font-size:12.5px;flex-wrap:wrap}
+.dot{width:7px;height:7px;border-radius:50%;background:#4ADE80;box-shadow:0 0 8px #4ADE80;flex:none}
+.dot.bad{background:#B23A26;box-shadow:0 0 8px #B23A26}
+.beat .sp{flex:1}
+.btn{background:#F3F1EA;color:#1C1A15;border:none;border-radius:6px;padding:6px 13px;
+font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;text-decoration:none;display:inline-block}
+.btn.ghost{background:transparent;color:#B9B3A3;border:1px solid #4A453B}
+.btn:hover{opacity:.85}
+.wallbar{background:var(--red);color:#fff;padding:12px 18px;font-size:12.5px;line-height:1.75}
+.wallbar b{display:block;font:700 15px "Newsreader",Georgia,"Songti SC",serif;margin-bottom:3px}
+.panes{display:grid;grid-template-columns:236px minmax(0,1fr) 320px 300px;gap:1px;background:var(--line);
+border:1px solid var(--line);border-top:none;border-radius:0 0 10px 10px}
+@media(max-width:1180px){.panes{grid-template-columns:1fr}}
+.pane{background:var(--card);padding:16px 15px;min-width:0}
+.ph{font:500 10.5px/1 ui-monospace,"IBM Plex Mono",Menlo,monospace;letter-spacing:.14em;
+text-transform:uppercase;color:var(--dim);display:flex;justify-content:space-between;
+align-items:center;gap:8px;padding-bottom:9px;border-bottom:1px solid var(--line);margin-bottom:13px}
+.ph b{color:var(--tx);font-weight:600}
+.brandname{font:700 19px "Newsreader",Georgia,"Songti SC",serif;margin-bottom:2px}
+.sub{color:var(--faint);font-size:11.5px;margin-bottom:14px;word-break:break-all}
 .doc{display:flex;justify-content:space-between;align-items:center;gap:6px;padding:7px 0;
-border-bottom:1px dotted var(--rule);font-size:13.5px;cursor:pointer}
-.doc:hover{color:var(--red)}.doc:last-child{border-bottom:none}
-.doc .r{display:flex;align-items:center;gap:6px;flex:none}
-.tag{font:600 9px var(--mono);padding:1px 5px;background:#E7EEE2;color:var(--green);white-space:nowrap}
-.tag.warn{background:#F5EFDE;color:var(--amber)}
-.tag.no{background:#EFEBE0;color:var(--faint)}
-.tag.new{background:var(--green);color:#fff}
-.cmp{display:grid;grid-template-columns:1fr 1fr;gap:4px 8px}
-.cmp a{display:flex;align-items:center;gap:6px;font:11.5px var(--mono);color:var(--ink2);
-text-decoration:none;padding:3px 0;overflow:hidden}
-.cmp a:hover{color:var(--red)}
-.cmp img{width:14px;height:14px;flex:none;border-radius:2px}
-.cmp span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.sect{font:500 9.5px var(--mono);letter-spacing:.13em;text-transform:uppercase;color:var(--faint);margin:15px 0 6px}
-.tabs{display:flex;border-bottom:1px solid var(--rule);margin-bottom:11px;overflow-x:auto}
-.tabs button{background:none;border:0;border-bottom:2px solid transparent;padding:5px 10px;
-font:11.5px var(--mono);color:var(--faint);cursor:pointer;white-space:nowrap}
-.tabs button.on{color:var(--ink);border-bottom-color:var(--red)}
-/* Rings read faster than bars for a set of scores compared at a glance. */
-.rings{display:flex;gap:10px;flex-wrap:wrap;margin:9px 0 8px}
-.ring{text-align:center;width:64px}
-.ring svg{display:block;margin:0 auto}
-.ring .n{font:500 15px var(--mono);fill:var(--ink)}
-.ring .l{font:10px var(--mono);color:var(--faint);display:block;margin-top:2px;line-height:1.3}
-.cards{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:8px 0}
-.card{border:1px solid var(--rule);background:var(--panel);padding:9px 11px}
-.card .k{font:11px var(--mono);color:var(--faint);display:flex;align-items:center;gap:5px}
-.card .k i{width:6px;height:6px;border-radius:50%;background:var(--green);display:block}
-.card.bad .k i{background:var(--red)}
-.card .v{font:500 19px var(--mono);margin-top:3px;display:block}
-.card.bad .v{color:var(--red)}
-.card .s{font:10.5px var(--mono);color:var(--faint)}
-.sig{display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px dotted var(--rule);
-font:11.5px var(--mono)}
-.sig:last-child{border-bottom:none}
-.sig .w{color:var(--amber)}
-.iss{display:flex;gap:8px;align-items:baseline;padding:7px 0;border-bottom:1px dotted var(--rule);font-size:13px}
-.iss:last-child{border-bottom:none}
-.sev{font:600 9px var(--mono);padding:1px 5px;flex:none}
-.sev.crit{background:var(--red);color:#fff}
-.sev.warn{background:#F5EFDE;color:var(--amber)}
-.quote{margin:6px 0;padding-left:11px;border-left:3px solid var(--rule);font-size:13.5px;color:var(--ink2)}
-.note{margin-top:12px;padding:9px 11px;background:#F5EFDE;font:11.5px/1.7 var(--mono);color:var(--amber)}
-/* Agents */
-.ag{background:var(--panel);border:1px solid var(--rule);margin-bottom:7px}
-.ag.on{border-left:3px solid var(--green)}
-.ag.idle{border-left:3px solid var(--rule)}
-.ag summary{padding:10px 12px;cursor:pointer;display:flex;gap:10px;align-items:center;list-style:none}
-.ag summary::-webkit-details-marker{display:none}
-.ag .ico{width:24px;height:24px;flex:none;border-radius:5px;display:grid;place-items:center;
-font:600 9px var(--mono);color:#fff;background:var(--faint);letter-spacing:.02em}
-.ag .who{font:600 10.5px var(--mono);letter-spacing:.09em;text-transform:uppercase;color:var(--ink);flex:none}
-.ag .out{flex:1;font:11.5px var(--mono);color:var(--green);text-align:right}
-.ag .out.none{color:var(--faint)}
-.ag .body{padding:0 12px 11px}
-.ag .need{margin:2px 0 9px;padding:8px 10px;background:#F5EFDE;font:11.5px/1.7 var(--mono);color:var(--amber)}
-.wi{border-top:1px solid var(--rule);padding:9px 0}
-.wi .h{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
-.wi .t{font:500 14px var(--serif);flex:1;min-width:120px}
-.wi .acc{font:11.5px/1.7 var(--mono);color:var(--ink2);margin:5px 0 0}
-.wi .acc b{color:var(--green);font-weight:500}
-.wi .hint{margin:6px 0 0;padding:8px 10px;background:var(--paper);border:1px solid var(--rule);
-font:11px/1.75 var(--mono);white-space:pre-wrap;color:var(--ink2);overflow-x:auto}
-.wi .acts{display:flex;gap:6px;margin-top:7px;flex-wrap:wrap;align-items:center}
-.pr{font:600 9px var(--mono);padding:1px 5px;flex:none}
-.pr-P0{background:var(--red);color:#fff}
-.pr-P1{background:#F5EFDE;color:var(--amber)}
-.pr-P2{background:#EFEBE0;color:var(--ink2)}
-.stn{font:600 9px var(--mono);padding:1px 5px;background:#EFEBE0;color:var(--faint)}
-.rg{font:600 9px var(--mono);padding:1px 5px;background:var(--red);color:#fff}
-.act{background:none;border:1px solid var(--rule);color:var(--ink2);padding:4px 9px;
-font:11px var(--mono);cursor:pointer}
-.act:hover{border-color:var(--ink);color:var(--ink)}
-.act.go{background:var(--ink);border-color:var(--ink);color:var(--paper)}
-.act.go:hover{background:var(--red);border-color:var(--red)}
+border-bottom:1px dotted var(--rule);font-size:12.5px;cursor:pointer}
+.doc:last-child{border-bottom:none}
+.doc:hover{color:var(--red)}
+.doc .e{color:var(--faint);font-size:11px;flex:none}
+.tag{display:inline-block;font-size:9.5px;padding:1px 6px;border-radius:3px;
+background:var(--ok-soft);color:var(--ok);margin-left:5px;font-weight:600;white-space:nowrap}
+.tag.warn{background:var(--amber-soft);color:var(--amber)}
+.tag.off{background:var(--well);color:var(--faint)}
+.sect{font:500 10px ui-monospace,Menlo,monospace;letter-spacing:.12em;text-transform:uppercase;
+color:var(--faint);margin:18px 0 7px}
+.chip{display:inline-block;font-size:11.5px;background:var(--well);border:1px solid var(--line);
+border-radius:20px;padding:2px 10px;margin:0 4px 5px 0}
+.rules{margin-top:20px;padding:11px 12px;background:var(--well);border-radius:7px;
+font-size:11px;line-height:1.75;color:var(--dim)}
+.rules b{color:var(--tx)}
+.tabs{display:flex;gap:3px;margin-bottom:15px;flex-wrap:wrap}
+.tab{font-size:11.5px;padding:5px 11px;border-radius:6px;color:var(--dim);cursor:pointer;
+border:1px solid transparent;user-select:none}
+.tab:hover{background:var(--well)}
+.tab.on{background:#1C1A15;color:#F3F1EA;font-weight:600}
+.tab.soon{color:#BEB8A8}
+.quote{background:var(--red-soft);border-left:3px solid var(--red);border-radius:0 8px 8px 0;
+padding:16px 18px;margin-bottom:11px}
+.quote.calm{background:var(--well);border-left-color:var(--rule)}
+.quote .q{font:italic 500 16px/1.55 "Newsreader",Georgia,"Songti SC",serif}
+.quote.calm .q{font-style:normal;font-size:14px}
+.qmeta{margin-top:9px;font:500 10.5px ui-monospace,Menlo,monospace;color:var(--dim);letter-spacing:.04em}
+.qtag{display:inline-block;padding:1px 7px;border-radius:3px;background:var(--red);color:#fff;
+margin-right:7px;font-size:9px;letter-spacing:.06em}
+.qtag.warn{background:var(--amber)}
+.meter{margin-top:12px;padding:12px 14px;border:1px dashed var(--rule);border-radius:8px;
+display:flex;align-items:center;gap:12px;background:#FCFBF7;flex-wrap:wrap}
+.meter .n{font:500 21px ui-monospace,Menlo,monospace}
+.meter .t{flex:1;min-width:200px;font-size:12px;color:var(--dim)}
+.meter .t b{color:var(--tx)}
+.funnel{display:flex;margin:20px 0 6px;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.st{flex:1;padding:11px 6px;text-align:center;border-right:1px solid var(--line);font-size:11px}
+.st:last-child{border-right:none}
+.st .v{font:500 15px ui-monospace,Menlo,monospace;display:block;margin-bottom:3px}
+.st.bad{background:var(--red-soft)} .st.bad .v{color:var(--red)}
+.st.good{background:var(--ok-soft)} .st.good .v{color:var(--ok)}
+.st.na{background:var(--well)} .st.na .v{color:var(--faint)}
+.cap{font-size:10.5px;color:var(--faint);margin-bottom:18px;line-height:1.7}
+.cap b{color:var(--dim)}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;font:500 10px ui-monospace,Menlo,monospace;letter-spacing:.1em;
+text-transform:uppercase;color:var(--faint);padding:6px 8px;border-bottom:1px solid var(--rule)}
+td{padding:6px 8px;border-bottom:1px solid var(--line)}
+td.num{font-family:ui-monospace,Menlo,monospace;text-align:right}
+tr.off td{color:#BEB8A8}
+.nokey{font-size:10px;color:var(--faint);border:1px solid var(--line);border-radius:3px;padding:0 5px;white-space:nowrap}
+.card{border:1px solid var(--line);border-radius:8px;padding:12px 13px;margin-bottom:9px;background:var(--well)}
+.card .k{display:flex;gap:7px;align-items:center;margin-bottom:6px}
+.pr{font:600 9.5px ui-monospace,Menlo,monospace;padding:1px 6px;border-radius:3px}
+.pr.P0{background:var(--red);color:#fff}
+.pr.P1{background:var(--amber-soft);color:var(--amber)}
+.pr.P2{background:var(--well);color:var(--dim);border:1px solid var(--line)}
+.card .t{font-weight:600;font-size:13px;margin-bottom:4px}
+.card .w{font-size:11.5px;color:var(--dim);margin-bottom:8px}
+.card .acc{font-size:11px;color:var(--dim);padding-top:7px;border-top:1px dotted var(--rule)}
+.card .acc b{color:var(--ok)}
+.card .acts{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap}
+.act{background:var(--card);border:1px solid var(--line);border-radius:5px;color:var(--dim);
+padding:4px 9px;font:11px ui-monospace,Menlo,monospace;cursor:pointer}
+.act:hover{border-color:var(--tx);color:var(--tx)}
+.act.go{background:#1C1A15;border-color:#1C1A15;color:#F3F1EA}
 .act[disabled]{opacity:.5;cursor:default}
-.pbtn{background:none;border:1px solid var(--green);color:var(--green);padding:4px 10px;
-font:11px var(--mono);cursor:pointer;margin-top:9px}
-.pbtn:hover{background:var(--green);color:#fff}
-.pbody{margin-top:9px;font:13px/1.7 var(--serif)}
-.pbody:empty{display:none}
-.grp{margin:13px 0 5px}
-.grp summary{font:500 10.5px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--faint);
-cursor:pointer;padding:6px 0;border-top:1px solid var(--rule)}
-/* The job list. Narrow on purpose: it is a switcher, not a place to read. */
-.job{display:flex;gap:9px;align-items:center;padding:9px 8px;cursor:pointer;border-left:3px solid transparent}
-.job:hover{background:var(--panel)}
-.job.sel{background:var(--panel);border-left-color:var(--red)}
-.job .ico{width:24px;height:24px;flex:none;border-radius:5px;display:grid;place-items:center;
-font:600 9px var(--mono);color:#fff;background:var(--faint)}
-.job .nm{flex:1;min-width:0}
-.job .nm b{display:block;font:500 13.5px var(--serif);font-weight:500}
-.job .nm span{display:block;font:10.5px var(--mono);color:var(--faint);overflow:hidden;
-text-overflow:ellipsis;white-space:nowrap}
-.job.has .nm span{color:var(--green)}
-.job .ct{font:600 9px var(--mono);padding:1px 5px;background:var(--red);color:#fff;flex:none}
-/* The matrix. Rows are engines, columns are the five gates a brand has to pass
-   before an AI will cite it. Its empty cells are the point: an unmeasured gate
-   says so, and never renders as a zero. */
-.mx{width:100%;border-collapse:collapse;font:11px var(--mono);margin:8px 0}
-.mx th{font-weight:500;color:var(--faint);padding:5px 4px;text-align:center;font-size:10px;
-border-bottom:1px solid var(--rule)}
-.mx th:first-child{text-align:left;padding-left:2px}
-.mx td{padding:0;border-bottom:1px solid var(--paper)}
-.mx td.e{font-size:11px;color:var(--ink2);padding:4px 6px 4px 2px;white-space:nowrap}
-.mx .cell{display:block;height:20px;line-height:20px;text-align:center;font-size:10px;
-border:1px solid var(--paper)}
-.mx .pass{background:#DCE8DC;color:var(--green)}
-.mx .fail{background:#F2DAD4;color:var(--red)}
-.mx .un{background:#EFEBE0;color:#BBB4A2}
-.mx tr.mk td{padding-top:9px;font:600 9.5px var(--mono);letter-spacing:.1em;color:var(--faint)}
-/* Page × signal grids. Same idea at page scale: a missing block is a gap you
-   can go fill, which a single site-wide average never tells you. */
-.hm{width:100%;border-collapse:collapse;font:10.5px var(--mono);margin:6px 0}
-.hm th{font-weight:500;color:var(--faint);padding:4px 3px;text-align:center;font-size:9.5px;
-border-bottom:1px solid var(--rule)}
-.hm th:first-child{text-align:left}
-.hm td{padding:2px 3px;border-bottom:1px solid var(--paper)}
-.hm td.u{font-size:10.5px;color:var(--ink2);max-width:210px;overflow:hidden;
-text-overflow:ellipsis;white-space:nowrap}
-.hm .c{display:block;height:18px;line-height:18px;text-align:center;border:1px solid var(--paper)}
-.hm .hi{background:#DCE8DC;color:var(--green)}
-.hm .mid{background:#F5EFDE;color:var(--amber)}
-.hm .lo{background:#F2DAD4;color:var(--red)}
-.hm .no{background:#EFEBE0;color:#BBB4A2}
-.legend{font:10.5px var(--mono);color:var(--faint);margin-top:5px}
-.stagehead{display:flex;align-items:baseline;gap:10px;margin-bottom:3px}
-.stagehead h3{margin:0}
-.stagehead .sub{font:11px var(--mono);color:var(--faint)}
-/* The wall banner. Full width, above everything, because it is not one finding
-   among many — it is the statement that none of the other findings are about
-   your site. */
-.wall{background:var(--red);color:#fff;padding:12px 16px;font:12.5px/1.75 var(--mono);flex:none}
-.wall b{font:500 15px var(--serif);display:block;margin-bottom:3px}
-.wall code{background:rgba(0,0,0,.22);padding:1px 5px}
-/* Hierarchy. The verdict is the one thing the eye should land on first; the
-   gates support it; the raw answer sits underneath. Same-weight tables stacked
-   on each other is what made the previous version unreadable. */
-.verdict{border-left:3px solid var(--red);padding:2px 0 2px 13px;margin:2px 0 16px}
-.verdict b{display:block;font:500 26px/1.3 var(--serif)}
-.verdict span{font:11px var(--mono);color:var(--faint)}
-.mkts{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-@media(max-width:900px){.mkts{grid-template-columns:1fr}}
-.mkt h4{font:500 10.5px var(--mono);letter-spacing:.13em;text-transform:uppercase;color:var(--faint);
-margin:0 0 7px;padding-bottom:5px;border-bottom:1px solid var(--rule)}
-.gate{display:flex;gap:10px;align-items:baseline;padding:7px 0;border-bottom:1px dotted var(--rule)}
-.gate:last-child{border-bottom:none}
-.gate .gv{flex:none;width:74px;font:500 16px var(--mono);text-align:right}
-.gate.pass .gv{color:var(--green)}
-.gate.fail .gv{color:var(--red)}
-.gate.un .gv,.gate.cant .gv{font-size:11.5px;color:var(--faint)}
-.gate.cant .gv{color:var(--amber)}
-.gate .gn{flex:1;min-width:0}
-.gate .gn b{display:block;font:500 14px var(--serif)}
-.gate .gn span{display:block;font:10.5px/1.55 var(--mono);color:var(--faint)}
-/* Coverage. Eighteen engines as a strip, not a grid — no empty cells to read. */
-.covrow{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:5px}
-.eng{font:10.5px var(--mono);padding:2px 7px;border:1px solid transparent}
-.eng.on{background:var(--green);color:#fff}
-.eng.off{background:#EFEBE0;color:#A69E8B}
-.eng.man{background:transparent;border-color:var(--amber);color:var(--amber)}
-/* Chat */
-.ask{display:flex;gap:6px;margin-bottom:10px}
-.ask input{flex:1;background:#0E0C09;border:1px solid var(--line);color:var(--hi);
-padding:8px 10px;font:12px var(--mono)}
-.ask button{background:var(--hi);border:0;color:var(--bg);padding:8px 12px;font:11.5px var(--mono);cursor:pointer}
-.msg{background:#0E0C09;border:1px solid var(--line);padding:12px 13px;margin-bottom:9px;
-font:13.5px/1.75 var(--serif);color:var(--txt)}
-.msg ul{margin:7px 0;padding-left:18px}
-.msg p{margin:0 0 7px}
-.msg .src{margin-top:9px;font:10.5px var(--mono);color:var(--dim)}
-.empty{color:var(--faint);font:12px var(--mono);padding:10px 0}
-/* Document slide-over. Documents are what every job reads first, so they get a
-   real reading surface instead of a cramped modal. */
-.over{position:fixed;inset:0;background:rgba(12,10,7,.55);display:none;z-index:9}
-.over.on{display:block}
-.sheet{position:fixed;top:0;right:0;bottom:0;width:min(760px,94vw);background:var(--panel);
-color:var(--ink);z-index:10;transform:translateX(101%);transition:transform .18s;display:flex;flex-direction:column}
-.sheet.on{transform:none}
-.sheet .sh{display:flex;align-items:center;gap:9px;padding:13px 18px;border-bottom:1px solid var(--rule);
-font:12px var(--mono);flex:none}
-.sheet .sh b{font:500 16px var(--serif)}
-.sheet .sh .sp{flex:1}
-.sheet .sc{padding:20px 24px 44px;overflow-y:auto;font:15px/1.8 var(--serif)}
-.sheet .sc h4{font:500 17px var(--serif);margin:18px 0 5px;padding-bottom:5px;border-bottom:1px solid var(--rule)}
-.sheet .sc table{border-collapse:collapse;width:100%;margin:9px 0;font-size:13.5px}
-.sheet .sc td{border:1px solid var(--rule);padding:6px 9px;vertical-align:top}
-.sheet .sc pre{background:var(--paper);border:1px solid var(--rule);padding:10px 12px;
-font:11.5px/1.7 var(--mono);overflow-x:auto;white-space:pre-wrap}
-.sheet .sc code{font:12px var(--mono);background:var(--paper);padding:1px 4px}
-.sheet .sc ul{padding-left:20px}
-.sheet .sc blockquote{margin:8px 0;padding-left:12px;border-left:3px solid var(--rule);color:var(--ink2)}
+.state{display:flex;gap:8px;margin:13px 0;font-size:11.5px}
+.state span{flex:1;text-align:center;padding:7px 4px;border-radius:6px;background:var(--well)}
+.state .g{color:var(--ok)} .state .r{color:var(--amber)}
+.soonbox{border:1px dashed var(--rule);border-radius:8px;padding:18px 20px;background:#FCFBF7}
+.soonbox h3{font:600 15px "Newsreader",Georgia,"Songti SC",serif;margin:0 0 6px}
+.soonbox p{margin:0 0 12px;font-size:12.5px;color:var(--dim);line-height:1.7}
+.soonbox .caps{font-size:11.5px;color:var(--dim);line-height:1.8}
+.soonbox .caps b{color:var(--tx)}
+.askbox{background:var(--well);border:1px solid var(--line);border-radius:8px;padding:11px 12px;margin-top:14px}
+.askbox input{width:100%;border:1px solid var(--line);border-radius:6px;padding:7px 9px;
+font:12px ui-monospace,Menlo,monospace;background:var(--card);color:var(--tx)}
+.askbox button{margin-top:7px;width:100%}
+.ans{margin-top:10px;font-size:12.5px;line-height:1.75;color:var(--dim)}
+.ans b{color:var(--tx)}
+.ans .src{margin-top:8px;font-size:10.5px;color:var(--faint)}
+.brief{font-size:12px;line-height:1.75;padding-left:16px;margin:0}
+.brief li{margin-bottom:9px}
+.note{font-size:10.5px;color:var(--faint)}
+.empty{color:var(--faint);font-size:12.5px;padding:22px 0;text-align:center}
+.term{background:#12100C;color:#C8C2B2;font:11.5px/1.8 ui-monospace,Menlo,monospace;
+padding:10px 18px;max-height:118px;overflow:auto}
+.term div{white-space:pre-wrap}
+dialog{border:1px solid var(--line);border-radius:10px;padding:0;max-width:860px;width:92vw;
+background:var(--card);color:var(--tx)}
+dialog::backdrop{background:rgba(28,26,21,.4)}
+.dlg-h{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:13px 18px;
+border-bottom:1px solid var(--line);font:600 13px ui-monospace,Menlo,monospace}
+.dlg-b{padding:16px 20px;max-height:70vh;overflow:auto;white-space:pre-wrap;
+font:12px/1.75 ui-monospace,"IBM Plex Mono",Menlo,monospace}
+a{color:var(--red)}
 </style></head><body>
-<div class="top">
-  <button class="caret" id="tg" title="terminal">▾</button>
-  <b id="brand">…</b><span class="sep">|</span><span>FasterGEO Console</span>
-  <span class="mini" id="host"></span>
-  <span class="tail" id="tail"></span>
-  <span class="sp"></span>
-  <span class="lamp" id="lamp"><i></i><span id="lampT">…</span></span>
-  <a href="/p/${esc(id)}${zh ? '?lang=zh' : ''}">${zh ? '诊断页' : 'Diagnosis'}</a>
-  <a href="/my${zh ? '?lang=zh' : ''}">${zh ? '我的站点' : 'My sites'}</a>
+<div class="wrap">
+  <div class="beat">
+    <span class="dot" id="dot"></span>
+    <span><b id="bName">…</b></span>
+    <span style="color:#B9B3A3" id="bMeta"></span>
+    <span class="sp"></span>
+    <span class="mono" style="color:#B9B3A3;font-size:11px" id="bKeys"></span>
+    <a class="btn ghost" id="bReport" href="#">${zh ? '诊断页' : 'Diagnosis'}</a>
+    <a class="btn ghost" href="/my${zh ? '?lang=zh' : ''}">${zh ? '我的站点' : 'My sites'}</a>
+    <button class="btn" id="bHire"></button>
+  </div>
+  <div id="wallbar"></div>
+  <div class="term" id="term"></div>
+  <div class="panes">
+    <div class="pane" id="pProfile"></div>
+    <div class="pane" id="pEvidence"></div>
+    <div class="pane" id="pToday"></div>
+    <div class="pane" id="pAsk"></div>
+  </div>
 </div>
-<div class="term" id="term"></div>
-<div id="wall"></div>
-<div class="grid" id="grid">
-  <div class="col" id="cCtx"></div>
-  <div class="col" id="cJobs"></div>
-  <div class="col" id="cStage"></div>
-  <div class="col dark" id="cCmo"></div>
-</div>
-<div class="over" id="over"></div>
-<div class="sheet" id="sheet">
-  <div class="sh"><b id="sht"></b><span class="sp"></span>
-    <button class="act" id="shc">${zh ? '复制' : 'Copy'}</button>
-    <button class="act" id="shd">${zh ? '下载' : 'Download'}</button>
-    <button class="act" id="shx">×</button></div>
-  <div class="sc" id="shb"></div>
-</div>
+<dialog id="dlg"><div class="dlg-h"><span id="dlgT"></span><button class="btn" id="dlgX"></button></div><div class="dlg-b" id="dlgB"></div></dialog>
 <script>
 const ID = ${JSON.stringify(id)};
 const ZH = ${JSON.stringify(zh)};
 const T = (a, b) => ZH ? a : b;
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-let P = null;
-let SHEET = { title: '', text: '' };
+const pct = v => (v === null || v === undefined) ? null : Math.round(v * 100) + '%';
+/** Unmeasured renders as a dash. A zero is a measurement; a dash is its absence. */
+const NA = '<span style="color:var(--faint)">—</span>';
 
-/* ── the roster ───────────────────────────────────────────────────────────
-   Every entry names a real playbook in the bundle and owns the work items
-   routed to that playbook. read() returns null when the job has no data — that
-   is "staffed and idle", never a fabricated number. */
-const ROSTER = [
-  { id:'seo-audit', zh:'SEO 巡检官', en:'SEO inspector', ic:'SEO', c:'#4A6A8A',
-    read: p => { const n = issues(p).length; return n ? T(n+' 个页面问题', n+' page issues') : null; } },
-  { id:'ai-seo', zh:'GEO 可见度官', en:'GEO visibility', ic:'GEO', c:'#4E8455',
-    read: p => { const v = p.probe; if (!v || !v.verdict) return null;
-      const m = {knows:T('AI 认识你','AI knows you'),confused:T('AI 认错了你','AI has you confused'),
-                 unknown:T('AI 不知道你','AI does not know you')};
-      return m[v.verdict] || v.verdict; },
-    need: T('只问了 1 个引擎（DeepSeek）。中外 18 个引擎的托管采样还没做 —— 那是这一栏真正值钱的地方。',
-            'One engine asked (DeepSeek). Hosted sampling across 18 engines is not built — that is where this job gets valuable.') },
-  { id:'technical-seo-checker', zh:'技术体检官', en:'Technical', ic:'TEC', c:'#8A6A4A',
-    read: p => { const b = ((p.audit && p.audit.pages) || []).filter(x => (x.blockers||[]).length).length;
-      return b ? T(b+' 个页面爬虫读不到', b+' pages crawlers cannot read') : null; } },
-  { id:'schema', zh:'结构化数据官', en:'Schema', ic:'SCH', c:'#6A5A8A',
-    read: p => { const s = p.audit && p.audit.site; if (!s) return null;
-      return s.llmsTxtFound ? null : T('llms.txt 缺失','llms.txt missing'); } },
-  { id:'competitor-analysis', zh:'竞品雷达', en:'Competitor radar', ic:'CMP', c:'#8A4A5A',
-    read: p => { const c = (p.dossier && p.dossier.competitorCandidates) || [];
-      return c.length ? T(c.length+' 个候选待你核', c.length+' candidates to confirm') : null; },
-    need: T('这些是从你网站文字里猜的。真正的竞争集要靠采样 AI 的回答 —— 缺 18 引擎采样。',
-            'Guessed from your own copy. The real competitive set comes from sampling AI answers — needs 18-engine sampling.') },
-  { id:'product-marketing', zh:'定位官', en:'Positioning', ic:'POS', c:'#4A7A7A',
-    read: p => { const f = p.dossier && p.dossier.facts && p.dossier.facts.facts;
-      return f && f.length ? T(f.length+' 条品牌事实', f.length+' brand facts') : null; } },
-  { id:'content-strategy', zh:'内容策略官', en:'Content strategy', ic:'CON', c:'#7A6A3A',
-    read: p => { const s = p.docs && p.docs.strategy;
-      return s && s.pieces && s.pieces.length ? T(s.pieces.length+' 篇选题', s.pieces.length+' topics') : null; },
-    need: T('选题有了，稿子没有 —— 生成能力在命令行里，网页还没接。',
-            'Topics yes, drafts no. Generation lives in the CLI and is not wired to the web yet.') },
-  { id:'marketing-loops', zh:'循环调度官', en:'Loop scheduler', ic:'LOO', c:'#5A7A4A',
-    read: p => { const l = p.loop && p.loop.lastCheck; if (!l) return null;
-      const c = p.feedCounts || {};
-      return T('每天重爬 · '+(c.unread||0)+' 条新情况','daily re-crawl · '+(c.unread||0)+' new'); },
-    need: T('铁律：大多数运行应该是「查过了，没事可做」。天天有话说的循环是坏循环。',
-            'The rule: most runs should be "checked, nothing to do". A loop that speaks every day is broken.') },
+/* All seven domains are listed even when unwired. The strip is the capability
+   statement — a buyer's main fear is "this only looks at SEO" — and an unwired
+   tab that says what it covers reads as a roadmap rather than a dead link.
+   Three states, and the third is the honest one:
+     live — wired into this panel
+     cli  — the capability is a fastergeo command; the hosted panel has not
+            caught up
+     none — we do not do this. Said plainly, not implied by an empty tab. */
+const DOMAINS = [
+  { id:'demand', zh:'需求', en:'Demand', state:'cli',
+    d: T('谁在找你、用什么词找。','Who is looking, and in whose words.'),
+    cmds:['fastergeo expand --seed "…"   ' + T('百度下拉 + Google 补全挖真实搜索需求','mines real demand from Baidu/Google autocomplete'),
+          'questions.json                ' + T('AI 上正在被问的题库','the question bank actually asked of AI')] },
+  { id:'visible', zh:'可见', en:'Visible', state:'live' },
+  { id:'content', zh:'内容', en:'Content', state:'cli',
+    d: T('写什么，以及写出来的东西敢不敢发。','What to write, and whether what came out is safe to publish.'),
+    cmds:['fastergeo outline / draft    ' + T('只用已确认事实生成','generated from confirmed facts only'),
+          'fastergeo fabcheck           ' + T('编造门禁：无来源的数字一律拦下','fabrication gate: unsourced numbers are refused')] },
+  { id:'convert', zh:'转化', en:'Convert', state:'none',
+    d: T('人来了留不留得下。','Whether arrivals turn into anything.'),
+    why: T('我们不做落地页和注册流的优化。这是真话，不是「还没做」—— 它需要你的分析数据和产品内部，跟我们「看 AI 怎么说你」的能力不搭。',
+      'We do not optimise landing pages or signup flows. That is a decision, not a backlog item: it needs your analytics and your product internals, and it shares nothing with measuring what AI says about you.'),
+    note: T('但有一件事我们能替你判断：<b>流量涨而注册不动，问题就在这一栏，不在可见性</b> —— 别拿这个去买更多流量。',
+      'One thing we can tell you: <b>traffic up with signups flat is a problem here, not in visibility</b> — do not answer it by buying more traffic.') },
+  { id:'author', zh:'权威', en:'Authority', state:'cli',
+    d: T('AI 在你的品类里信任谁。','Who AI trusts in your category.'),
+    cmds:['fastergeo sources            ' + T('AI 实际引用了哪些域名 → 你的公关靶单','domains AI actually cited → your PR target list')],
+    note: T('外链分析我们不做 —— 市面上做得好的工具很多，我们只给你「AI 信任谁」这份别处拿不到的清单。',
+      'We do not analyse backlinks — plenty of tools do that well. We give you the one list they cannot: who AI trusts.') },
+  { id:'dist', zh:'分发', en:'Distribute', state:'cli',
+    d: T('写完发到哪里去。','Where the work goes once it is written.'),
+    cmds:['fastergeo publish            ' + T('WordPress / GitHub / 签名 webhook，发布前强制过门禁','WordPress / GitHub / signed webhook, gated before it ships')] },
+  { id:'watch', zh:'监测', en:'Watch', state:'live' },
+  { id:'social', zh:'社交', en:'Social', state:'none',
+    d: T('谁在公开场合问同类问题。','Who is asking about this in public.'),
+    why: T('还没做。HN 走 Algolia 公开 API 是免费的，Reddit 官方 API 有免费层 —— 成本不是障碍，只是还没排上。X 不做（官方 API 太贵），达人不做（需要真达人库）。',
+      'Not built. HN via the public Algolia API is free and Reddit has a free tier — cost is not the obstacle, it simply has not been scheduled. X is out (the API is expensive) and influencers are out (needs a real creator database).') },
 ];
 
-const BENCH = {
-  find: { zh:'找得到（搜索与 AI 可见度）', en:'Discoverable',
-    ids:['on-page-seo-auditor','keyword-research','serp-analysis','internal-linking-optimizer','site-architecture',
-         'rank-tracker','programmatic-seo','content-gap-analysis','meta-tags-optimizer','entity-optimizer',
-         'geo-content-optimizer','schema-markup-generator','domain-authority-auditor','backlink-analyzer',
-         'directory-submissions','aso','free-tools'] },
-  make: { zh:'看得懂（内容与素材）', en:'Comprehensible',
-    ids:['seo-content-writer','copywriting','copy-editing','content-quality-auditor','content-refresher',
-         'video','image','ad-creative','emails','lead-magnets'] },
-  trust:{ zh:'信得过（权威与背书）', en:'Credible',
-    ids:['public-relations','co-marketing','influencer-marketing','community-marketing','referrals','social'] },
-  buy:  { zh:'买得下（转化与定价）', en:'Convertible',
-    ids:['cro','ab-testing','onboarding','signup','paywalls','popups','offers','pricing','churn-prevention'] },
-  reach:{ zh:'传得开（渠道与外呼）', en:'Distribution',
-    ids:['ads','cold-email','sms','prospecting','sales-enablement','launch'] },
-  run:  { zh:'跑得动（度量与治理）', en:'Measure and govern',
-    ids:['analytics','attribution','performance-reporter','alert-manager','revops','memory-management'] },
-  know: { zh:'说得清（战略与研究）', en:'Strategy',
-    ids:['marketing-council','marketing-plan','marketing-ideas','marketing-psychology','customer-research',
-         'competitor-profiling','competitors','monid','workctl'] },
-};
-
-const STN = ZH
-  ? {positioned:'说得清',demanded:'有人要',discoverable:'找得到',comprehensible:'看得懂',
-     credible:'信得过',convertible:'买得下',compounding:'传得开'}
-  : {positioned:'positioned',demanded:'demand',discoverable:'discoverable',comprehensible:'comprehensible',
-     credible:'credible',convertible:'convertible',compounding:'compounding'};
-
-function issues(p){
-  const out = [];
-  for (const pg of (p.audit && p.audit.pages) || []) {
-    for (const b of pg.blockers || []) out.push({ sev:'crit', t:b, u:pg.url });
-    for (const d of pg.dimensions || []) for (const i of d.issues || []) out.push({ sev:'warn', t:i, u:pg.url });
-  }
-  return out;
-}
-/* Work items belong to the job whose playbook they route to. Anything with no
-   route lands on the first job rather than disappearing. */
-function itemsFor(p, skill, isFirst){
-  return (p.feedOpen || []).filter(t => {
-    const s = t.playbook && t.playbook.skill;
-    return s ? s === skill : Boolean(isFirst);
-  });
-}
-function hostOf(n){
-  const raw = String(n || '').trim();
-  const stripped = raw.replace(/^https?:[/][/]/, '').replace(/[/].*$/, '');
-  if (stripped.indexOf('.') > 0) return stripped;
-  return stripped.toLowerCase().replace(/[^a-z0-9]/g, '') + '.com';
-}
-
-async function boot(){
-  bindChrome();
-  try { P = await (await fetch('/api/project?id='+ID)).json(); }
-  catch { document.getElementById('cCtx').innerHTML = '<div class="empty">'+T('读不到这个项目。','Could not load this project.')+'</div>'; return; }
-  if (P.error){ document.getElementById('cCtx').innerHTML = '<div class="empty">'+T('这个项目不存在或已过期。','This project does not exist or has expired.')+'</div>'; return; }
-  render();
-}
-
-function bindChrome(){
-  document.getElementById('tg').onclick = () => {
-    const t = document.getElementById('term');
-    const hid = t.classList.toggle('hide');
-    document.getElementById('grid').classList.toggle('tall', hid);
-    document.getElementById('tg').textContent = hid ? '▸' : '▾';
-    tail();
-  };
-  const close = () => { document.getElementById('sheet').classList.remove('on');
-    document.getElementById('over').classList.remove('on'); };
-  document.getElementById('shx').onclick = close;
-  document.getElementById('over').onclick = close;
-  document.getElementById('shc').onclick = async e => {
-    try { await navigator.clipboard.writeText(SHEET.text); e.target.textContent = T('已复制','Copied'); }
-    catch { e.target.textContent = T('复制不了','Cannot copy'); }
-    setTimeout(() => { e.target.textContent = T('复制','Copy'); }, 1600);
-  };
-  document.getElementById('shd').onclick = () => {
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([SHEET.text], {type:'text/markdown'}));
-    a.download = (SHEET.title || 'document') + '.md';
-    a.click(); URL.revokeObjectURL(a.href);
-  };
-}
-
-function render(){
-  const d = P.dossier || {};
-  const brand = (d.brand && d.brand.name) || P.url;
-  document.getElementById('brand').textContent = brand;
-  let h = P.url; try { h = new URL(P.url).hostname; } catch {}
-  document.getElementById('host').textContent = h;
-  wall(); terminal(); lamp(); context(d, brand); jobs(); stage(); cmo(); tail();
-}
-
-/* The terminal, in the system's own voice, split by day — "when did this
-   happen" is most of what a log is for. */
-function terminal(){
-  const log = P.log || [];
-  const el = document.getElementById('term');
-  if (!log.length){ el.innerHTML = '<div class="mini">'+T('还没有记录。','Nothing logged yet.')+'</div>'; return; }
-  let day = '';
-  const rows = [];
-  for (const l of log){
-    const d = new Date(l.t).toISOString().slice(0,10);
-    if (d !== day){ day = d; rows.push('<div class="day">—— '+d+' (UTC) ——</div>'); }
-    rows.push('<div>&gt; '+(l.loop ? '<span class="tg">[LOOP]</span> ' : '')+esc(l.m)+'</div>');
-  }
-  el.innerHTML = rows.join('');
-  el.scrollTop = el.scrollHeight;
-}
-
-/* Folded away, its last line rides in the title bar — the system should not go
-   silent just because someone wanted the screen back. */
-function tail(){
-  const hid = document.getElementById('term').classList.contains('hide');
-  const log = (P && P.log) || [];
-  document.getElementById('tail').textContent =
-    hid && log.length ? '> ' + log[log.length - 1].m : '';
-}
-
-/* Said before anything else, and it changes what everything else means. */
-function wall(){
-  const u = P.unusable;
-  const w = P.wall || (P.audit && P.audit.readable === false ? {} : null);
-  if (u && !u.usable){
-    const el0 = document.getElementById('wall');
-    el0.className = 'wall';
-    el0.innerHTML = '<b>' + T('这一轮我停下了，没往下算。','I stopped this run rather than compute on it.') + '</b>'
-      + esc(u.reason || '') + '<br>' + esc(u.fix || '');
-    return;
-  }
-  const el = document.getElementById('wall');
-  if (!w){ el.innerHTML = ''; el.className = ''; return; }
-  el.className = 'wall';
-  el.innerHTML = '<b>' + T('我们没读到你的网站，读到的是一堵墙。',
-      'We did not read your site. We read a wall.') + '</b>'
-    + T('返回的是 ' + esc(w.vendor || '机器人验证') + ' 的验证页'
-        + (w.evidence ? '（<code>' + esc(w.evidence) + '</code>）' : '')
-        + '。这一轮**没有**继续往下算 —— 档案、题库、引擎采样、分数全都会在描述这堵墙，而不是你的内容。'
-        + '把 AI 爬虫放行，或换一个被允许的网络，然后重跑。',
-      'The response was a ' + esc(w.vendor || 'bot check') + ' challenge page'
-        + (w.evidence ? ' (<code>' + esc(w.evidence) + '</code>)' : '')
-        + '. This run stopped there on purpose — a dossier, a question bank, engine answers and a '
-        + 'score would all have described the wall instead of your content. Allow AI crawlers '
-        + 'through, or run from an allowed network, then start again.');
-}
-
-function lamp(){
-  const crit = issues(P).filter(i => i.sev === 'crit').length;
-  const c = P.feedCounts || {};
-  const el = document.getElementById('lamp');
-  const walled = Boolean(P.wall) || (P.audit && P.audit.readable === false);
-  el.className = 'lamp' + (walled || crit ? ' bad' : c.unread ? ' warn' : '');
-  if (walled){ document.getElementById('lampT').textContent = T('没读到你的网站','site not read'); return; }
-  document.getElementById('lampT').textContent = crit
-    ? T(crit+' 个阻断', crit+' blocking')
-    : c.unread ? T(c.unread+' 条未读', c.unread+' unread') : T('正常','healthy');
-}
-
-/* ── column 1 · company ─────────────────────────────────────────────────── */
-function context(d, brand){
-  const b = d.brand || {};
-  const docs = [
-    ['product', T('产品档案','Product information'), b.description ? 'ok' : 'no'],
-    ['facts', T('品牌事实库','Brand facts'), ((d.facts && d.facts.facts) || []).length ? 'ok' : 'no'],
-    ['competitors', T('竞品分析','Competitor analysis'), (d.competitorCandidates||[]).length ? 'warn' : 'no'],
-    ['questions', T('买家问题库','Buyer questions'), (d.questions||[]).length ? 'ok' : 'no'],
-    ['voice', T('品牌语气','Brand voice guide'), (P.voice && P.voice.filled) ? 'ok' : 'warn'],
-    ['strategy', T('内容策略','Content strategy'), (P.docs && P.docs.strategy) ? 'ok' : 'no'],
-  ];
-  const lbl = { ok:T('已就位','ready'), warn:T('待你填','needs you'), no:T('没有','none') };
-  const nudges = [];
-  if (!(b.aliases||[]).length) nudges.push(['product', T('补品牌别名','Add brand aliases'), T('别名决定一条提及算不算数','aliases decide whether a mention counts')]);
-  if (!(P.voice && P.voice.filled)) nudges.push(['voice', T('定语气','Set the voice'), T('定了才能替你写稿','needed before anything is drafted for you')]);
-  if (!(d.competitorCandidates||[]).length) nudges.push(['competitors', T('补竞品','Add competitors'), T('对比页要靠它','comparison work depends on it')]);
-
-  document.getElementById('cCtx').innerHTML =
-    '<h2>'+T('公司','Company')+'</h2>'
-    + '<h3>'+esc(brand)+'</h3>'
-    + (b.industry ? '<p class="mini">'+esc(b.industry)+'</p>' : '')
-    + (nudges.length ? '<div style="margin:8px 0 4px">'
-        + nudges.map(x => '<span class="nudge" data-doc="'+esc(x[0])+'" title="'+esc(x[2])+'">'+esc(x[1])+'</span>').join('')
-        + '</div>' : '')
-    + (b.description ? '<p style="font-size:13.5px;color:var(--ink2)">'+esc(b.description)+'</p>' : '')
-    + '<div class="sect">'+T('文档 · 每个岗位动手前都先读这些','Documents · every job reads these first')+'</div>'
-    + docs.map(x => '<div class="doc" data-doc="'+esc(x[0])+'"><span>'+esc(x[1])+'</span>'
-        + '<span class="r"><span class="tag '+(x[2]==='ok'?'':x[2])+'">'+lbl[x[2]]+'</span><span class="mini">›</span></span></div>').join('')
-    + '<div class="sect">'+T('竞品','Competitors')+'</div>'
-    + ((d.competitorCandidates||[]).length
-        ? '<div class="cmp">' + (d.competitorCandidates||[]).slice(0,12).map(c => {
-            const h = hostOf(c.name);
-            return '<a href="https://'+esc(h)+'" target="_blank" rel="noopener">'
-              + '<img src="https://www.google.com/s2/favicons?domain='+esc(h)+'&sz=32" alt="" loading="lazy">'
-              + '<span>'+esc(c.name)+'</span></a>'; }).join('') + '</div>'
-          + '<p class="mini" style="margin-top:7px">'+T('从你网站文字里猜的，等你核。','Guessed from your own copy. Yours to confirm.')+'</p>'
-        : '<div class="empty">'+T('还没找到。','None found yet.')+'</div>');
-  document.querySelectorAll('[data-doc]').forEach(e => e.onclick = () => showDoc(e.dataset.doc));
-}
-
-/* ── column 2 · analytics ───────────────────────────────────────────────── */
-/* ── the stage ─────────────────────────────────────────────────────────────
-   One job = one capability = one evidence view = one queue. Okara keeps its
-   analytics and its agents in different columns, which leaves the reader
-   splicing the two together in their head. Here, picking a job swaps the stage
-   to that job's evidence with its work sitting underneath it. */
-let SEL = 'ai-seo';
-
-function ring(v, label){
-  const col = v >= 80 ? 'var(--green)' : v >= 50 ? 'var(--amber)' : 'var(--red)';
-  const r = 20, len = 2 * Math.PI * r;
-  return '<div class="ring"><svg width="52" height="52" viewBox="0 0 52 52">'
-    + '<circle cx="26" cy="26" r="'+r+'" fill="none" stroke="#EFEBE0" stroke-width="4"></circle>'
-    + '<circle cx="26" cy="26" r="'+r+'" fill="none" stroke="'+col+'" stroke-width="4" stroke-linecap="round"'
-    + ' stroke-dasharray="'+(len*v/100).toFixed(1)+' '+len.toFixed(1)+'" transform="rotate(-90 26 26)"></circle>'
-    + '<text class="n" x="26" y="30" text-anchor="middle">'+v+'</text></svg>'
-    + '<span class="l">'+esc(label)+'</span></div>';
-}
-
-/* The 18 engines we can drive, in the order that makes the China half legible
-   as a block — that half is the part no comparable product measures at all. */
-/* The 18 engines, with the fact that decides what each can answer. Thirteen are
-   non-web API models: they never return a citation, so the last gate is not
-   "unmeasured" for them, it is unmeasurable — a different word, because the fix
-   is a different engine rather than another run. */
+/* The 18 engines. Only the web-driver ones ever return citations, which is why
+   the last gate is unmeasurable rather than zero for the rest. */
 const ENGINES = [
-  ['glm','智谱GLM','cn','api'],['doubao','豆包','cn','api'],['deepseek','DeepSeek','cn','api'],
+  ['glm','智谱GLM','cn','api'],['doubao','豆包(方舟API)','cn','api'],['deepseek','DeepSeek','cn','api'],
   ['kimi','Kimi','cn','api'],['minimax','MiniMax','cn','api'],['qwen','通义千问','cn','api'],
   ['ernie','文心一言','cn','api'],['spark','讯飞星火','cn','api'],
   ['nano','纳米AI搜索','cn','web'],['baidu-ai','百度AI搜索','cn','web'],
-  ['openai','ChatGPT','global','api'],['anthropic','Claude','global','api'],
+  ['openai','OpenAI(ChatGPT)','global','api'],['anthropic','Claude','global','api'],
   ['gemini','Gemini','global','api'],['grok','Grok','global','api'],
   ['perplexity','Perplexity','global','api'],
-  ['chatgpt-web','ChatGPT 网页','global','web'],['claude-web','Claude 网页','global','web'],
+  ['chatgpt-web','ChatGPT 网页版','global','web'],['claude-web','Claude 网页版','global','web'],
   ['ai-overview','Google AI Overviews','global','web'],
 ];
-const WEB_ENGINES = ENGINES.filter(e => e[3] === 'web').length;
 
-/* Five gates, two markets. The earlier version drew 18 × 5 = 90 cells with 88
-   dashes — accurate and unreadable, the density hiding the two cells that had
-   anything in them. The CLI report has always drawn it this way and it is the
-   better design: one row per gate, the rate beside the method that produced it
-   and the denominator it was computed over.
-   A rate without its denominator is the same lie as a fabricated zero. */
-function gates(market){
-  const m = (P.metrics && P.metrics.platforms) || [];
-  const rows = m.filter(x => x.market === market);
+let P = null, tab = 'visible';
+
+fetch('/api/project?id=' + ID).then(r => r.json()).then(d => { P = d; render(); })
+  .catch(e => { document.getElementById('pProfile').innerHTML = '<div class="empty">' + esc(String(e)) + '</div>'; });
+
+function render(){ beat(); wallbar(); terminal(); profile(); evidence(); today(); ask(); }
+
+/* Which engines this hosted run actually asked. On the hosted side there is one
+   — the probe — and pretending otherwise is the failure this panel exists to
+   avoid. */
+function sampled(){
+  const s = {};
+  for (const x of (P.metrics && P.metrics.platforms) || []) s[x.providerId] = 1;
   const pr = P.probe;
-  const probeHere = pr && pr.verdict && market === (pr.market || 'cn') ? pr : null;
+  if (pr && pr.engine) for (const e of ENGINES) if (String(pr.engine).indexOf(e[0]) >= 0) s[e[0]] = 1;
+  return s;
+}
 
-  const sum = f => {
-    let num = 0, den = 0;
-    for (const r of rows){ const v = f(r); if (v && v.den > 0){ num += v.num; den += v.den; } }
-    return den > 0 ? { num, den } : null;
-  };
-  const rec = k => {
-    let num = 0, den = 0;
-    for (const r of rows){
-      const p = r.probe && r.probe.recognition;
-      if (!p) continue;
-      // Undecided probes are excluded from the denominator, not counted as a
-      // miss. On a real run ten of twelve came back undecided.
-      const decided = (p.knows||0) + (p.unknown||0) + (p.confused||0);
-      if (!decided) continue;
-      den += decided; num += (p[k] || 0);
-    }
-    if (!den && probeHere){ den = 1; num = probeHere.verdict === k ? 1 : 0; }
-    return den > 0 ? { num, den } : null;
-  };
-  const confused = rec('confused');
+function beat(){
+  const b = (P.dossier && P.dossier.brand) || {};
+  const a = P.audit || {};
+  let host = P.url; try { host = new URL(P.url).hostname; } catch {}
+  document.getElementById('bName').textContent = b.name || host || T('未命名项目','Untitled project');
+  const pages = (a.pages || []).length;
+  document.getElementById('bMeta').textContent = a.generatedAt
+    ? T('第 1 期 · ' + String(a.generatedAt).slice(0,10) + ' · ' + pages + ' 页已体检',
+        'period 1 · ' + String(a.generatedAt).slice(0,10) + ' · ' + pages + ' pages audited')
+    : T('还没跑过','no period yet');
+  const on = Object.keys(sampled()).length;
+  document.getElementById('bKeys').textContent =
+    T(ENGINES.length + ' 引擎 · ' + on + ' 个问过', ENGINES.length + ' engines · ' + on + ' asked');
+  document.getElementById('bReport').href = '/p/' + ID + (ZH ? '?lang=zh' : '');
+  const hb = document.getElementById('bHire');
+  const live = P.loop && P.loop.lastCheck;
+  hb.textContent = live ? T('每天都在跑 ✓','Running daily ✓') : T('每天自动跑 →','Run it daily →');
+  hb.onclick = () => show(T('每天自动跑','Run it daily'), live
+    ? T('已经在跑。每天 03:00 UTC 重爬一次，上次 ' + new Date(P.loop.lastCheck).toISOString().slice(0,16).replace('T',' ') + ' UTC。\\n\\n'
+        + '铁律：大多数运行应该是「查过了，没事可做」。天天有话说的循环，一周就会被你忽略。\\n\\n'
+        + '你标了「我修好了」，下次重爬会核对 —— 没真修好的会自己回来。',
+        'Already running. Re-crawled daily at 03:00 UTC; last run ' + new Date(P.loop.lastCheck).toISOString().slice(0,16).replace('T',' ') + ' UTC.\\n\\n'
+        + 'The rule: most runs should end with "checked, nothing to do". A loop that speaks every day trains you to ignore it within a week.\\n\\n'
+        + 'Anything you mark fixed is checked by the next crawl — what was not actually fixed comes back on its own.')
+    : T('还没开始。留个邮箱就会每天重爬。\\n\\n第 2 期开始才有期对比 —— 单期只算观察，连续两期同向才叫趋势。',
+        'Not started. Leave an email and the daily re-crawl begins.\\n\\nPeriod comparison appears from period 2 — one period is an observation; two consecutive same-direction changes are a trend.'));
+  document.getElementById('dlgX').textContent = T('关闭','Close');
+  const walled = Boolean(P.wall) || Boolean(P.unusable && !P.unusable.usable);
+  document.getElementById('dot').className = 'dot' + (walled ? ' bad' : '');
+}
 
-  const G = [
-    { zh:'知道你', en:'Knows you', method:T('点名题 · LLM 判定','probes · LLM-judged'), v:rec('knows') },
-    { zh:'不混淆', en:'Not confused', method:T('点名题 · LLM 判定','probes · LLM-judged'),
-      v: confused ? { num: confused.den - confused.num, den: confused.den } : null },
-    { zh:'被考虑', en:'Considered', method:T('不点名题的提及率','unprompted mention rate'),
-      v: sum(r => r.mentionRate == null ? null : { num: Math.round(r.mentionRate * r.samples), den: r.samples }) },
-    { zh:'进前三', en:'Top-3', method:T('不点名题的前三率','unprompted top-3 rate'),
-      v: sum(r => r.top3Rate == null ? null : { num: Math.round(r.top3Rate * r.samples), den: r.samples }) },
-    { zh:'被引用', en:'Cited', method:T('自有域名引用率','own-domain citation rate'),
-      v: sum(r => r.ownDomainCiteRate == null ? null : { num: Math.round(r.ownDomainCiteRate * r.samples), den: r.samples }),
-      unmeasurable: rows.every(r => (ENGINES.filter(e => e[0] === r.providerId)[0] || [])[3] !== 'web'),
-      why: T('这一档引擎不返回引用来源 —— 18 个里只有 '+WEB_ENGINES+' 个联网引擎能测这道闸',
-             'these engines return no sources — only '+WEB_ENGINES+' of the 18 are web-connected') },
+/* Said above everything, because it is not one finding among many — it is the
+   statement that none of the other findings are about your site. */
+function wallbar(){
+  const u = P.unusable, w = P.wall;
+  const el = document.getElementById('wallbar');
+  if (!u && !w){ el.innerHTML = ''; el.className = ''; return; }
+  el.className = 'wallbar';
+  el.innerHTML = u
+    ? '<b>' + T('这一轮我停下了，没往下算。','I stopped this run rather than compute on it.') + '</b>'
+      + esc(u.reason || '') + '<br>' + esc(u.fix || '')
+    : '<b>' + T('我们没读到你的网站，读到的是一堵墙。','We did not read your site. We read a wall.') + '</b>'
+      + esc(T('返回的是 ' + (w.vendor || '机器人验证') + ' 的验证页。把 AI 爬虫放行，或换一个被允许的网络，然后重跑。',
+              'The response was a ' + (w.vendor || 'bot check') + ' challenge page. Allow AI crawlers through, or run from an allowed network, then start again.'));
+}
+
+function terminal(){
+  const log = (P.log || []).slice(-14);
+  const el = document.getElementById('term');
+  el.innerHTML = log.length
+    ? log.map(l => '<div>&gt; ' + esc(l.m) + '</div>').join('')
+    : '<div style="color:#7E7768">' + T('还没有记录。','Nothing logged yet.') + '</div>';
+  el.scrollTop = el.scrollHeight;
+}
+
+function profile(){
+  const d = P.dossier || {}, b = d.brand || {};
+  const facts = (d.facts && d.facts.facts) || [];
+  const sourced = facts.filter(f => f.status !== 'unconfirmed' && f.grade !== 'E').length;
+  const comps = d.competitorCandidates || [];
+  const qs = d.questions || [];
+  const voiceFilled = P.voice && P.voice.filled;
+  const docs = [
+    ['product', T('产品档案','Product'), b.description ? '' : '<span class="tag off">' + T('没有','none') + '</span>'],
+    ['facts', T('品牌事实库','Brand facts'), sourced ? '<span class="tag">' + T(sourced + ' 条带来源', sourced + ' sourced') + '</span>' : '<span class="tag off">' + T('没有','none') + '</span>'],
+    ['competitors', T('竞品分析','Competitors'), comps.length ? '<span class="tag warn">' + T(comps.length + ' 待核', comps.length + ' to review') + '</span>' : ''],
+    ['questions', T('问题库','Questions'), qs.length ? '<span class="tag">' + T(qs.length + ' 题', qs.length + ' qs') + '</span>' : ''],
+    ['voice', T('语气指南','Voice'), voiceFilled ? '' : '<span class="tag warn">' + T('待你填','yours to fill') + '</span>'],
   ];
-  return G.map(g => {
-    const cls = g.v ? (g.v.num / g.v.den >= 0.5 ? 'pass' : 'fail') : g.unmeasurable ? 'cant' : 'un';
-    const val = g.v ? Math.round(g.v.num / g.v.den * 100) + '%'
-      : g.unmeasurable ? T('测不了','unmeasurable') : T('未测','not measured');
-    const note = g.v ? g.method + ' · ' + g.v.num + '/' + g.v.den : (g.unmeasurable ? g.why : g.method);
-    return '<div class="gate ' + cls + '"><span class="gv">' + esc(val) + '</span>'
-      + '<span class="gn"><b>' + esc(ZH ? g.zh : g.en) + '</b><span>' + esc(note) + '</span></span></div>';
-  }).join('');
+  let host = P.url; try { host = new URL(P.url).hostname; } catch {}
+  document.getElementById('pProfile').innerHTML =
+    '<div class="ph"><b>' + T('档案','Profile') + '</b><span>✎</span></div>'
+    + '<div class="brandname">' + esc(b.name || host) + '</div>'
+    + '<div class="sub">' + esc(host) + '</div>'
+    + '<div class="sect">' + T('五份档案','Five documents') + '</div>'
+    + docs.map(x => '<div class="doc" data-doc="' + x[0] + '"><span>' + x[1] + x[2] + '</span><span class="e">›</span></div>').join('')
+    + (comps.length ? '<div class="sect">' + T('竞品 · 待人工核对','Competitors · to review') + '</div>'
+        + comps.map(c => '<span class="chip">' + esc(c.name) + '</span>').join('') : '')
+    + '<div class="rules"><b>' + T('我们的纪律','Our discipline') + '</b><br>'
+    + T('· 每个数字都能点开看原话<br>· 打勾是重爬证明的，退步自动打回<br>· 18 引擎，中国 + 海外<br>· <b>算不出就写「未测」，绝不写 0</b>',
+        '· Every number traces to a verbatim quote<br>· Done means re-crawled; regressions flip back<br>· 18 engines, China + global<br>· <b>Unmeasured stays unmeasured, never a zero</b>')
+    + '</div>';
+  document.querySelectorAll('[data-doc]').forEach(el => { el.onclick = () => showDoc(el.dataset.doc); });
 }
 
-/* Eighteen engines kept visible as coverage rather than as a grid. Which ones
-   we can drive, which answered, which need a manual sheet — the shape of this
-   strip is the argument for hosted sampling, and it needs no empty cells. */
-function coverage(){
-  const m = (P.metrics && P.metrics.platforms) || [];
-  const sampled = {};
-  for (const x of m) sampled[x.providerId] = 1;
-  const pr = P.probe;
-  if (pr && pr.engine) for (const e of ENGINES) if (String(pr.engine).indexOf(e[0]) >= 0) sampled[e[0]] = 1;
-  const chip = e => '<span class="eng ' + (sampled[e[0]] ? 'on' : e[3] === 'web' ? 'man' : 'off')
-    + '" title="' + esc(e[3] === 'web'
-        ? T('联网引擎，能测引用；需要手工采样表','web engine, can measure citations; needs a manual sheet')
-        : T('API 引擎，不返回引用','API engine, returns no citations')) + '">' + esc(e[1]) + '</span>';
-  const n = Object.keys(sampled).length;
-  return '<div class="covrow">' + ENGINES.filter(e => e[2] === 'cn').map(chip).join('') + '</div>'
-    + '<div class="covrow">' + ENGINES.filter(e => e[2] === 'global').map(chip).join('') + '</div>'
-    + '<div class="legend">' + T(n + ' / 18 个引擎这一轮真的问过。实心 = 问过，浅色 = 能问没问，描边 = 联网引擎（能测引用，但要手工采样表）。',
-        n + ' of 18 engines were actually asked this run. Solid = asked, pale = configured but not asked, outlined = web engine (can measure citations, needs a manual sheet).') + '</div>';
+function evidence(){
+  const suffix = { live:'', cli:' · ' + T('命令行','CLI'), none:' · ' + T('不做','not covered') };
+  const strip = DOMAINS.map(d =>
+    '<span class="tab ' + (d.id === tab ? 'on' : '') + ' ' + (d.state === 'live' ? '' : 'soon')
+    + '" data-tab="' + d.id + '">' + (ZH ? d.zh : d.en) + suffix[d.state] + '</span>').join('');
+  document.getElementById('pEvidence').innerHTML =
+    '<div class="ph"><b>' + T('证据','Evidence') + '</b><span class="mono">' + samplesLine() + '</span></div>'
+    + '<div class="tabs">' + strip + '</div>'
+    + '<div>' + (tab === 'visible' ? visibleTab() : tab === 'watch' ? watchTab() : soonTab(tab)) + '</div>';
+  document.querySelectorAll('[data-tab]').forEach(el => { el.onclick = () => { tab = el.dataset.tab; evidence(); }; });
 }
 
-const VIEWS = {
-  'ai-seo': () => {
-    const pr = P.probe;
-    const m = (P.metrics && P.metrics.platforms) || [];
-    const total = m.reduce((a, x) => a + (x.samples || 0), 0) + (pr && pr.verdict ? 1 : 0);
-    // One headline, then the gates, then the raw answers. The previous version
-    // gave the grid, the quote and the caveat identical weight, and the eye had
-    // nowhere to land — which is what "less readable than Okara" meant.
-    const head = pr && pr.verdict
-      ? ({knows:T('AI 认识你','AI knows you'),confused:T('AI 把你认错了','AI has you confused'),
-          unknown:T('AI 不知道你','AI does not know you')}[pr.verdict] || pr.verdict)
-      : T('还没问过引擎','no engine asked yet');
-    return '<div class="verdict"><b>' + esc(head) + '</b><span>'
-      + esc(T(total + ' 条采样 · ' + ((pr && pr.engine) || '—') + ' · 单期只算观察，不算趋势',
-          total + ' samples · ' + ((pr && pr.engine) || '—') + ' · one period is an observation, not a trend'))
-      + '</span></div>'
-      + '<div class="mkts">'
-      + '<div class="mkt"><h4>' + T('中国市场','China market') + '</h4>' + gates('cn') + '</div>'
-      + '<div class="mkt"><h4>' + T('海外市场','Global market') + '</h4>' + gates('global') + '</div>'
-      + '</div>'
-      + '<div class="sect">' + T('引擎覆盖','Engine coverage') + '</div>'
-      + coverage()
-      + (pr && pr.verdict ? '<div class="sect">' + T('原话回放','Answer replay') + '</div>'
-          + '<p class="mini">' + esc(pr.question||'') + ' · ' + esc(pr.engine||'') + '</p>'
-          + '<div class="quote">' + esc(String(pr.answer||'').slice(0,1400)) + '</div>' : '');
-  },
-  'seo-audit': () => {
-    const a = P.audit || {};
-    const DIM = ZH
-      ? [['crawlability','爬得到'],['length','讲够了'],['structure','结构'],['blocks','抽取块'],
-         ['authority','出处'],['relevance','答对题']]
-      : [['crawlability','crawl'],['length','length'],['structure','structure'],['blocks','blocks'],
-         ['authority','authority'],['relevance','relevance']];
-    const pages = a.pages || [];
-    const cls = v => v >= 80 ? 'hi' : v >= 50 ? 'mid' : v > 0 ? 'lo' : 'no';
-    const grid = '<table class="hm"><thead><tr><th>'+T('页面','Page')+'</th>'
-      + DIM.map(d => '<th>'+esc(d[1])+'</th>').join('')+'<th>'+T('总分','Score')+'</th></tr></thead><tbody>'
-      + pages.map(pg => {
-          const by = {};
-          for (const d of pg.dimensions || []) by[d.key] = d.max ? Math.round(d.score/d.max*100) : 0;
-          return '<tr><td class="u" title="'+esc(pg.url)+'">'+esc(String(pg.url).replace(/^https?:[/][/][^/]+/,'') || '/')+'</td>'
-            + DIM.map(d => { const v = by[d[0]] ?? 0;
-                return '<td><span class="c '+cls(v)+'">'+v+'</span></td>'; }).join('')
-            + '<td><span class="c '+cls(pg.score||0)+'">'+(pg.score||0)+'</span></td></tr>';
-        }).join('') + '</tbody></table>';
-    return '<div class="stagehead"><h3>'+T('页面 × 六维','Pages × six dimensions')+'</h3>'
-      + '<span class="sub">'+T('上次体检 '+String(a.generatedAt||'').slice(0,10), 'last audited '+String(a.generatedAt||'').slice(0,10))+'</span></div>'
-      + '<div class="rings">'+ring(Math.round(a.avgScore||0), T('全站 AI 就绪度','site AI readiness'))+'</div>'
-      + grid
-      + '<div class="legend">'+T('一个全站平均分不会告诉你去改哪一页。这张表会。',
-          'A site-wide average never tells you which page to open. This does.')+'</div>';
-  },
-  'schema': () => {
-    // Free data we had all along and were not drawing: which extractable block
-    // each page is missing. This is the most directly actionable grid we own.
-    const BL = ZH
-      ? [['definition','定义'],['comparison','对比'],['statistics','数字'],['steps','步骤'],['faq','FAQ']]
-      : [['definition','definition'],['comparison','comparison'],['statistics','statistics'],
-         ['steps','steps'],['faq','faq']];
-    const pages = (P.audit && P.audit.pages) || [];
-    const s = (P.audit && P.audit.site) || {};
-    const grid = '<table class="hm"><thead><tr><th>'+T('页面','Page')+'</th>'
-      + BL.map(b => '<th>'+esc(b[1])+'</th>').join('')+'</tr></thead><tbody>'
-      + pages.map(pg => {
-          const b = pg.blocks || {};
-          return '<tr><td class="u" title="'+esc(pg.url)+'">'+esc(String(pg.url).replace(/^https?:[/][/][^/]+/,'') || '/')+'</td>'
-            + BL.map(x => '<td><span class="c '+(b[x[0]]?'hi':'no')+'">'+(b[x[0]]?'✓':'—')+'</span></td>').join('')
-            + '</tr>';
-        }).join('') + '</tbody></table>';
-    const sig = [
-      ['llms.txt', s.llmsTxtFound, T('有','present'), T('没有','absent')],
-      ['robots.txt', s.robotsFound, T('有','present'), T('没有','absent')],
-      ['sitemap.xml', s.sitemapFound, T('有','present'), T('没有','absent')],
-    ];
-    return '<div class="stagehead"><h3>'+T('抽取块地图','Extractable block map')+'</h3>'
-      + '<span class="sub">'+T('AI 直接摘走的是这五种块','these five blocks are what an AI lifts')+'</span></div>'
-      + grid
-      + '<div class="legend">'+T('一整列都是「—」，说明全站没有这种块 —— 那正是 AI 回答这类问题时不会引用你的原因。',
-          'A whole column of dashes means the site has none of that block — which is why an AI answering that kind of question does not quote you.')+'</div>'
-      + '<div class="sect">'+T('机器可读入口','Machine-readable entry points')+'</div>'
-      + sig.map(x => '<div class="sig"><span>'+esc(x[0])+'</span><span class="'+(x[1]?'':'w')+'">'
-          +(x[1]?'':'⚠ ')+esc(x[1]?x[2]:x[3])+'</span></div>').join('');
-  },
-  'technical-seo-checker': () => {
-    const s = (P.audit && P.audit.site) || {};
-    const blocked = s.blockedSearchCrawlers || [];
-    const pages = ((P.audit && P.audit.pages) || []).filter(p => (p.blockers||[]).length);
-    // Two different questions that look like one: are they allowed in, and did
-    // they actually come. We can answer the first today; the second needs logs.
-    return '<div class="stagehead"><h3>'+T('爬虫准入 vs 真到访','Crawler access vs actual visits')+'</h3></div>'
-      + '<table class="hm"><thead><tr><th>'+T('爬虫','Crawler')+'</th><th>'+T('允许进','allowed')+'</th>'
-      + '<th>'+T('真来过','visited')+'</th></tr></thead><tbody>'
-      + ['GPTBot','ClaudeBot','PerplexityBot','Google-Extended','Bytespider','Baiduspider'].map(c => {
-          const ok = blocked.indexOf(c) < 0;
-          return '<tr><td class="u">'+esc(c)+'</td>'
-            + '<td><span class="c '+(ok?'hi':'lo')+'">'+(ok?'✓':'✗')+'</span></td>'
-            + '<td><span class="c no" title="'+T('需要服务器日志','needs server logs')+'">—</span></td></tr>';
-        }).join('') + '</tbody></table>'
-      + '<div class="legend">'+T('右边那一列要靠你的服务器日志 —— 命令行里的 botlog 能算，网页版还没接。允许进不等于真来过，这两件事经常不一样。',
-          'The right column needs your server logs — botlog computes it in the CLI, not wired to the web yet. Allowed in is not the same as actually came, and they often differ.')+'</div>'
-      + (pages.length ? '<div class="sect">'+T('爬虫读不到的页面','Pages crawlers cannot read')+'</div>'
-          + pages.map(p => '<div class="iss"><span class="sev crit">'+T('阻断','BLOCK')+'</span><span>'
-              + esc(p.url)+'<br><span class="mini">'+esc((p.blockers||[]).join(' · '))+'</span></span></div>').join('') : '');
-  },
-  'competitor-analysis': () => {
-    const c = (P.dossier && P.dossier.competitorCandidates) || [];
-    return '<div class="stagehead"><h3>'+T('竞争集','Competitive set')+'</h3></div>'
-      + (c.length ? c.map(x => '<div class="sig"><span>'+esc(x.name)+(x.why?' <span class="mini">'+esc(x.why)+'</span>':'')
-          + '</span><span class="mini">'+esc(x.by === 'owner' ? T('你加的','yours') : T('猜的','guessed'))+'</span></div>').join('')
-        : '<div class="empty">'+T('还没找到。','None found yet.')+'</div>')
-      + '<div class="note">'+T('这些是从你自己网站的文字里猜的。真正的竞争集是「买家问 AI 时，AI 报了谁的名字」—— 那要靠采样，还没做。声量份额同理。',
-          'Guessed from your own copy. The real competitive set is who an AI names when a buyer asks — that needs sampling, which is not built. Share of voice likewise.')+'</div>';
-  },
-  'product-marketing': () => {
-    const f = ((P.dossier && P.dossier.facts && P.dossier.facts.facts) || []);
-    // The fabrication gate, shown as a gate: only confirmed non-E facts may
-    // enter anything we generate. Seeing the split is what makes the rule real.
-    const usable = f.filter(x => x.status !== 'unconfirmed' && x.grade !== 'E');
-    const held = f.filter(x => !(x.status !== 'unconfirmed' && x.grade !== 'E'));
-    const list = xs => xs.map(x => '<div class="sig"><span><span class="pr pr-'
-      + (x.grade === 'A' ? 'P0' : x.grade === 'E' ? 'P2' : 'P1')+'">'+esc(x.grade)+'</span> '
-      + esc(x.claim)+'</span><span class="mini">'+esc(x.by === 'owner' ? T('你改的','yours') : T('站上取的','from site'))+'</span></div>').join('');
-    return '<div class="stagehead"><h3>'+T('事实库与编造门禁','Fact base and fabrication gate')+'</h3>'
-      + '<span class="sub">'+T(usable.length+' 条可用于生成 · '+held.length+' 条被拦',
-          usable.length+' usable · '+held.length+' held')+'</span></div>'
-      + '<div class="sect">'+T('可以进生成内容','Cleared for generated content')+'</div>'
-      + (usable.length ? list(usable) : '<div class="empty">'+T('一条都没有。','None.')+'</div>')
-      + '<div class="sect">'+T('被门禁拦下','Held by the gate')+'</div>'
-      + (held.length ? list(held) : '<div class="empty">'+T('没有被拦的。','Nothing held.')+'</div>')
-      + '<div class="legend">'+T('只有 confirmed 且非 E 级的事实允许进入我们替你生成的任何内容。这条规则是硬的 —— 编不出来的东西，就不编。',
-          'Only confirmed, non-E facts may enter anything generated for you. The rule is hard: what cannot be sourced does not get written.')+'</div>';
-  },
-  'content-strategy': () => {
-    const pieces = ((P.docs && P.docs.strategy && P.docs.strategy.pieces) || []);
-    return '<div class="stagehead"><h3>'+T('该写什么','What to publish')+'</h3>'
-      + '<span class="sub">'+T('每篇都对着一个买家真会问的问题','each against a question buyers actually ask')+'</span></div>'
-      + (pieces.length ? pieces.map(p => '<div class="wi"><div class="h"><span class="t">'+esc(p.title)+'</span>'
-          + '<span class="stn">'+esc(p.format||'')+'</span></div>'
-          + '<p class="acc"><b>'+T('对着这个问题：','Answers: ')+'</b>'+esc(p.question||'')+'</p>'
-          + (p.why ? '<p class="acc">'+esc(p.why)+'</p>' : '')+'</div>').join('')
-        : '<div class="empty">'+T('还没有选题。','No topics yet.')+'</div>')
-      + '<div class="note">'+T('选题有了，稿子没有。生成加编造门禁在命令行里跑得通，网页还没接。',
-          'Topics yes, drafts no. Generation with the fabrication gate works in the CLI and is not wired to the web.')+'</div>';
-  },
-  'marketing-loops': () => {
-    const l = P.loop || {};
-    const c = P.feedCounts || {};
-    const done = (P.feedDone || []);
-    return '<div class="stagehead"><h3>'+T('循环','The loop')+'</h3></div>'
-      + '<div class="cards">'
-      + '<div class="card"><span class="k"><i></i>'+T('上次检查','last check')+'</span><span class="v">'
-        + (l.lastCheck ? new Date(l.lastCheck).toISOString().slice(5,10) : '—')+'</span>'
-        + '<span class="s">'+T('每天 03:00 UTC','daily 03:00 UTC')+'</span></div>'
-      + '<div class="card"><span class="k"><i></i>'+T('连续没事可做','quiet runs')+'</span><span class="v">'
-        + (l.quietRuns || 0)+'</span><span class="s">'+T('这是好事','this is the good case')+'</span></div>'
-      + '</div>'
-      + '<div class="legend">'+T('铁律：大多数运行应该是「查过了，没事可做」。天天有话说的循环会在一周内把人训练成无视它。',
-          'The rule: most runs should end with "checked, nothing to do". A loop that speaks daily trains people to ignore it within a week.')+'</div>'
-      + (done.length ? '<div class="sect">'+T('已经修好的 '+done.length+' 件','fixed: '+done.length)+'</div>'
-          + done.map(x => '<div class="sig"><span>'+esc(x.title)+'</span><span class="mini">'
-            + esc(x.doneBy === 'owner' ? T('你标的','you marked it') : T('重爬确认','confirmed by crawl'))
-            + (x.resolvedAt ? ' · '+String(x.resolvedAt).slice(0,10) : '')+'</span></div>').join('') : '');
-  },
-};
-
-function jobs(){
-  const c = P.feedCounts || {};
-  const rows = ROSTER.map(a => {
-    const out = a.read(P);
-    const n = itemsFor(P, a.id, a.id === 'seo-audit').length;
-    return '<div class="job'+(SEL===a.id?' sel':'')+(out?' has':'')+'" data-job="'+esc(a.id)+'">'
-      + '<span class="ico" style="background:'+esc(a.c)+'">'+esc(a.ic)+'</span>'
-      + '<span class="nm"><b>'+esc(ZH?a.zh:a.en)+'</b><span>'+esc(out || T('待命','standing by'))+'</span></span>'
-      + (n ? '<span class="ct">'+n+'</span>' : '')+'</div>';
-  }).join('');
-  const bench = Object.keys(BENCH).map(k => {
-    const g = BENCH[k];
-    return '<details class="grp"><summary>'+esc(ZH?g.zh:g.en)+' · '+g.ids.length+'</summary>'
-      + g.ids.map(id => '<div class="job" data-job="bench:'+esc(id)+'">'
-          + '<span class="ico" style="background:#B5AE9C">'+esc(id.slice(0,3).toUpperCase())+'</span>'
-          + '<span class="nm"><b>'+esc(id)+'</b><span>'+T('方法论就位','playbook ready')+'</span></span></div>').join('')
-      + '</details>';
-  }).join('');
-  document.getElementById('cJobs').innerHTML = '<h2>'+T('岗位','Jobs')
-    + '<span class="mini">'+(c.open||0)+T(' 件待修',' open')+'</span></h2>'
-    + rows
-    + '<div class="sect">'+T('在册待命 · 缺数据接入','On the bench · data not wired')+'</div>'
-    + bench;
-  document.querySelectorAll('[data-job]').forEach(e => e.onclick = () => { SEL = e.dataset.job; jobs(); stage(); });
+function samplesLine(){
+  const n = Object.keys(sampled()).length;
+  if (!n) return T('还没采样','not sampled yet');
+  const total = P.metrics ? P.metrics.totalSamples : (P.probe && P.probe.verdict ? 1 : 0);
+  return T(n + ' 个引擎 · ' + total + ' 个样本', n + ' engine' + (n > 1 ? 's' : '') + ' · ' + total + ' samples');
 }
 
-function stage(){
-  const el = document.getElementById('cStage');
-  if (SEL.indexOf('bench:') === 0){
-    const id = SEL.slice(6);
-    el.innerHTML = '<h2>'+esc(id)+'</h2>'
-      + '<div class="note">'+T('这个岗位的方法论已经在系统里，可以读；要它产出还需要接上对应的数据源。',
-          'The playbook for this job is in the system and readable. Producing output needs its data source wired.')+'</div>'
-      + '<button class="pbtn" data-pb="'+esc(id)+'">'+T('读方法论','read the playbook')+'</button><div class="pbody"></div>';
-    document.querySelectorAll('.pbtn').forEach(b => b.onclick = () => openPlaybook(b));
-    return;
+function soonTab(id){
+  const d = DOMAINS.filter(x => x.id === id)[0];
+  if (d.state === 'cli'){
+    return '<div class="soonbox"><h3>' + (ZH ? d.zh : d.en) + ' · ' + T('命令行里已经能用','available in the CLI') + '</h3>'
+      + '<p>' + esc(d.d) + '</p>'
+      + '<div class="caps"><b>' + T('现在就能跑：','Run it now:') + '</b>'
+      + '<pre style="margin:8px 0 0;font:12px/1.9 ui-monospace,Menlo,monospace;white-space:pre-wrap">'
+      + d.cmds.map(esc).join('\\n') + '</pre></div>'
+      + (d.note ? '<div class="caps" style="margin-top:12px">' + d.note + '</div>' : '')
+      + '</div><div class="cap" style="margin-top:14px">'
+      + T('能力有了，这个网页面板还没接上它。','The capability exists; this hosted panel has not caught up to it yet.') + '</div>';
   }
-  const a = ROSTER.filter(x => x.id === SEL)[0] || ROSTER[0];
-  const items = itemsFor(P, a.id, a.id === 'seo-audit');
-  const view = VIEWS[a.id] ? VIEWS[a.id]() : '';
-  el.innerHTML = '<h2>'+esc(ZH?a.zh:a.en)
-    + '<span class="mini">'+esc(a.read(P) || T('待命','standing by'))+'</span></h2>'
-    + view
-    + (a.need ? '<div class="need">'+esc(a.need)+'</div>' : '')
-    + (items.length ? '<div class="sect">'+T('这个岗位名下的活 · '+items.length+' 件',
-        'queue for this job · '+items.length)+'</div>' + items.map(workItem).join('') : '')
-    + '<button class="pbtn" data-pb="'+esc(a.id)+'">'+T('读方法论','read the playbook')+'</button><div class="pbody"></div>';
-  document.querySelectorAll('.pbtn').forEach(b => b.onclick = () => openPlaybook(b));
-  document.querySelectorAll('.act[data-k]').forEach(b => b.onclick = () => act(b.dataset.k, b.dataset.a, b));
+  // "We do not do this" is a legitimate answer and gets said in plain words. An
+  // empty tab implying "coming soon" forever is the dishonest version.
+  return '<div class="soonbox" style="border-color:var(--line);background:var(--well)">'
+    + '<h3>' + (ZH ? d.zh : d.en) + ' · ' + T('我们不做这个','we do not do this') + '</h3>'
+    + '<p>' + esc(d.d) + '</p><div class="caps">' + d.why + '</div>'
+    + (d.note ? '<div class="caps" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--line)">' + d.note + '</div>' : '')
+    + '</div><div class="cap" style="margin-top:14px">'
+    + T('说清楚不做，比无限期挂个「即将推出」诚实。','Saying we do not do it beats an indefinite "coming soon".') + '</div>';
 }
 
+function watchTab(){
+  const live = P.loop && P.loop.lastCheck;
+  return '<div class="soonbox"><h3>' + T('期对比 · 还差一期','Period comparison · one more period') + '</h3>'
+    + '<p>' + T('你现在有 1 期数据。<b>单期变化只算观察，连续两期同向才叫趋势</b> —— 所以第 2 期跑完，这里才会出现真正的对比。',
+        'You have one period. <b>A single-period change is an observation; only two consecutive same-direction changes make a trend</b> — real comparison appears after period 2.') + '</p>'
+    + '<div class="caps">' + T('这不是被锁住的功能。<b>趋势在物理上就需要时间。</b>','This is not a locked feature. <b>A trend physically requires time.</b>') + '</div>'
+    + '</div><div class="cap" style="margin-top:14px">'
+    + (live ? T('每天 03:00 UTC 自动重爬，上次 ' + new Date(P.loop.lastCheck).toISOString().slice(0,10) + '。',
+                'Re-crawled daily at 03:00 UTC; last run ' + new Date(P.loop.lastCheck).toISOString().slice(0,10) + '.')
+            : T('还没开始每天重爬。','The daily re-crawl has not started.')) + '</div>';
+}
 
-function workItem(t){
-  const badge = t.state === 'regressed'
-    ? '<span class="rg">'+(t.neverVerified ? T('还在','still there') : T('又坏了','came back'))+'</span>'
-    : t.state === 'new' ? '<span class="tag new">'+T('新','New')+'</span>' : '';
-  return '<div class="wi"><div class="h">'
-    + '<span class="pr pr-'+esc(t.priority)+'">'+esc(t.priority)+'</span>'
-    + badge
-    + '<span class="t">'+esc(t.title)+'</span>'
-    + '<span class="stn">'+esc(STN[t.station] || t.station || '')+'</span></div>'
-    + (t.rationale ? '<p class="acc">'+esc(t.rationale)+'</p>' : '')
-    + '<p class="acc"><b>'+T('修到这样算好：','Done when: ')+'</b>'+esc((t.acceptance && t.acceptance.desc)||'—')+'</p>'
-    + (t.fixHint ? '<pre class="hint">'+esc(t.fixHint)+'</pre>' : '')
-    + '<div class="acts">'
-    + '<button class="act go" data-k="'+esc(t.key)+'" data-a="done">'+T('我修好了','I fixed this')+'</button>'
-    + '<button class="act" data-k="'+esc(t.key)+'" data-a="snooze">'+T('先放放','not now')+'</button>'
-    + '<span class="mini">'+T('下次重爬会核对','the next crawl checks')+'</span></div></div>';
+function visibleTab(){
+  const m = P.metrics, a = P.audit, pr = P.probe;
+  if (!m && !a) return '<div class="empty">' + T('还没有数据。','No data yet.') + '</div>';
+  const quotes = [];
+  for (const p of (m ? m.platforms : [])){
+    const who = p.providerId + ' · ' + (p.market === 'cn' ? T('国内市场','China') : T('海外市场','Global'));
+    for (const e of (p.probe && p.probe.confusedEvidence) || []) quotes.push({ kind:'confused', who:who, text:e });
+    for (const e of (p.sentiment && p.sentiment.negativeEvidence) || []) quotes.push({ kind:'negative', who:who, text:e });
+  }
+  if (!quotes.length && pr && pr.verdict === 'confused' && pr.evidence){
+    quotes.push({ kind:'confused', who: (pr.engine || '') + ' · ' + T('国内市场','China'), text: pr.evidence });
+  }
+  const s = sampled();
+  // "Not run" means no data this period. An engine that produced samples has run
+  // however it was reached, and counting it as missing would contradict the
+  // table directly below.
+  const notRun = ENGINES.filter(e => e[3] === 'api' && !s[e[0]]);
+  const quoteHtml = quotes.length
+    ? quotes.slice(0, 4).map(q => '<div class="quote"><div class="q">“' + esc(String(q.text).trim()) + '”</div>'
+        + '<div class="qmeta"><span class="qtag ' + (q.kind === 'negative' ? 'warn' : '') + '">'
+        + (q.kind === 'confused' ? T('认错了','mistaken identity') : T('负面','negative')) + '</span>' + esc(q.who) + '</div></div>').join('')
+    : (pr && pr.verdict ? '<div class="quote calm"><div class="q">'
+        + T('本期没有发现认错或负面的原话。','No mistaken-identity or negative quotes this period.') + '</div>'
+        + '<div class="qmeta">' + T('全部采样原文在诊断页里','Every sampled answer is on the diagnosis page') + '</div></div>' : '');
+  const meterHtml = notRun.length ? '<div class="meter"><span class="n">' + notRun.length + '</span>'
+    + '<span class="t"><b>' + T(notRun.length + ' 个引擎没跑', notRun.length + ' engines not run') + '</b> — '
+    + T('网页版还没接托管采样，所以<b>没有采样，也就没有原话</b>。','hosted sampling is not built here, so <b>nothing was sampled and no quote exists</b>.') + '<br>'
+    + '<span style="color:var(--faint)">' + T('这里不会放模糊的占位内容：没测过的东西，我们不会假装手里有。',
+        'No blurred placeholders here: we do not pretend to hold what we never measured.') + '</span></span>'
+    + '<button class="btn" style="background:#1C1A15;color:#F3F1EA" id="howKey">' + T('怎么跑全部 18 个 →','How to run all 18 →') + '</button></div>' : '';
+  return quoteHtml + meterHtml + funnelHtml() + engineTable();
+}
+
+function funnelHtml(){
+  const m = P.metrics, pr = P.probe;
+  if (!m && !(pr && pr.verdict)) return '';
+  const agg = k => {
+    const ps = ((m && m.platforms) || []).filter(p => p[k] !== null && p[k] !== undefined);
+    if (!ps.length) return null;
+    const n = ps.reduce((s, p) => s + p.samples, 0);
+    return n ? ps.reduce((s, p) => s + p[k] * p.samples, 0) / n : null;
+  };
+  const rec = ((m && m.platforms) || []).reduce((o, p) => {
+    const r = (p.probe && p.probe.recognition) || {};
+    for (const k of Object.keys(r)) o[k] = (o[k] || 0) + r[k];
+    return o;
+  }, {});
+  if (!Object.keys(rec).length && pr && pr.verdict) rec[pr.verdict] = 1;
+  const judged = (rec.knows || 0) + (rec.confused || 0) + (rec.unknown || 0) > 0;
+  const mention = agg('mentionRate');
+  const cite = agg('ownDomainCiteRate');
+  const st = (cls, v, label) => '<div class="st ' + cls + '"><span class="v">' + v + '</span>' + label + '</div>';
+  return '<div class="funnel">'
+    + (judged ? st(rec.knows > 0 ? 'good' : 'bad', rec.knows > 0 ? '✓' : '✕', T('① 认识你','① Knows you'))
+              : st('na', '—', T('① 认识你','① Knows you')))
+    + (judged ? st(rec.confused > 0 ? 'bad' : 'good', rec.confused > 0 ? '✕ ' + rec.confused : '✓', T('② 没认错','② Not confused'))
+              : st('na', '—', T('② 没认错','② Not confused')))
+    + st(mention ? 'good' : 'na', mention === null ? '—' : pct(mention), T('③ 想到你','③ Considered'))
+    + st('na', mention ? (pct(agg('top3Rate')) || '—') : '—', T('④ 排前面','④ Top-3'))
+    + st(cite ? 'good' : 'na', pct(cite) || '—', T('⑤ 引用你','⑤ Cited'))
+    + '</div><div class="cap">'
+    + T('③④ 显示「—」是因为网页版只做了点名探测，没做不点名采样 —— 后者才是可见度。<br>',
+        'Stations ③④ read a dash because the hosted run only probes by name; unprompted sampling is what measures visibility.<br>')
+    + T('④ 的「—」不是 0%：提及率为 0 时你根本没进候选集，<b>没有位次可言</b>。<br>',
+        '④ reads a dash, not 0%: with no mentions you are not in the candidate set, so <b>no rank exists</b>.<br>')
+    + T('⑤ 在大部分引擎上<b>结构性测不了</b>：18 个里只有 5 个联网引擎会返回引用来源。',
+        '⑤ is <b>structurally unmeasurable</b> on most engines: only 5 of the 18 are web-connected and return sources.')
+    + '</div>';
+}
+
+function engineTable(){
+  const m = P.metrics, pr = P.probe, s = sampled();
+  const by = {};
+  for (const p of (m && m.platforms) || []) by[p.providerId] = p;
+  const rows = ENGINES.filter(e => e[3] === 'api').map(e => {
+    const mkt = e[2] === 'cn' ? T('国内','CN') : T('海外','Global');
+    const p = by[e[0]];
+    if (!p){
+      if (s[e[0]] && pr && pr.verdict){
+        const cog = pr.verdict === 'confused' ? '<span style="color:var(--red)">' + T('认错','confused') + '</span>'
+          : pr.verdict === 'knows' ? T('认识','knows') : T('不认识','unknown');
+        return '<tr><td>' + esc(e[1]) + '</td><td>' + mkt + '</td><td class="num">1</td>'
+          + '<td class="num">' + NA + '</td><td>' + cog + '</td></tr>';
+      }
+      return '<tr class="off"><td>' + esc(e[1]) + '</td><td>' + mkt + '</td><td class="num">—</td>'
+        + '<td class="num">—</td><td><span class="nokey">' + T('未跑','not run') + '</span></td></tr>';
+    }
+    const r = (p.probe && p.probe.recognition) || {};
+    const conf = r.confused || 0;
+    const cog = conf > 0 ? '<span style="color:var(--red)">' + T('认错 ×' + conf, 'confused ×' + conf) + '</span>'
+      : (r.knows || 0) > 0 ? T('认识','knows') : p.probe ? T('不认识','unknown') : NA;
+    return '<tr><td>' + esc(e[1]) + '</td><td>' + mkt + '</td><td class="num">' + p.samples + '</td>'
+      + '<td class="num">' + (pct(p.mentionRate) || NA) + '</td><td>' + cog + '</td></tr>';
+  }).join('');
+  return '<table><thead><tr><th>' + T('引擎','Engine') + '</th><th>' + T('市场','Market') + '</th>'
+    + '<th style="text-align:right">' + T('样本','Samples') + '</th>'
+    + '<th style="text-align:right">' + T('提及率','Mention') + '</th>'
+    + '<th>' + T('认知','Recognition') + '</th></tr></thead><tbody>' + rows + '</tbody></table>'
+    + '<div class="cap" style="margin-top:9px">'
+    + T('没跑的引擎显示「—」，不是 0。<b>0 是一个测量结果，「—」是没测。</b>',
+        'Engines that did not run read a dash, not 0. <b>A zero is a measurement; a dash is its absence.</b>') + '</div>';
+}
+
+function today(){
+  const items = (P.feedOpen || []).slice(0, 3);
+  const c = P.feedCounts || { done:0, regressed:0, open:0 };
+  document.getElementById('pToday').innerHTML =
+    '<div class="ph"><b>' + T('今天','Today') + '</b><span>' + T('修 ' + items.length + ' 件', 'fix ' + items.length) + '</span></div>'
+    + (items.length ? items.map(t => '<div class="card"' + (t.state === 'regressed' ? ' style="border-color:var(--red)"' : '') + '>'
+        + '<div class="k"><span class="pr ' + esc(t.priority) + '">' + esc(t.priority) + '</span>'
+        + (t.state === 'regressed' ? '<span class="pr" style="background:var(--red);color:#fff">'
+            + (t.neverVerified ? T('还在','still there') : T('回归','regressed')) + '</span>' : '')
+        + (t.state === 'new' ? '<span class="pr" style="background:var(--ok);color:#fff">' + T('新','new') + '</span>' : '')
+        + '<span class="mono" style="font-size:10.5px;color:var(--faint)">' + esc(t.id || '') + '</span></div>'
+        + '<div class="t">' + esc(t.title) + '</div>'
+        + '<div class="w">' + esc(String(t.rationale || '').slice(0, 150)) + '</div>'
+        + '<div class="acc"><b>' + T('修到这样算好：','Done when:') + '</b> ' + esc((t.acceptance && t.acceptance.desc) || '—') + '</div>'
+        + '<div class="acts"><button class="act go" data-k="' + esc(t.key) + '" data-a="done">' + T('我修好了','I fixed this') + '</button>'
+        + '<button class="act" data-k="' + esc(t.key) + '" data-a="snooze">' + T('先放放','not now') + '</button></div>'
+        + '</div>').join('')
+      : '<div class="empty">' + T('没有待办。','Nothing queued.') + '</div>')
+    + '<div class="state"><span class="g">' + T('已验收 ' + (c.done || 0), 'verified ' + (c.done || 0)) + '</span>'
+    + '<span class="r">' + T('回归 ' + (c.regressed || 0), 'regressed ' + (c.regressed || 0)) + '</span>'
+    + '<span>' + T('全部 ' + (c.open || 0), 'all ' + (c.open || 0)) + '</span></div>'
+    + '<div class="cap">' + T('每天 03:00 UTC 自动重爬核对。<b>你说好了不算，重爬说了算。</b>',
+        'The daily re-crawl checks at 03:00 UTC. <b>Done means re-crawled, not asserted.</b>') + '</div>';
+  document.querySelectorAll('.act[data-k]').forEach(b => { b.onclick = () => act(b.dataset.k, b.dataset.a, b); });
 }
 
 async function act(key, action, btn){
   btn.disabled = true;
   try {
-    const r = await fetch('/api/feed', {method:'POST',headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({id: ID, key: key, action: action, days: 7})});
+    const r = await fetch('/api/feed', { method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ id: ID, key: key, action: action, days: 7 }) });
     if (!r.ok) throw new Error('failed');
-    P = await (await fetch('/api/project?id='+ID)).json();
+    P = await (await fetch('/api/project?id=' + ID)).json();
     render();
   } catch { btn.disabled = false; btn.textContent = T('没存上，再点一次','did not save — try again'); }
 }
 
-async function openPlaybook(btn){
-  const body = btn.nextElementSibling;
-  if (body.dataset.open === '1'){ body.innerHTML=''; body.dataset.open='0'; btn.textContent = T('读方法论','read the playbook'); return; }
-  btn.disabled = true; btn.textContent = T('取…','fetching…');
-  try {
-    const j = await (await fetch('/api/playbook?lang='+(ZH?'zh':'en')+'&skill='+encodeURIComponent(btn.dataset.pb))).json();
-    const secs = (j.sections || []).slice(0, 3);
-    body.innerHTML = secs.length
-      ? secs.map(s => '<h4 style="margin:9px 0 3px;font:500 14px var(--serif)">'+esc(s.h)+'</h4>'+md(s.b)).join('')
-        + '<div class="mini" style="margin-top:9px">'+esc(j.attribution||'')+'</div>'
-      : '<p class="mini">'+T('这一节取不到。','Could not load.')+'</p>';
-    body.dataset.open='1'; btn.textContent = T('收起','collapse');
-  } catch {
-    body.innerHTML = '<p class="mini">'+T('取不到，稍后再试。','Could not load. Try again.')+'</p>';
-    btn.textContent = T('读方法论','read the playbook');
+function ask(){
+  const a = P.audit, pr = P.probe;
+  const items = [];
+  if (pr && pr.verdict === 'confused'){
+    items.push(T('有回答<b>把你认成了别的公司</b>。这是最贵的一种失败 —— AI 不是不推荐你，是不知道你是谁。',
+      'An answer <b>mistakes you for another company</b>. The most expensive failure: AI is not declining to recommend you, it does not know who you are.'));
   }
-  btn.disabled = false;
-}
-
-/* ── column 4 · ask ─────────────────────────────────────────────────────── */
-function cmo(){
-  const c = P.feedCounts || {};
-  const daily = P.loop && P.loop.lastCheck;
-  // The deal, first person, with the half we cannot do yet in the same breath.
-  const hello = T(
-    '<p>我读了你的网站，建好了档案，问过一个引擎，列出了要修的东西。</p>'
-    + '<ul><li>每天重爬一次 —— ' + (daily ? '已经在跑' : '还没开始') + '</li>'
-    + '<li>你说修好了，我下次重爬会核对</li>'
-    + '<li>' + (c.open||0) + ' 件待修，就在中间那栏，点开直接动手</li></ul>'
-    + '<p>我现在<b>做不到</b>的：替你写稿、替你发帖、跑 18 个引擎采样。这些还没接。</p>',
-    '<p>I read your site, built the dossier, asked one engine, and listed what to fix.</p>'
-    + '<ul><li>Re-crawled daily — ' + (daily ? 'already running' : 'not started yet') + '</li>'
-    + '<li>Say you fixed something and the next crawl checks it</li>'
-    + '<li>' + (c.open||0) + ' open items, in the middle column, actionable there</li></ul>'
-    + '<p>What I <b>cannot</b> do yet: draft for you, post anywhere, or sample 18 engines. Not wired.</p>');
-  document.getElementById('cCmo').innerHTML = '<h2>'+T('问它','Ask')+'</h2>'
-    + '<div class="ask"><input id="q" placeholder="'+T('问这个项目的任何事','Ask anything about this project')+'"><button id="qs">'+T('问','Ask')+'</button></div>'
-    + '<div id="qa"><div class="msg">'+hello+'</div></div>';
-  const go = () => ask(document.getElementById('q').value);
+  if (pr && pr.verdict === 'unknown'){
+    items.push(T('引擎<b>不知道你是谁</b>。先把定义块和实体声明补上，再谈排名。',
+      'The engine <b>does not know who you are</b>. Fix the definition block and the entity declaration before worrying about rank.'));
+  }
+  const shells = ((a && a.pages) || []).filter(p => (p.blockers || []).some(b => /shell|render|wall/i.test(b))).length;
+  if (shells > 0){
+    items.push(T('<b>' + shells + ' 个页面对 AI 是空白</b> —— 爬虫读不到。修好它之前，别的优化都白做。',
+      '<b>' + shells + ' page(s) are blank to an AI crawler.</b> Nothing else moves until this is fixed.'));
+  }
+  if (a && a.entity && !a.entity.organizationSchema){
+    items.push(T('你的<b>实体声明是空的</b>（没有 Organization JSON-LD）。如果上面出现了认错，这两件很可能是同一件事。',
+      'Your <b>entity declaration is empty</b> (no Organization JSON-LD). If there is confusion above, these are probably the same problem.'));
+  }
+  if (!items.length) items.push(T('本期没有发现致命问题。','No blockers this period.'));
+  document.getElementById('pAsk').innerHTML =
+    '<div class="ph"><b>' + T('问它','Ask') + '</b><span class="mono">' + T('已接通','wired') + '</span></div>'
+    + '<div class="sect">' + T('今日简报','Today\\u2019s brief') + '</div>'
+    + '<ul class="brief">' + items.map(i => '<li>' + i + '</li>').join('')
+    + '<li class="note">' + T('第 1 期没有期对比。<b>单期只算观察，连续两期同向才叫趋势</b> —— 下一期才会出现这一栏。',
+        'Period 1 has no comparison. <b>One period is an observation; two consecutive same-direction changes are a trend</b> — it appears next period.') + '</li></ul>'
+    + '<div class="sect">' + T('这里能拿到什么','What you get here') + '</div>'
+    + '<div style="background:var(--well);border-radius:7px;padding:11px 12px;font-size:11.5px;line-height:1.75;color:var(--dim)">'
+    + T('· 每天重爬一次，你标的「修好了」由它核对<br>· 每个判定都带原话<br>· 算不出就写「未测」<br><br>'
+        + '<b>网页版还做不到</b>：18 引擎托管采样、替你写稿、替你发帖。这三件在命令行里跑得通。',
+        '· Re-crawled daily; anything you mark fixed is checked by it<br>· Every verdict carries a quote<br>· Unmeasured stays unmeasured<br><br>'
+        + '<b>Not on the hosted side yet</b>: 18-engine sampling, drafting for you, publishing for you. All three work in the CLI.')
+    + '</div>'
+    + '<div class="askbox"><input id="q" placeholder="' + T('问这个项目的任何事','Ask anything about this project') + '">'
+    + '<button class="btn" id="qs">' + T('问它','Ask') + '</button><div class="ans" id="qa"></div></div>';
+  const go = () => doAsk(document.getElementById('q').value);
   document.getElementById('qs').onclick = go;
   document.getElementById('q').onkeydown = e => { if (e.key === 'Enter') go(); };
 }
 
-async function ask(q){
-  q = String(q||'').trim(); if (!q) return;
+async function doAsk(q){
+  q = String(q || '').trim(); if (!q) return;
   const el = document.getElementById('qa');
-  el.innerHTML = '<div class="msg">'+T('想…','thinking…')+'</div>';
+  el.innerHTML = T('想…','thinking…');
   try {
-    const r = await fetch('/api/ask', {method:'POST',headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({id: ID, q: q, lang: ZH ? 'zh' : 'en'})});
+    const r = await fetch('/api/ask', { method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ id: ID, q: q, lang: ZH ? 'zh' : 'en' }) });
     const j = await r.json();
     if (!r.ok) throw new Error(j.error || 'failed');
-    el.innerHTML = '<div class="msg">'+md(j.answer)+'<div class="src">'+esc(j.grounding||'')+'</div></div>';
-  } catch {
-    el.innerHTML = '<div class="msg">'+T('这次没答上来。','Could not answer this time.')+'</div>';
-  }
+    el.innerHTML = esc(j.answer).replace(/\\n/g, '<br>')
+      + '<div class="src">' + esc(j.grounding || '') + '</div>';
+  } catch { el.innerHTML = T('这次没答上来。','Could not answer this time.'); }
 }
 
-/* ── documents ──────────────────────────────────────────────────────────── */
 function showDoc(k){
-  const d = P.dossier || {};
-  const b = d.brand || {};
+  const d = P.dossier || {}, b = d.brand || {};
   const M = {
-    product: [T('产品档案','Product information'),
-      '## ' + (b.name || '') + '\\n\\n' + (b.description || T('（空）','(empty)'))
-      + (b.industry ? '\\n\\n**' + T('行业','Industry') + '**: ' + b.industry : '')
-      + ((b.aliases||[]).length ? '\\n\\n**' + T('别名','Aliases') + '**: ' + b.aliases.join(', ') : '')],
+    product: [T('产品档案','Product'),
+      (b.name || '') + '\\n\\n' + (b.description || T('（空）','(empty)'))
+      + (b.industry ? '\\n\\n' + T('行业','Industry') + ': ' + b.industry : '')
+      + ((b.aliases || []).length ? '\\n\\n' + T('别名','Aliases') + ': ' + b.aliases.join(', ') : '')],
     facts: [T('品牌事实库','Brand facts'),
-      ((d.facts && d.facts.facts)||[]).map(f => '- [' + f.grade + '] ' + f.claim
-        + (f.by === 'owner' ? ' _(' + T('你改的','yours') + ')_' : '')).join('\\n') || T('（空）','(empty)')],
-    competitors: [T('竞品分析','Competitor analysis'),
-      (d.competitorCandidates||[]).map(c => '- **' + c.name + '**' + (c.why ? ' — ' + c.why : '')).join('\\n') || T('（空）','(empty)')],
-    questions: [T('买家问题库','Buyer questions'),
-      (d.questions||[]).map(q => '- [' + q.market + '] ' + q.text).join('\\n') || T('（空）','(empty)')],
-    voice: [T('品牌语气','Brand voice guide'),
+      ((d.facts && d.facts.facts) || []).map(f => '[' + f.grade + '] ' + f.claim
+        + (f.by === 'owner' ? '  (' + T('你改的','yours') + ')' : '')).join('\\n') || T('（空）','(empty)')],
+    competitors: [T('竞品分析','Competitors'),
+      (d.competitorCandidates || []).map(c => '· ' + c.name + (c.why ? ' — ' + c.why : '')).join('\\n') || T('（空）','(empty)')],
+    questions: [T('问题库','Questions'),
+      (d.questions || []).map(q => '[' + q.market + '] ' + q.text).join('\\n') || T('（空）','(empty)')],
+    voice: [T('语气指南','Voice'),
       (P.voice && P.voice.filled)
-        || ((((P.docs && P.docs.voice && P.docs.voice.evidence)) || []).map(e => '> ' + e.text).join('\\n\\n'))
+        || (((P.docs && P.docs.voice && P.docs.voice.evidence) || []).map(e => '“' + e.text + '”').join('\\n\\n'))
         || T('（空）','(empty)')],
-    strategy: [T('内容策略','Content strategy'),
-      (((P.docs && P.docs.strategy && P.docs.strategy.pieces)) || []).map(p =>
-        '## ' + p.title + '\\n\\n' + (p.why||'') + '\\n\\n**' + T('对着这个问题','Answers') + '**: ' + (p.question||'')).join('\\n\\n')
-      || T('（空）','(empty)')],
   };
   const pair = M[k] || ['', ''];
-  SHEET = { title: pair[0], text: pair[1] };
-  document.getElementById('sht').textContent = pair[0];
-  document.getElementById('shb').innerHTML = md(pair[1])
-    + '<p class="mini" style="margin-top:20px">'+T('要改这份文档，去诊断页 —— 编辑器在那边。',
-        'To edit this document, use the diagnosis page — the editor lives there.')+'</p>';
-  document.getElementById('sheet').classList.add('on');
-  document.getElementById('over').classList.add('on');
+  show(pair[0], pair[1]);
 }
 
-/* Enough Markdown for what these documents and playbooks contain. Escaped
-   first: this is third-party text and it is never trusted as HTML. Every
-   pattern is built from character classes, which need no escaping at any of
-   the layers between here and the browser — a lesson that cost three deploys. */
-function md(src){
-  const lines = String(src||'').split('\\n');
-  const out = [];
-  let ul = false, tbl = false, fence = false, buf = [];
-  const closeUl = () => { if (ul){ out.push('</ul>'); ul = false; } };
-  const closeTbl = () => { if (tbl){ out.push('</tbody></table>'); tbl = false; } };
-  const inline = s => esc(s)
-    .replace(/[*][*]([^*]+)[*][*]/g, '<b>$1</b>')
-    .replace(/[_]([^_]+)[_]/g, '<i>$1</i>')
-    .replace(/[\\u0060]([^\\u0060]+)[\\u0060]/g, '<code>$1</code>');
-  for (const raw of lines){
-    const line = raw.replace(/\\s+$/, '');
-    if (/^[\\u0060][\\u0060][\\u0060]/.test(line)){
-      if (fence){ out.push('<pre>'+esc(buf.join('\\n'))+'</pre>'); buf = []; fence = false; }
-      else { closeUl(); closeTbl(); fence = true; }
-      continue;
-    }
-    if (fence){ buf.push(raw); continue; }
-    const h = /^(#{2,4})[ ]+(.+)$/.exec(line);
-    if (h){ closeUl(); closeTbl(); out.push('<h4>'+inline(h[2])+'</h4>'); continue; }
-    if (/^[|]/.test(line)){
-      if (/^[|][ -:|]+$/.test(line)) continue;
-      const cells = line.split('|').slice(1, -1).map(c => c.trim());
-      if (!tbl){ out.push('<table><tbody>'); tbl = true; }
-      out.push('<tr>'+cells.map(c => '<td>'+inline(c)+'</td>').join('')+'</tr>');
-      continue;
-    }
-    closeTbl();
-    const q = /^[>][ ]?(.*)$/.exec(line);
-    if (q){ closeUl(); out.push('<blockquote>'+inline(q[1])+'</blockquote>'); continue; }
-    const li = /^[ ]{0,3}[-*][ ]+(.+)$/.exec(line);
-    if (li){ if (!ul){ out.push('<ul>'); ul = true; } out.push('<li>'+inline(li[1])+'</li>'); continue; }
-    closeUl();
-    if (!line.trim()) continue;
-    out.push('<p>'+inline(line)+'</p>');
+function show(title, body){
+  document.getElementById('dlgT').textContent = title;
+  document.getElementById('dlgB').textContent = body || '';
+  document.getElementById('dlg').showModal();
+}
+document.getElementById('dlgX').onclick = () => document.getElementById('dlg').close();
+document.addEventListener('click', e => {
+  if (e.target && e.target.id === 'howKey'){
+    show(T('跑全部 18 个引擎','Run all 18 engines'), T(
+      '网页版目前只问一个引擎。要跑全部 18 个，在你自己机器上：\\n\\n'
+      + '  npx fastergeo start ' + (P.url || '你的网址') + '\\n\\n'
+      + '每个引擎读一个环境变量，Key 只在你本机，永不上传：\\n\\n'
+      + '  export DEEPSEEK_API_KEY=…   # DeepSeek\\n'
+      + '  export ARK_API_KEY=…        # 豆包\\n'
+      + '  export ZHIPUAI_API_KEY=…    # 智谱 GLM\\n'
+      + '  export OPENAI_API_KEY=…     # ChatGPT\\n\\n'
+      + '一个 Key 都不想配？跑 fastergeo sheet：\\n把问题贴进 AI 网页版，把回答贴回来，指标照样算。\\n\\n'
+      + '而且只有联网引擎会返回引用来源 —— 18 个里的那 5 个，是唯一能测「⑤ 引用你」的。\\n\\n'
+      + '托管采样（我们替你跑 18 个）还没做。',
+      'The hosted run asks one engine. To run all 18, on your own machine:\\n\\n'
+      + '  npx fastergeo start ' + (P.url || 'yoursite.com') + '\\n\\n'
+      + 'Each engine reads one environment variable. Keys stay on your machine:\\n\\n'
+      + '  export DEEPSEEK_API_KEY=…\\n  export ARK_API_KEY=…\\n  export ZHIPUAI_API_KEY=…\\n  export OPENAI_API_KEY=…\\n\\n'
+      + 'No keys at all? Run fastergeo sheet: paste the questions into any AI web app by hand, paste the answers back, and the metrics still compute.\\n\\n'
+      + 'Only the web-connected engines return sources — those 5 of the 18 are the only way to measure gate ⑤.\\n\\n'
+      + 'Hosted sampling (us running all 18 for you) is not built.'));
   }
-  closeUl(); closeTbl();
-  if (fence && buf.length) out.push('<pre>'+esc(buf.join('\\n'))+'</pre>');
-  return out.join('');
-}
-
-boot();
-</script>
-</body></html>`;
+});
+</script></body></html>`;
 }
