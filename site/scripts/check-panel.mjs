@@ -11,6 +11,7 @@
  */
 import { onRequestGet } from '../functions/p/[id].js';
 import { onRequestGet as myGet } from '../functions/my.js';
+import { onRequestGet as consoleGet } from '../functions/c/[id].js';
 
 const res = await onRequestGet({
   params: { id: 'TESTID123' },
@@ -88,6 +89,27 @@ try {
     if (!myHtml.includes(need)) throw new Error(`/my lost "${need}"`);
   }
   console.log('✓ /my parses and keeps its local-only disclosure');
+
+  // The console is the biggest template in the project and the one a customer
+  // lands on. Same treatment: render it, parse its script, run its markdown.
+  const cHtml = await (await consoleGet({
+    params: { id: 'TESTID123' }, request: new Request('https://x/c/TESTID123?lang=zh'),
+  })).text();
+  const cm = cHtml.match(/<script>([\s\S]*?)<\/script>/);
+  if (!cm) throw new Error('no <script> in rendered console');
+  new Function(cm[1]);
+  // From the first declaration to the boot call is every definition and no
+  // side effect — the console's script is written that way on purpose.
+  const cmd = new Function(cm[1].slice(cm[1].indexOf('const ID ='), cm[1].indexOf('boot();')) + '\nreturn md;')();
+  const cout = cmd('## H\n\n- a\n\n**b** t');
+  for (const need of ['<h4>', '<li>', '<b>b</b>']) {
+    if (!cout.includes(need)) throw new Error(`console md() lost ${need}`);
+  }
+  // The roster must never imply work that did not happen.
+  for (const need of ['待命', '缺数据接入', '只问了 1 个引擎']) {
+    if (!cHtml.includes(need)) throw new Error(`console lost its honesty line "${need}"`);
+  }
+  console.log('✓ console parses, renders markdown, and keeps its not-wired disclosures');
 } catch (e) {
   console.error(`✗ rendered panel is broken: ${e.message}`);
   const lines = m[1].split('\n');

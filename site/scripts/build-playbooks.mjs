@@ -27,16 +27,24 @@ const SRC = srcFlag >= 0 ? args[srcFlag + 1] : join(homedir(), '.agents', 'skill
 // module imports reliably, and a .json import silently fell through to the
 // static asset handler at deploy time — the endpoint returned the homepage.
 const OUT = join(HERE, '..', 'functions', 'api', '_playbooks.js');
+/** Per-section cap. The Worker bundle has a hard size limit and every deploy
+ *  pays for this, so depth is traded against breadth here and nowhere else. */
+const SECTION_CHARS = 2200;
 
-/** Only these ship. The rest of the suite is excellent and irrelevant to us —
- *  we do not do ads, SMS, cold email or influencer work, and a playbook for
- *  something the product will never surface is dead weight in the bundle. */
-const WANTED = [
-  'ai-seo', 'seo-audit', 'schema', 'content-strategy', 'competitors',
-  'copywriting', 'cro', 'programmatic-seo', 'analytics', 'attribution',
-  'marketing-loops', 'pricing', 'onboarding', 'signup', 'customer-research',
-  'product-marketing', 'marketing-psychology', 'launch',
-];
+/**
+ * Everything the suite ships. An earlier version carried a hand-picked 18 on the
+ * argument that a playbook for something we never surface is dead weight — that
+ * was me deciding for the customer which parts of a marketing system they are
+ * allowed to want. The whole suite is the capability; the panel decides what to
+ * put in front of you, and the bundle should never be the thing that limits it.
+ *
+ * Cost of carrying all of it is bounded by SECTION_CHARS below, not by the
+ * number of skills, which is why this is affordable.
+ */
+const WANTED = readdirSync(SRC, { withFileTypes: true })
+  .filter(d => d.isDirectory() && existsSync(join(SRC, d.name, 'SKILL.md')))
+  .map(d => d.name)
+  .sort();
 
 /** A section is worth carrying if it tells someone what to do. */
 function sections(md) {
@@ -90,7 +98,7 @@ for (const name of WANTED) {
     // Trimmed: the routing text is written for an agent's tool picker and reads
     // as keyword soup to a person. One sentence is all a human needs.
     about: fm.description.split(/\.\s/)[0].replace(/^When the user (wants to |needs to )?/i, '').slice(0, 200),
-    sections: secs.map(s => ({ h: s.heading, b: s.body.slice(0, 2600) })),
+    sections: secs.map(s => ({ h: s.heading, b: s.body.slice(0, SECTION_CHARS) })),
   };
 }
 
