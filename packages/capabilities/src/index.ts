@@ -367,7 +367,7 @@ export const CAPABILITIES: Capability[] = [
   },
   {
     id: 'playbooks.71', domain: 'core', pkg: 'coreyhaines31/marketingskills (MIT)',
-    zh: '71 份营销方法论（1,577 节）', en: '71 marketing playbooks (1,577 sections)',
+    zh: '69 份营销方法论', en: '69 marketing playbooks',
     valueZh: '知道要修什么之后，就地读得到怎么修 —— 出处和许可都随数据带着',
     valueEn: 'How to do it, readable where the work is, with source and licence travelling with the data',
     surface: 'web', block: null, needs: [],

@@ -41,9 +41,17 @@ const SECTION_CHARS = 2200;
  * Cost of carrying all of it is bounded by SECTION_CHARS below, not by the
  * number of skills, which is why this is affordable.
  */
+/** Not everything installed in the skills directory came from the marketing
+ *  suite. `monid` and `workctl` are agent tooling that happened to be sitting
+ *  in the same folder, and the bundle was stamping the suite's source and MIT
+ *  licence onto them — a false attribution in both directions. Excluded by name
+ *  rather than by guesswork, so adding one is a deliberate act. */
+const NOT_MARKETING = new Set(['monid', 'workctl']);
+
 const WANTED = readdirSync(SRC, { withFileTypes: true })
   .filter(d => d.isDirectory() && existsSync(join(SRC, d.name, 'SKILL.md')))
   .map(d => d.name)
+  .filter(n => !NOT_MARKETING.has(n))
   .sort();
 
 /** A section is worth carrying if it tells someone what to do. */
