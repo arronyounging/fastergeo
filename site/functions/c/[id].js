@@ -533,7 +533,7 @@ function soonTab(id){
       + '<pre style="margin:8px 0 0;font:12px/1.9 ui-monospace,Menlo,monospace;white-space:pre-wrap">'
       + d.cmds.map(esc).join('\\n') + '</pre></div>'
       + (d.note ? '<div class="caps" style="margin-top:12px">' + d.note + '</div>' : '')
-      + '</div><div class="cpb" style="margin-top:14px">'
+      + '</div><div class="cap" style="margin-top:14px">'
       + T('能力有了，这个网页面板还没接上它。','The capability exists; this hosted panel has not caught up to it yet.') + '</div>';
   }
   // "We do not do this" is a legitimate answer and gets said in plain words. An
@@ -542,7 +542,7 @@ function soonTab(id){
     + '<h3>' + (ZH ? d.zh : d.en) + ' · ' + T('我们不做这个','we do not do this') + '</h3>'
     + '<p>' + esc(d.d) + '</p><div class="caps">' + d.why + '</div>'
     + (d.note ? '<div class="caps" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--line)">' + d.note + '</div>' : '')
-    + '</div><div class="cpb" style="margin-top:14px">'
+    + '</div><div class="cap" style="margin-top:14px">'
     + T('说清楚不做，比无限期挂个「即将推出」诚实。','Saying we do not do it beats an indefinite "coming soon".') + '</div>';
 }
 
@@ -552,7 +552,7 @@ function watchTab(){
     + '<p>' + T('你现在有 1 期数据。<b>单期变化只算观察，连续两期同向才叫趋势</b> —— 所以第 2 期跑完，这里才会出现真正的对比。',
         'You have one period. <b>A single-period change is an observation; only two consecutive same-direction changes make a trend</b> — real comparison appears after period 2.') + '</p>'
     + '<div class="caps">' + T('这不是被锁住的功能。<b>趋势在物理上就需要时间。</b>','This is not a locked feature. <b>A trend physically requires time.</b>') + '</div>'
-    + '</div><div class="cpb" style="margin-top:14px">'
+    + '</div><div class="cap" style="margin-top:14px">'
     + (live ? T('每天 03:00 UTC 自动重爬，上次 ' + new Date(P.loop.lastCheck).toISOString().slice(0,10) + '。',
                 'Re-crawled daily at 03:00 UTC; last run ' + new Date(P.loop.lastCheck).toISOString().slice(0,10) + '.')
             : T('还没开始每天重爬。','The daily re-crawl has not started.')) + '</div>';
@@ -700,7 +700,7 @@ function funnelHtml(){
     + st(mention ? 'good' : 'na', mention === null ? '—' : pct(mention), T('③ 想到你','③ Considered'))
     + st('na', mention ? (pct(agg('top3Rate')) || '—') : '—', T('④ 排前面','④ Top-3'))
     + st(cite ? 'good' : 'na', pct(cite) || '—', T('⑤ 引用你','⑤ Cited'))
-    + '</div><div class="cpb">'
+    + '</div><div class="cap">'
     + T('③④ 显示「—」是因为网页版只做了点名探测，没做不点名采样 —— 后者才是可见度。<br>',
         'Stations ③④ read a dash because the hosted run only probes by name; unprompted sampling is what measures visibility.<br>')
     + T('④ 的「—」不是 0%：提及率为 0 时你根本没进候选集，<b>没有位次可言</b>。<br>',
@@ -738,7 +738,7 @@ function engineTable(){
     + '<th style="text-align:right">' + T('样本','Samples') + '</th>'
     + '<th style="text-align:right">' + T('提及率','Mention') + '</th>'
     + '<th>' + T('认知','Recognition') + '</th></tr></thead><tbody>' + rows + '</tbody></table>'
-    + '<div class="cpb" style="margin-top:9px">'
+    + '<div class="cap" style="margin-top:9px">'
     + T('没跑的引擎显示「—」，不是 0。<b>0 是一个测量结果，「—」是没测。</b>',
         'Engines that did not run read a dash, not 0. <b>A zero is a measurement; a dash is its absence.</b>') + '</div>';
 }
@@ -765,7 +765,7 @@ function today(){
     + '<div class="state"><span class="g">' + T('已验收 ' + (c.done || 0), 'verified ' + (c.done || 0)) + '</span>'
     + '<span class="r">' + T('回归 ' + (c.regressed || 0), 'regressed ' + (c.regressed || 0)) + '</span>'
     + '<span>' + T('全部 ' + (c.open || 0), 'all ' + (c.open || 0)) + '</span></div>'
-    + '<div class="cpb">' + T('每天 03:00 UTC 自动重爬核对。<b>你说好了不算，重爬说了算。</b>',
+    + '<div class="cap">' + T('每天 03:00 UTC 自动重爬核对。<b>你说好了不算，重爬说了算。</b>',
         'The daily re-crawl checks at 03:00 UTC. <b>Done means re-crawled, not asserted.</b>') + '</div>';
   document.querySelectorAll('.act[data-k]').forEach(b => { b.onclick = () => act(b.dataset.k, b.dataset.a, b); });
 }
