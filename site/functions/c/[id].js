@@ -19,6 +19,8 @@
  *   · no blurred placeholders: we do not pretend to hold what we never measured
  *   · done means re-crawled, not asserted
  */
+import { CAPABILITIES, summarise } from '@fastergeo/capabilities';
+
 const esc = s => String(s ?? '')
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
@@ -199,6 +201,20 @@ border-bottom:1px solid var(--line);font:600 13px ui-monospace,Menlo,monospace}
 .dlg-b{padding:16px 20px;max-height:70vh;overflow:auto;white-space:pre-wrap;
 font:12px/1.75 ui-monospace,"IBM Plex Mono",Menlo,monospace}
 a{color:var(--red)}
+.cpbsum{font-size:12.5px;line-height:1.8;padding:12px 14px;background:var(--well);
+border-radius:8px;margin-bottom:16px;font-family:inherit}
+.cpbsum span{color:var(--faint);font-size:11.5px}
+.cpbdom{font:500 10px ui-monospace,Menlo,monospace;letter-spacing:.13em;text-transform:uppercase;
+color:var(--faint);margin:18px 0 7px;font-family:ui-monospace,Menlo,monospace}
+.cpb{border-left:3px solid var(--line);padding:8px 0 8px 12px;margin-bottom:9px;font-family:inherit}
+.cpb.on{border-left-color:var(--ok)}
+.cpbh{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.cpbh b{font:600 13.5px "Newsreader",Georgia,"Songti SC",serif}
+.cpbm{flex:none;font-size:11px}
+.cpbw{font-size:10.5px;color:var(--faint);font-family:ui-monospace,Menlo,monospace}
+.cpbv{font-size:12.5px;color:var(--dim);line-height:1.7;margin-top:2px}
+.cpbg{font-size:11.5px;color:var(--amber);line-height:1.7;margin-top:3px}
+.cpbn{font-size:11px;color:var(--faint);line-height:1.7;margin-top:2px}
 </style></head><body>
 <div class="wrap">
   <div class="beat">
@@ -210,6 +226,7 @@ a{color:var(--red)}
     <span class="tail" id="tail"></span>
     <span class="mono" style="color:#B9B3A3;font-size:11px" id="bKeys"></span>
     <a class="btn ghost" id="bReport" href="#">${zh ? '诊断页' : 'Diagnosis'}</a>
+    <button class="btn ghost" id="bCaps">${zh ? '能力地图' : 'Capabilities'}</button>
     <a class="btn ghost" href="/my${zh ? '?lang=zh' : ''}">${zh ? '我的站点' : 'My sites'}</a>
     <button class="btn" id="bHire"></button>
   </div>
@@ -226,6 +243,14 @@ a{color:var(--red)}
 <dialog id="dlg"><div class="dlg-h"><span id="dlgT"></span><button class="btn" id="dlgX"></button></div><div class="dlg-b" id="dlgB"></div></dialog>
 <script>
 const ID = ${JSON.stringify(id)};
+/* The capability map, injected rather than fetched: it is small, it never
+   changes between requests, and a user asking "what can this thing actually
+   do" should not wait on a round trip for the answer. */
+const CAPS = ${JSON.stringify(CAPABILITIES.map(c => ({
+  id: c.id, d: c.domain, zh: c.zh, en: c.en, v: zh ? c.valueZh : c.valueEn,
+  s: c.surface, b: c.block, n: c.needs, g: c.gap ?? '',
+})))};
+const CAPSUM = ${JSON.stringify(summarise())};
 const ZH = ${JSON.stringify(zh)};
 const T = (a, b) => ZH ? a : b;
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -347,6 +372,7 @@ function beat(){
     : T('还没开始。留个邮箱就会每天重爬。\\n\\n第 2 期开始才有期对比 —— 单期只算观察，连续两期同向才叫趋势。',
         'Not started. Leave an email and the daily re-crawl begins.\\n\\nPeriod comparison appears from period 2 — one period is an observation; two consecutive same-direction changes are a trend.'));
   document.getElementById('dlgX').textContent = T('关闭','Close');
+  document.getElementById('bCaps').onclick = () => showHtml(T('能力地图','Capability map'), capsHtml());
   const walled = Boolean(P.wall) || Boolean(P.unusable && !P.unusable.usable);
   document.getElementById('dot').className = 'dot' + (walled ? ' bad' : '');
 }
@@ -507,7 +533,7 @@ function soonTab(id){
       + '<pre style="margin:8px 0 0;font:12px/1.9 ui-monospace,Menlo,monospace;white-space:pre-wrap">'
       + d.cmds.map(esc).join('\\n') + '</pre></div>'
       + (d.note ? '<div class="caps" style="margin-top:12px">' + d.note + '</div>' : '')
-      + '</div><div class="cap" style="margin-top:14px">'
+      + '</div><div class="cpb" style="margin-top:14px">'
       + T('能力有了，这个网页面板还没接上它。','The capability exists; this hosted panel has not caught up to it yet.') + '</div>';
   }
   // "We do not do this" is a legitimate answer and gets said in plain words. An
@@ -516,7 +542,7 @@ function soonTab(id){
     + '<h3>' + (ZH ? d.zh : d.en) + ' · ' + T('我们不做这个','we do not do this') + '</h3>'
     + '<p>' + esc(d.d) + '</p><div class="caps">' + d.why + '</div>'
     + (d.note ? '<div class="caps" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--line)">' + d.note + '</div>' : '')
-    + '</div><div class="cap" style="margin-top:14px">'
+    + '</div><div class="cpb" style="margin-top:14px">'
     + T('说清楚不做，比无限期挂个「即将推出」诚实。','Saying we do not do it beats an indefinite "coming soon".') + '</div>';
 }
 
@@ -526,7 +552,7 @@ function watchTab(){
     + '<p>' + T('你现在有 1 期数据。<b>单期变化只算观察，连续两期同向才叫趋势</b> —— 所以第 2 期跑完，这里才会出现真正的对比。',
         'You have one period. <b>A single-period change is an observation; only two consecutive same-direction changes make a trend</b> — real comparison appears after period 2.') + '</p>'
     + '<div class="caps">' + T('这不是被锁住的功能。<b>趋势在物理上就需要时间。</b>','This is not a locked feature. <b>A trend physically requires time.</b>') + '</div>'
-    + '</div><div class="cap" style="margin-top:14px">'
+    + '</div><div class="cpb" style="margin-top:14px">'
     + (live ? T('每天 03:00 UTC 自动重爬，上次 ' + new Date(P.loop.lastCheck).toISOString().slice(0,10) + '。',
                 'Re-crawled daily at 03:00 UTC; last run ' + new Date(P.loop.lastCheck).toISOString().slice(0,10) + '.')
             : T('还没开始每天重爬。','The daily re-crawl has not started.')) + '</div>';
@@ -674,7 +700,7 @@ function funnelHtml(){
     + st(mention ? 'good' : 'na', mention === null ? '—' : pct(mention), T('③ 想到你','③ Considered'))
     + st('na', mention ? (pct(agg('top3Rate')) || '—') : '—', T('④ 排前面','④ Top-3'))
     + st(cite ? 'good' : 'na', pct(cite) || '—', T('⑤ 引用你','⑤ Cited'))
-    + '</div><div class="cap">'
+    + '</div><div class="cpb">'
     + T('③④ 显示「—」是因为网页版只做了点名探测，没做不点名采样 —— 后者才是可见度。<br>',
         'Stations ③④ read a dash because the hosted run only probes by name; unprompted sampling is what measures visibility.<br>')
     + T('④ 的「—」不是 0%：提及率为 0 时你根本没进候选集，<b>没有位次可言</b>。<br>',
@@ -712,7 +738,7 @@ function engineTable(){
     + '<th style="text-align:right">' + T('样本','Samples') + '</th>'
     + '<th style="text-align:right">' + T('提及率','Mention') + '</th>'
     + '<th>' + T('认知','Recognition') + '</th></tr></thead><tbody>' + rows + '</tbody></table>'
-    + '<div class="cap" style="margin-top:9px">'
+    + '<div class="cpb" style="margin-top:9px">'
     + T('没跑的引擎显示「—」，不是 0。<b>0 是一个测量结果，「—」是没测。</b>',
         'Engines that did not run read a dash, not 0. <b>A zero is a measurement; a dash is its absence.</b>') + '</div>';
 }
@@ -739,7 +765,7 @@ function today(){
     + '<div class="state"><span class="g">' + T('已验收 ' + (c.done || 0), 'verified ' + (c.done || 0)) + '</span>'
     + '<span class="r">' + T('回归 ' + (c.regressed || 0), 'regressed ' + (c.regressed || 0)) + '</span>'
     + '<span>' + T('全部 ' + (c.open || 0), 'all ' + (c.open || 0)) + '</span></div>'
-    + '<div class="cap">' + T('每天 03:00 UTC 自动重爬核对。<b>你说好了不算，重爬说了算。</b>',
+    + '<div class="cpb">' + T('每天 03:00 UTC 自动重爬核对。<b>你说好了不算，重爬说了算。</b>',
         'The daily re-crawl checks at 03:00 UTC. <b>Done means re-crawled, not asserted.</b>') + '</div>';
   document.querySelectorAll('.act[data-k]').forEach(b => { b.onclick = () => act(b.dataset.k, b.dataset.a, b); });
 }
@@ -834,9 +860,51 @@ function showDoc(k){
   show(pair[0], pair[1]);
 }
 
+/* What this product can do, where each capability lands, and what is missing —
+   the same map the panel is built from, so it cannot flatter itself. */
+function capsHtml(){
+  const DOM = ZH
+    ? {core:'基础',visible:'可见',demand:'需求',content:'内容',authority:'权威',
+       watch:'监测',distribute:'分发',convert:'转化',social:'社交'}
+    : {core:'core',visible:'visible',demand:'demand',content:'content',authority:'authority',
+       watch:'watch',distribute:'distribute',convert:'convert',social:'social'};
+  const MARK = { web:'✅', cli:'⌨️', none:'⛔' };
+  const WHERE = ZH ? { web:'这个面板上', cli:'只在命令行', none:'我们不做' }
+                   : { web:'on this panel', cli:'CLI only', none:'we do not do this' };
+  const order = ['core','visible','demand','content','authority','watch','distribute','convert','social'];
+  const byDom = {};
+  for (const c of CAPS) (byDom[c.d] = byDom[c.d] || []).push(c);
+  const head = T(
+    CAPSUM.total + ' 个能力 · 这个面板上能用 ' + CAPSUM.web + ' 个 · 只在命令行 ' + CAPSUM.cli
+      + ' 个 · 决定不做 ' + CAPSUM.none + ' 个',
+    CAPSUM.total + ' capabilities · ' + CAPSUM.web + ' on this panel · ' + CAPSUM.cli
+      + ' CLI only · ' + CAPSUM.none + ' deliberately not built');
+  return '<div class="cpbsum">' + esc(head) + '<br><span>'
+    + T(CAPSUM.unsurfaced.length + ' 个真实存在但这个面板还没接上 —— 下面标了差什么。',
+        CAPSUM.unsurfaced.length + ' are real but this panel has not caught up — each says what stands in the way.')
+    + '</span></div>'
+    + order.filter(d => byDom[d]).map(d =>
+        '<div class="cpbdom">' + esc(DOM[d]) + '</div>'
+        + byDom[d].map(c => '<div class="cpb' + (c.s === 'web' ? ' on' : '') + '">'
+            + '<div class="cpbh"><span class="cpbm">' + MARK[c.s] + '</span>'
+            + '<b>' + esc(ZH ? c.zh : c.en) + '</b>'
+            + '<span class="cpbw">' + esc(WHERE[c.s]) + '</span></div>'
+            + '<div class="cpbv">' + esc(c.v) + '</div>'
+            + (c.g ? '<div class="cpbg">' + T('差什么：','Gap: ') + esc(c.g) + '</div>' : '')
+            + (c.n && c.n.length ? '<div class="cpbn">' + T('需要：','Needs: ') + esc(c.n.join(ZH ? '、' : ', ')) + '</div>' : '')
+            + '</div>').join('')).join('');
+}
+
 function show(title, body){
   document.getElementById('dlgT').textContent = title;
   document.getElementById('dlgB').textContent = body || '';
+  document.getElementById('dlgB').style.whiteSpace = 'pre-wrap';
+  document.getElementById('dlg').showModal();
+}
+function showHtml(title, html){
+  document.getElementById('dlgT').textContent = title;
+  document.getElementById('dlgB').innerHTML = html;
+  document.getElementById('dlgB').style.whiteSpace = 'normal';
   document.getElementById('dlg').showModal();
 }
 document.getElementById('dlgX').onclick = () => document.getElementById('dlg').close();

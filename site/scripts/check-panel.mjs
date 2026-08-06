@@ -108,7 +108,7 @@ try {
   for (const need of ['id="pProfile"', 'id="pEvidence"', 'id="pToday"', 'id="pAsk"',
                       'const DOMAINS', 'function funnelHtml(', 'function engineTable(', 'data-a="done"',
                       'function auditHtml(', 'function shead(', 'id="grip"', 'data-rail="pProfile"',
-                      'function tail(', 'function sourceTag(']) {
+                      'function tail(', 'function sourceTag(', 'const CAPS = ', 'function capsHtml(', 'id="bCaps"']) {
     if (!cHtml.includes(need)) throw new Error(`console lost ${need}`);
   }
   console.log('✓ console parses and keeps the discipline the local workbench established');
