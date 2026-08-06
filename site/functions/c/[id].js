@@ -20,6 +20,7 @@
  *   · done means re-crawled, not asserted
  */
 import { CAPABILITIES, summarise } from '@fastergeo/capabilities';
+import { TIERS } from '@fastergeo/engine';
 
 const esc = s => String(s ?? '')
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -201,6 +202,36 @@ border-bottom:1px solid var(--line);font:600 13px ui-monospace,Menlo,monospace}
 .dlg-b{padding:16px 20px;max-height:70vh;overflow:auto;white-space:pre-wrap;
 font:12px/1.75 ui-monospace,"IBM Plex Mono",Menlo,monospace}
 a{color:var(--red)}
+/* Convergence rows. The left edge carries the strength of agreement, because
+   that is the ranking — a reader should be able to skim the border alone. */
+.conv{border-left:3px solid var(--line);padding:10px 0 10px 13px;margin-bottom:11px}
+.convh{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.convh b{font:600 14px "Newsreader",Georgia,"Songti SC",serif;flex:1;min-width:180px}
+.agree{font:600 9.5px ui-monospace,Menlo,monospace;padding:1px 7px;border-radius:3px;
+background:var(--ok-soft);color:var(--ok);white-space:nowrap}
+.agree.solo{background:var(--well);color:var(--faint)}
+.convw{font-size:11.5px;color:var(--dim);margin-top:5px}
+.convw b{color:var(--ok);font-weight:600}
+.convs{margin-top:6px;display:flex;gap:4px;flex-wrap:wrap}
+.sk{font:10.5px ui-monospace,Menlo,monospace;background:var(--well);border:1px solid var(--line);
+border-radius:3px;padding:1px 6px;color:var(--dim)}
+.convv{margin-top:6px}
+.convv summary{font:10.5px ui-monospace,Menlo,monospace;color:var(--faint);cursor:pointer}
+.convv div{font-size:11.5px;color:var(--dim);padding:3px 0 0 10px;line-height:1.7}
+.lvl{border-bottom:1px solid var(--line)}
+.lvl summary{padding:9px 0;cursor:pointer;font:600 12.5px "Newsreader",Georgia,"Songti SC",serif}
+.lvln{font:10.5px ui-monospace,Menlo,monospace;color:var(--faint);font-weight:400}
+.run{padding:8px 0 8px 12px;border-left:2px solid var(--line);margin:0 0 8px 4px}
+.run.ran{border-left-color:var(--ok)}
+.run.partial{border-left-color:var(--amber)}
+.run.na{border-left-color:var(--line);opacity:.6}
+.run.blocked{border-left-color:var(--red)}
+.runh{display:flex;gap:8px;align-items:baseline}
+.rst{font:10px ui-monospace,Menlo,monospace;color:var(--faint)}
+.runv{font-size:12.5px;color:var(--tx);line-height:1.7;margin-top:3px}
+.runf{font-size:11.5px;color:var(--dim);line-height:1.7;margin-top:3px}
+.runf span{color:var(--faint)}
+:root{--ok:#20714A;--amber:#8A6100;--line:#E4E0D4}
 .cpbsum{font-size:12.5px;line-height:1.8;padding:12px 14px;background:var(--well);
 border-radius:8px;margin-bottom:16px;font-family:inherit}
 .cpbsum span{color:var(--faint);font-size:11.5px}
@@ -251,6 +282,10 @@ const CAPS = ${JSON.stringify(CAPABILITIES.map(c => ({
   s: c.surface, b: c.block, n: c.needs, g: c.gap ?? '',
 })))};
 const CAPSUM = ${JSON.stringify(summarise())};
+/* The seven levels the engine's output is stacked into. A pile of sixty-seven
+   reports is not a deliverable — the order is, because it answers a reader's
+   questions in the order they actually have them. */
+const TIERS = ${JSON.stringify(TIERS.map(t => ({ id: t.id, zh: t.zh, en: t.en })))};
 const ZH = ${JSON.stringify(zh)};
 const T = (a, b) => ZH ? a : b;
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -267,6 +302,7 @@ const NA = '<span style="color:var(--faint)">—</span>';
             caught up
      none — we do not do this. Said plainly, not implied by an empty tab. */
 const DOMAINS = [
+  { id:'engine', zh:'增长引擎', en:'Growth engine', state:'live' },
   { id:'demand', zh:'需求', en:'Demand', state:'cli',
     d: T('谁在找你、用什么词找。','Who is looking, and in whose words.'),
     cmds:['fastergeo expand --seed "…"   ' + T('百度下拉 + Google 补全挖真实搜索需求','mines real demand from Baidu/Google autocomplete'),
@@ -311,10 +347,16 @@ const ENGINES = [
   ['ai-overview','Google AI Overviews','global','web'],
 ];
 
-let P = null, tab = 'visible', railToggle = () => {};
+let P = null, tab = 'visible', railToggle = () => {}, engMore = false;
 
 chrome();
-fetch('/api/project?id=' + ID).then(r => r.json()).then(d => { P = d; render(); })
+fetch('/api/project?id=' + ID).then(r => r.json()).then(d => {
+  P = d;
+  // Land on the engine when there is one: it is the synthesis of everything
+  // else on this page, and making a reader find it defeats the point.
+  if (P.engine && P.engine.summary) tab = 'engine';
+  render();
+})
   .catch(e => { document.getElementById('pProfile').innerHTML = '<div class="empty">' + esc(String(e)) + '</div>'; });
 
 function render(){
@@ -513,8 +555,10 @@ function evidence(){
     '<div class="ph"><b>' + T('证据','Evidence') + '</b><span class="mono">' + samplesLine()
       + '</span><button class="cx" data-rail="pEvidence">‹</button></div>'
     + '<div class="tabs">' + strip + '</div>'
-    + '<div>' + (tab === 'visible' ? visibleTab() : tab === 'watch' ? watchTab() : soonTab(tab)) + '</div>';
+    + '<div>' + (tab === 'engine' ? engineTab() : tab === 'visible' ? visibleTab() : tab === 'watch' ? watchTab() : soonTab(tab)) + '</div>';
   document.querySelectorAll('[data-tab]').forEach(el => { el.onclick = () => { tab = el.dataset.tab; evidence(); }; });
+  const em = document.getElementById('engMore');
+  if (em) em.onclick = () => { engMore = !engMore; evidence(); };
 }
 
 function samplesLine(){
@@ -557,6 +601,106 @@ function watchTab(){
                 'Re-crawled daily at 03:00 UTC; last run ' + new Date(P.loop.lastCheck).toISOString().slice(0,10) + '.')
             : T('还没开始每天重爬。','The daily re-crawl has not started.')) + '</div>';
 }
+
+/* The engine's output, stacked. A verdict first, then the actions ordered by
+   how many independent methodologies arrived at each, then the levels, then
+   what the whole run says it is missing.
+
+   Convergence is the ranking, not priority. Five methodologies reasoning from
+   five different starting points landing on the same action is stronger
+   evidence than one of them shouting — the single confident voice is the one
+   most likely to be wrong. */
+function engineTab(){
+  const e = P.engine;
+  if (!e) return '<div class="empty">' + T('这一轮还没跑方法论。','No methodologies were run for this project.') + '</div>';
+  if (!e.summary) {
+    const done = (e.runs || []).length, total = done + (e.queue || []).length;
+    return '<div class="empty">' + T('正在跑 ' + done + '/' + total + ' 套方法论…',
+      'Running ' + done + '/' + total + ' methodologies…') + '</div>';
+  }
+  const s = e.summary;
+  const conv = s.converged || [];
+  const shown = engMore ? conv : conv.slice(0, 12);
+  const multi = conv.filter(c => c.skills.length > 1).length;
+
+  const head = '<div class="meter" style="border-style:solid;background:var(--well)">'
+    + '<span class="n">' + (s.total || 0) + '</span>'
+    + '<span class="t"><b>' + T('套方法论跑完了','methodologies applied') + '</b> — '
+    + T(s.ran + ' 套有实数据 · ' + s.partial + ' 套数据不全 · ' + s.na + ' 套对你不适用'
+        + (s.blocked ? ' · ' + s.blocked + ' 套失败' : ''),
+        s.ran + ' on real data · ' + s.partial + ' partial · ' + s.na + ' do not apply'
+        + (s.blocked ? ' · ' + s.blocked + ' failed' : '')) + '<br>'
+    + '<span style="color:var(--faint)">'
+    + T((s.actions || []).length + ' 条动作收敛成 ' + conv.length + ' 条，其中 ' + multi + ' 条有两套以上方法论独立指向。',
+        (s.actions || []).length + ' actions converged to ' + conv.length + ', of which ' + multi
+        + ' were reached independently by two or more methodologies.')
+    + '</span></span></div>';
+
+  const rows = shown.map((c, i) => {
+    const n = c.skills.length;
+    const strong = n >= 3 ? 'ok' : n === 2 ? 'amber' : 'line';
+    return '<div class="conv" style="border-left-color:var(--' + strong + ')">'
+      + '<div class="convh"><span class="pr ' + esc(c.priority) + '">' + esc(c.priority) + '</span>'
+      + (n > 1 ? '<span class="agree">' + T(n + ' 套方法论都指向这条', n + ' methodologies agree') + '</span>'
+               : '<span class="agree solo">' + T('孤证','single source') + '</span>')
+      + '<b>' + esc(c.do) + '</b></div>'
+      + '<div class="convw"><b>' + T('做到这样算完：','Done when: ') + '</b>' + esc(c.doneWhen) + '</div>'
+      + '<div class="convs">' + c.skills.map(x => '<span class="sk">' + esc(x) + '</span>').join('') + '</div>'
+      + (c.variants && c.variants.length > 1
+          ? '<details class="convv"><summary>' + T('各自的原话（' + c.variants.length + ' 种说法）',
+              c.variants.length + ' phrasings') + '</summary>'
+            + c.variants.map(v => '<div>· ' + esc(v) + '</div>').join('') + '</details>'
+          : '')
+      + '</div>';
+  }).join('');
+
+  const more = conv.length > 12
+    ? '<button class="btn" id="engMore" style="margin-top:8px">'
+      + (engMore ? T('只看前 12 条','show top 12') : T('展开全部 ' + conv.length + ' 条','show all ' + conv.length))
+      + '</button>' : '';
+
+  // The levels. Collapsed by default: the ranked list above is what someone
+  // works from, and this is where they go to check it.
+  const byTier = {};
+  for (const r of e.runs || []) (byTier[tierOfRun(r)] = byTier[tierOfRun(r)] || []).push(r);
+  const levels = TIERS.filter(t => byTier[t.id]).map(t => {
+    const rs = byTier[t.id];
+    const na = rs.filter(r => r.status === 'n/a').length;
+    return '<details class="lvl"><summary>' + esc(ZH ? t.zh : t.en)
+      + ' <span class="lvln">' + rs.length + T(' 套', '')
+      + (na ? T(' · ' + na + ' 套不适用', ' · ' + na + ' n/a') : '') + '</span></summary>'
+      + rs.map(r => '<div class="run ' + esc(r.status.replace('/', '')) + '">'
+          + '<div class="runh"><span class="sk">' + esc(r.skill) + '</span>'
+          + '<span class="rst">' + esc(STAT[r.status] || r.status) + '</span></div>'
+          + '<div class="runv">' + esc(r.verdict || '—') + '</div>'
+          + (r.findings || []).slice(0, 2).map(f =>
+              '<div class="runf">· ' + esc(f.claim) + (f.evidence ? '<span> ← ' + esc(f.evidence) + '</span>' : '') + '</div>').join('')
+          + '</div>').join('')
+      + '</details>';
+  }).join('');
+
+  const needs = (s.needs || []).slice(0, 12);
+  return head
+    + '<div class="shead"><b>' + T('该做什么 · 按方法论一致程度排','What to do · ranked by agreement')
+    + '</b><span>' + T('这些是方法论的判断，不是机器验收的工单 —— 右边那一栏才是重爬能核对的。',
+        'These are judgements, not machine-verified tickets — the column on the right is what a re-crawl can check.')
+    + '</span></div>'
+    + rows + more
+    + '<div class="shead"><b>' + T('逐层看','By level') + '</b><span>'
+    + T('先战略，再断点那一层，其余按漏斗顺序','strategy first, then the broken tier, then the funnel order') + '</span></div>'
+    + levels
+    + (needs.length ? '<div class="shead"><b>' + T('要跑得更准，还缺这些','What it would take to do this properly')
+        + '</b><span>' + T('这是所有方法论说自己缺什么，去重后的结果','every methodology naming what it lacks, deduped')
+        + '</span></div>' + needs.map(n => '<div class="sig"><span>' + esc(n) + '</span></div>').join('') : '');
+}
+
+const STAT = ZH
+  ? { ran:'有实数据', partial:'数据不全', 'n/a':'不适用', blocked:'没跑成' }
+  : { ran:'ran', partial:'partial', 'n/a':'n/a', blocked:'failed' };
+
+/* parseRun already stamped the tier onto each run as its domain field;
+   re-deriving it here would be a second source of truth for the same fact. */
+const tierOfRun = r => r.domain || 'strategy';
 
 function visibleTab(){
   const m = P.metrics, a = P.audit, pr = P.probe;

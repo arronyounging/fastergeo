@@ -90,6 +90,7 @@ try {
   }
   console.log('✓ /my parses and keeps its local-only disclosure');
 
+
   // The console is the biggest template in the project and the one a customer
   // lands on. Same treatment: render it, parse its script, run its markdown.
   const cHtml = await (await consoleGet({
@@ -102,15 +103,40 @@ try {
   // side effect — the console's script is written that way on purpose.
   // The honesty patterns are the product, so the guard holds them, not the copy.
   for (const need of ['我们的纪律', '算不出就写「未测」，绝不写 0', '不做', '我们不做这个',
-                      '没测过的东西，我们不会假装手里有', '0 是一个测量结果', '重爬说了算']) {
+                      '没测过的东西，我们不会假装手里有', '0 是一个测量结果', '重爬说了算',
+                      '这些是方法论的判断，不是机器验收的工单']) {
     if (!cHtml.includes(need)) throw new Error(`console lost its discipline: "${need}"`);
   }
   for (const need of ['id="pProfile"', 'id="pEvidence"', 'id="pToday"', 'id="pAsk"',
                       'const DOMAINS', 'function funnelHtml(', 'function engineTable(', 'data-a="done"',
                       'function auditHtml(', 'function shead(', 'id="grip"', 'data-rail="pProfile"',
-                      'function tail(', 'function sourceTag(', 'const CAPS = ', 'function capsHtml(', 'id="bCaps"']) {
+                      'function tail(', 'function sourceTag(', 'const CAPS = ', 'function capsHtml(', 'id="bCaps"',
+                      'function engineTab(', 'const TIERS = ', 'class="conv"']) {
     if (!cHtml.includes(need)) throw new Error(`console lost ${need}`);
   }
+  // The console's script is definitions-only up to boot(), so the engine view
+  // can be executed here. Asserting the function's *name* is present would have
+  // missed a missing variable declaration that made the whole pane render empty.
+  const body = cm[1];
+  // Everything from the first declaration to the state line, plus the view
+  // itself: T, esc and STAT all live in there.
+  // ID / ZH / T / esc / TIERS / STAT are all declared in the block before the
+  // mutable state line, so the view runs with the page's own definitions and
+  // only P and engMore are injected.
+  const defs = body.slice(body.indexOf('const ID ='), body.indexOf('let P = null'))
+    + body.slice(body.indexOf('function engineTab('), body.indexOf('function visibleTab('));
+  const engine = new Function('P', 'engMore',
+    defs + '\nreturn engineTab;')(
+    { engine: { summary: { total: 3, ran: 1, partial: 2, na: 0, blocked: 0,
+        actions: [{}, {}], needs: ['GA4'],
+        converged: [{ do: 'do a thing', doneWhen: 'when x', priority: 'P0',
+                      skills: ['a', 'b'], tiers: ['strategy'], variants: ['do a thing', 'do the thing'] }] } ,
+      runs: [{ skill: 'a', domain: 'strategy', status: 'ran', verdict: 'v', findings: [], actions: [], needs: [] }] } },
+    false)();
+  for (const need of ['2 套方法论都指向这条', 'do a thing', '战略']) {
+    if (!engine.includes(need)) throw new Error(`engineTab lost "${need}"`);
+  }
+  console.log('✓ engineTab renders convergence, levels and the judgement caveat');
   console.log('✓ console parses and keeps the discipline the local workbench established');
 } catch (e) {
   console.error(`✗ rendered panel is broken: ${e.message}`);

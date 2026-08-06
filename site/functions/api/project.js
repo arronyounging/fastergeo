@@ -11,6 +11,7 @@
 import { kv } from './_store.js';
 import { STAGES } from './_pipeline.js';
 import { sortFeed, feedCounts } from '@fastergeo/tickets';
+import { converge } from '@fastergeo/engine';
 
 const BAD_HOSTS = /^(localhost|127\.|0\.|10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|\[|.*\.(local|internal)$)/i;
 const JSON_H = { 'Content-Type': 'application/json; charset=utf-8' };
@@ -75,6 +76,13 @@ export async function onRequestGet({ request, env }) {
   // of "which of these is unread" drift, and the one the user sees would be the
   // one nothing tests.
   const now = new Date().toISOString();
+  // Convergence is derived, and it was added after some projects had already
+  // run. Topping it up on read costs microseconds and saves a migration; a
+  // stored project that predates a derived field should not have to be re-run
+  // to get it.
+  if (lite.engine?.summary && !lite.engine.summary.converged) {
+    lite.engine.summary.converged = converge(lite.engine.summary.actions ?? []);
+  }
   return new Response(JSON.stringify({
     ...lite, pageCount: pages.length,
     ...(feed?.length ? {
