@@ -15,10 +15,11 @@
 import { auditPage, checkSite, fetchPage } from '@fastergeo/audit';
 import { generateTickets, diagnose, stationForTicket, playbookFor, stationOf, mergeFeed, feedCounts } from '@fastergeo/tickets';
 import { bootstrapProject, assessDossier } from '@fastergeo/content';
+import { startEngine, runEngineBatch } from './_engine.js';
 import { askLlm, parseJsonish } from './_llm.js';
 import { buildVoice, buildContentStrategy } from './_docs.js';
 
-export const STAGES = ['crawl', 'audit', 'dossier', 'docs', 'probe', 'tickets', 'done'];
+export const STAGES = ['crawl', 'audit', 'dossier', 'docs', 'probe', 'tickets', 'engine', 'done'];
 
 const MAX_PAGES = 5;
 const say = (p, en, zh) => p.log.push({ t: Date.now(), m: p.lang === 'zh' ? zh : en });
@@ -132,6 +133,26 @@ const STAGE_FNS = {
     }
     say(p, `Site AI-readiness: ${p.audit.avgScore ?? '—'} / 100.`, `网站 AI 就绪度：${p.audit.avgScore ?? '—'} / 100。`);
     return 'dossier';
+  },
+
+  async engine(p, env) {
+    const r = await runEngineBatch(p, env);
+    const done = (p.engine?.runs ?? []).length;
+    const total = done + (p.engine?.queue ?? []).length;
+    for (const x of r.results ?? []) {
+      if (x.status === 'n/a') continue;
+      say(p, `[${x.skill}] ${x.verdict}`, `[${x.skill}] ${x.verdict}`);
+    }
+    if (!r.done) {
+      say(p, `${done}/${total} methodologies done.`, `方法论跑了 ${done}/${total}。`);
+      return 'engine';
+    }
+    const s = p.engine.summary ?? {};
+    say(p, `All ${total} done — ${s.ran ?? 0} ran on real data, ${s.partial ?? 0} on partial, ${s.na ?? 0} do not apply to you.`,
+      `${total} 套跑完 —— ${s.ran ?? 0} 套有实数据，${s.partial ?? 0} 套数据不全，${s.na ?? 0} 套对你不适用。`);
+    say(p, `${(s.actions ?? []).length} actions came out of it, ranked.`,
+      `一共得出 ${(s.actions ?? []).length} 条动作，已按优先级排好。`);
+    return 'done';
   },
 
   async dossier(p, env) {
@@ -252,7 +273,10 @@ const STAGE_FNS = {
         `你断在第 ${s.n} 站：${s.q.zh}它后面的活先等着。`);
     }
     say(p, `Done. Everything above is on this page now.`, `跑完了。上面这些现在都在这一页上。`);
-    return 'done';
+    const n = startEngine(p);
+    say(p, `Now running all ${n} methodologies against your company — strategy first, then whatever the funnel says is broken.`,
+      `现在把 ${n} 套方法论逐个套到你的公司上跑 —— 先跑战略，再跑漏斗说断了的那一层。`);
+    return 'engine';
   },
 };
 

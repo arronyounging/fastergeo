@@ -144,6 +144,18 @@ importers:
         specifier: ^3.0.0
         version: 3.2.7(@types/node@20.19.43)(jiti@2.7.0)
 
+  packages/engine:
+    devDependencies:
+      tsup:
+        specifier: ^8.0.0
+        version: 8.5.1(jiti@2.7.0)(postcss@8.5.25)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.4.0
+        version: 5.9.3
+      vitest:
+        specifier: ^3.0.0
+        version: 3.2.7(@types/node@25.9.5)(jiti@2.7.0)
+
   packages/mcp:
     dependencies:
       '@fastergeo/audit':
@@ -371,6 +383,9 @@ importers:
       '@fastergeo/content':
         specifier: workspace:^
         version: link:../packages/content
+      '@fastergeo/engine':
+        specifier: workspace:^
+        version: link:../packages/engine
       '@fastergeo/rules':
         specifier: workspace:^
         version: link:../packages/rules

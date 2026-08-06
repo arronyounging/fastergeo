@@ -13,6 +13,7 @@
     "@fastergeo/rules": "workspace:^",
     "@fastergeo/tickets": "workspace:^",
     "@fastergeo/content": "workspace:^",
-    "@fastergeo/capabilities": "workspace:^"
+    "@fastergeo/capabilities": "workspace:^",
+    "@fastergeo/engine": "workspace:^"
   }
 }

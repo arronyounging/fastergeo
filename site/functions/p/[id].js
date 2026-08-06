@@ -229,7 +229,9 @@ async function boot(){
 /* One stage per request: a Worker cannot hold the connection for the whole
    pipeline, and each returned line is what makes the terminal real. */
 async function loop(){
-  for (let guard = 0; guard < 12; guard++){
+  // Raised for the engine: six pipeline stages plus roughly nine batches of
+  // methodologies. The guard exists to stop a runaway server, not to cap work.
+  for (let guard = 0; guard < 40; guard++){
     document.getElementById('stage').textContent = T('正在跑：','running: ') + P.stage;
     let r;
     try {
