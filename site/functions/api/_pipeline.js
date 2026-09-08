@@ -148,6 +148,20 @@ const STAGE_FNS = {
       return 'engine';
     }
     const s = p.engine.summary ?? {};
+    // An outage is ours and must not be dressed as a result. "0 actions,
+    // ranked" reads as a finding about the user's company; it was a billing
+    // failure on our side, and every stage of this run said so and was ignored.
+    if (p.engine.outage) {
+      const why = { 'no-credit': [`our model account is out of credit`, `我们的模型账户余额用完了`],
+        'rate-limited': [`we are being rate limited by the model provider`, `模型服务商在限我们的速`],
+        'bad-key': [`our model key is not working`, `我们的模型 Key 失效了`] }[p.engine.outage]
+        ?? [`our model provider is failing`, `模型服务商在报错`];
+      say(p, `Stopping: ${why[0]}. This is on us, not your site.`,
+        `我停下了：${why[1]}。这是我们的问题，不是你网站的问题。`);
+      say(p, `${p.engine.abandoned ?? 0} methodologies were not attempted. Nothing here is a finding about you — re-run once this is fixed.`,
+        `还有 ${p.engine.abandoned ?? 0} 套方法论根本没跑。这一轮没有任何结论是关于你的 —— 等我们修好了重跑一次。`);
+      return 'done';
+    }
     say(p, `All ${total} done — ${s.ran ?? 0} ran on real data, ${s.partial ?? 0} on partial, ${s.na ?? 0} do not apply to you.`,
       `${total} 套跑完 —— ${s.ran ?? 0} 套有实数据，${s.partial ?? 0} 套数据不全，${s.na ?? 0} 套对你不适用。`);
     say(p, `${(s.actions ?? []).length} actions came out of it, ranked.`,
@@ -341,9 +355,23 @@ export async function runStage(p, env) {
     p.stage = await fn(p, env);
   } catch (err) {
     const msg = String(err?.message ?? err);
-    say(p, `Could not finish this step (${msg}) — carrying on with what worked.`,
-      `这一步没跑完（${msg}）—— 用已经成功的部分继续。`);
-    p.errors = [...(p.errors ?? []), { stage: p.stage, msg }];
+    // An outage is ours, and saying "llm 402" to a customer both leaks an
+    // internal code and implies the failure had something to do with their
+    // site. Owned in words, with the fact that the rest of the run is thinner
+    // because of us.
+    if (err?.outage) {
+      const why = { 'no-credit': ['our model account is out of credit', '我们的模型账户余额用完了'],
+        'rate-limited': ['the model provider is rate-limiting us', '模型服务商在限我们的速'],
+        'bad-key': ['our model key stopped working', '我们的模型 Key 失效了'] }[err.reason]
+        ?? ['our model provider is failing', '模型服务商在报错'];
+      say(p, `This step needs a model and ${why[0]} — that is on us, not your site. Carrying on with the parts that need no model.`,
+        `这一步要用模型，而${why[1]} —— 这是我们的问题，不是你网站的问题。不需要模型的那些继续跑。`);
+      p.outage = err.reason || 'outage';
+    } else {
+      say(p, `Could not finish this step (${msg}) — carrying on with what worked.`,
+        `这一步没跑完（${msg}）—— 用已经成功的部分继续。`);
+    }
+    p.errors = [...(p.errors ?? []), { stage: p.stage, msg, ...(err?.outage ? { outage: err.reason } : {}) }];
     const i = STAGES.indexOf(p.stage);
     p.stage = STAGES[Math.min(i + 1, STAGES.length - 1)];
   }

@@ -36,7 +36,18 @@ export async function askLlm(env, prompt, { maxTokens = 1200, signal, json = fal
     }),
     signal,
   });
-  if (!res.ok) throw new Error(`llm ${res.status}`);
+  if (!res.ok) {
+    // 401/402/429 are OUR problem — an expired key, an empty balance, a rate
+    // limit. Reporting them the same way as a bad answer lets a whole run fail
+    // on our billing and still be handed to the user as a finding about their
+    // site. Tagged so every caller can tell an outage from a result.
+    const err = new Error(`llm ${res.status}`);
+    if (res.status === 401 || res.status === 402 || res.status === 403 || res.status === 429) {
+      err.outage = true;
+      err.reason = res.status === 402 ? 'no-credit' : res.status === 429 ? 'rate-limited' : 'bad-key';
+    }
+    throw err;
+  }
   const data = await res.json();
   if (data?.error) throw new Error(String(data.error?.message ?? 'llm error'));
   const choice = data?.choices?.[0];

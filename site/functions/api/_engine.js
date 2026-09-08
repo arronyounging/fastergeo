@@ -73,8 +73,15 @@ async function runOne(env, skill, g) {
   } catch (e) {
     // A failed methodology is a visible row, not a hole. Sixty-eight good rows
     // and one that says why it failed is a better artefact than sixty-eight
-    // rows and a silence.
-    return { ...parseRun(skill, tierOf(skill), null), error: String(e?.message ?? e), ms: Date.now() - t0 };
+    // rows and a silence. But an outage is not a methodology failing — it is
+    // ours, and it is carried up so the queue can stop rather than burn sixty
+    // more calls that cannot succeed.
+    return {
+      ...parseRun(skill, tierOf(skill), null),
+      error: String(e?.message ?? e),
+      ...(e?.outage ? { outage: e.reason || 'outage' } : {}),
+      ms: Date.now() - t0,
+    };
   }
 }
 
@@ -99,6 +106,22 @@ export async function runEngineBatch(p, env) {
   const g = ground(p);
   const results = await Promise.all(batch.map(s => runOne(env, s, g)));
   e.runs.push(...results);
+
+  // Every call in the batch died the same infrastructure death: the key, the
+  // balance or the rate limit. Continuing would spend sixty more requests to
+  // produce sixty more identical failures, and — worse — would end with a tidy
+  // "0 actions, ranked", which reads as a finding about the user's company
+  // rather than an outage on our side.
+  const outages = results.filter(r => r.outage);
+  if (outages.length === results.length && results.length) {
+    e.outage = outages[0].outage;
+    e.abandoned = e.queue.length;
+    e.queue = [];
+    e.finishedAt = new Date().toISOString();
+    e.summary = summarise(e.runs);
+    return { done: true, ran: batch, results, outage: e.outage };
+  }
+
   if (!e.queue.length) {
     // The seven-station rule applied to the engine's own output: a methodology
     // downstream of the break may not claim today. Done once, at the end, so a

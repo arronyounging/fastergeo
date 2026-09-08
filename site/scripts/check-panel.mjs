@@ -136,6 +136,15 @@ try {
   for (const need of ['2 套方法论都指向这条', 'do a thing', '战略']) {
     if (!engine.includes(need)) throw new Error(`engineTab lost "${need}"`);
   }
+  // An outage is ours. A real run once burned all 67 calls on an empty billing
+  // account and reported "0 actions, ranked" — which reads as a finding about
+  // the user's company. The view must refuse to render results at all.
+  const down = new Function('P', 'engMore', defs + '\nreturn engineTab;')(
+    { engine: { outage: 'no-credit', abandoned: 59, runs: [],
+      summary: { total: 8, ran: 0, partial: 0, na: 0, blocked: 8, actions: [], needs: [], converged: [] } } },
+    false)();
+  if (!down.includes('是我们的问题，不是你网站的问题')) throw new Error('outage is not owned');
+  if (down.includes('该做什么')) throw new Error('outage still rendered an action list');
   console.log('✓ engineTab renders convergence, levels and the judgement caveat');
   console.log('✓ console parses and keeps the discipline the local workbench established');
 } catch (e) {

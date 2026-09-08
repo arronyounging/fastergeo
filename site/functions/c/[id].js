@@ -618,6 +618,20 @@ function engineTab(){
     return '<div class="empty">' + T('正在跑 ' + done + '/' + total + ' 套方法论…',
       'Running ' + done + '/' + total + ' methodologies…') + '</div>';
   }
+  // Said before anything else, because it changes what everything below means:
+  // none of it is about this company.
+  if (e.outage) {
+    const why = ZH
+      ? ({ 'no-credit':'我们的模型账户余额用完了', 'rate-limited':'模型服务商在限我们的速', 'bad-key':'我们的模型 Key 失效了' }[e.outage] || '模型服务商在报错')
+      : ({ 'no-credit':'our model account ran out of credit', 'rate-limited':'the model provider rate-limited us', 'bad-key':'our model key stopped working' }[e.outage] || 'the model provider failed');
+    return '<div class="wallbar" style="border-radius:8px"><b>'
+      + T('这一轮方法论没跑成 —— 是我们的问题，不是你网站的问题。',
+          'The methodologies did not run — that is on us, not your site.') + '</b>'
+      + esc(why) + '。'
+      + T((e.abandoned || 0) + ' 套根本没被尝试。下面不会有任何关于你的结论 —— 等我们修好了重跑一次。',
+          ' ' + (e.abandoned || 0) + ' were never attempted. Nothing below would be a finding about you — re-run once this is fixed.')
+      + '</div>';
+  }
   const s = e.summary;
   const conv = s.converged || [];
   const shown = engMore ? conv : conv.slice(0, 12);
