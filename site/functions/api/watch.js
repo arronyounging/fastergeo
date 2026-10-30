@@ -7,7 +7,7 @@
  * re-crawl the page and write when a fix lands, which is the one hand-off in
  * the funnel that does not depend on the user remembering to come back.
  */
-import { watchScan, validEmail, kv } from './_store.js';
+import { watchScan, loadScan, validEmail, kv } from './_store.js';
 import { loadProject, saveProject } from './project.js';
 import { mailReady, newUnsubToken } from './_mail.js';
 
@@ -30,6 +30,11 @@ export async function onRequestPost({ request, env }) {
   if (body?.kind === 'project') {
     const p = await loadProject(env, id);
     if (!p) return new Response(JSON.stringify({ error: 'project not found — it may have expired' }), { status: 404, headers });
+    // A project link is made to be pasted around; holding it must not let someone
+    // replace the address, which would silently cut off the person watching.
+    if (p.email && p.email !== email) {
+      return new Response(JSON.stringify({ error: 'already being watched' }), { status: 409, headers });
+    }
     p.email = email;
     p.watchedAt = p.watchedAt ?? new Date().toISOString();
     p.unsub = p.unsub ?? newUnsubToken();
@@ -38,6 +43,10 @@ export async function onRequestPost({ request, env }) {
     // `mail` tells the page which sentence is true: "I will write" or "results
     // land here". Decided by the same check the sender uses.
     return new Response(JSON.stringify({ ok: true, url: p.url, mail: mailReady(env) }), { headers });
+  }
+  const existing = await loadScan(env, id);
+  if (existing?.email && existing.email !== email) {
+    return new Response(JSON.stringify({ error: 'already being watched' }), { status: 409, headers });
   }
   const rec = await watchScan(env, id, email);
   if (!rec) {

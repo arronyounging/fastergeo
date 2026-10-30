@@ -63,10 +63,10 @@ export function composeLetter(p, result, origin) {
   // proves what the site serves, a re-ask proves what an engine answered.
   const r = result.reasons ?? [];
   const aiOnly = r.some(x => x.startsWith('ai ')) && !r.some(x => FIXED.has(x) && !x.startsWith('ai '));
-  if (aiOnly && kind === 'fixed') {
+  if (aiOnly) {
     const subj = zh ? `${host}：AI 对你的说法变了` : `${host}: AI changed what it says about you`;
-    const ld = zh ? '这周重问了 AI 同一个问题，连问三次，回答都和上次不同。下面是它现在的说法。'
-                  : 'We asked the AI the same question as last time, three times, and every answer differed from before. Here is what it says now.';
+    const ld = zh ? '这周重问了 AI 同一个问题，连问三次，判定都和上次不同。'
+                  : 'We asked the AI the same question as last time, three times, and each verdict differed from before.';
     return finish(subj, ld);
   }
   const subject = kind === 'fixed'

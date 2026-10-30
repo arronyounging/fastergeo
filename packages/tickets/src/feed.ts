@@ -39,12 +39,20 @@ export interface FeedItem extends Ticket {
   playbook?: unknown;
 }
 
+/**
+ * `pages.issue_lte:<code>:<target>` carries a target derived from the current
+ * count, so the same problem on 3 pages and on 2 pages had two identities: the
+ * old key "resolved" and the user was told it was fixed while it got no better,
+ * or even worse. The problem is the code; the target is only this run's goal.
+ */
+const stableKey = (k: string): string => k.replace(/^(pages\.issue_lte:[^:]+):\d+$/, '$1');
+
 export const feedKey = (t: { acceptance?: { check?: string; desc?: string }; title?: string }): string =>
-  t.acceptance?.check || t.title || t.acceptance?.desc || 'unknown';
+  stableKey(t.acceptance?.check || t.title || t.acceptance?.desc || 'unknown');
 
 export interface MergeResult {
   items: FeedItem[];
-  /** Findings that disappeared this run — a fix landed. */
+  /** Findings the crawl now finds gone: a fix landed, or a claimed one was confirmed. */
   resolved: FeedItem[];
   /** Findings that had cleared and came back. */
   regressed: FeedItem[];
@@ -61,7 +69,14 @@ export interface MergeResult {
  * and the product quieter about the only outcome it exists to produce.
  */
 export function mergeFeed(prev: FeedItem[], fresh: Ticket[], now = new Date().toISOString()): MergeResult {
-  const byKey = new Map(prev.map(i => [i.key, i]));
+  // Stored queues may hold old target-bearing keys, sometimes several for one
+  // problem. Collapse them, preferring whichever is still open.
+  const byKey = new Map<string, FeedItem>();
+  for (const raw of prev) {
+    const i = { ...raw, key: stableKey(raw.key) };
+    const had = byKey.get(i.key);
+    if (!had || had.state === 'done') byKey.set(i.key, i);
+  }
   const freshKeys = new Set(fresh.map(feedKey));
   const items: FeedItem[] = [];
   const added: FeedItem[] = [];
@@ -104,9 +119,22 @@ export function mergeFeed(prev: FeedItem[], fresh: Ticket[], now = new Date().to
     });
   }
 
-  for (const old of prev) {
+  for (const old of byKey.values()) {
     if (freshKeys.has(old.key)) continue;
-    if (old.state === 'done') { items.push(old); continue; }
+    if (old.state === 'done') {
+      // The owner said it was fixed and the crawl now agrees. That is the
+      // confirmation they were waiting for, so it is reported, once, and the
+      // claim becomes a verified fact: a later return is a real regression.
+      if (old.doneBy === 'owner') {
+        const { doneBy: _claim, ...confirmed } = old;
+        const item: FeedItem = { ...confirmed, lastSeen: now };
+        items.push(item);
+        resolved.push(item);
+        continue;
+      }
+      items.push(old);
+      continue;
+    }
     const item: FeedItem = { ...old, state: 'done', resolvedAt: old.resolvedAt ?? now, lastSeen: now };
     items.push(item);
     resolved.push(item);

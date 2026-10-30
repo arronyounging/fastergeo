@@ -137,11 +137,13 @@ export async function onRequestGet({ params, env, request }) {
       <span class="v">${na ? `<em>${t.notMeasured}</em>` : `${d.score}/${d.max}`}</span></div>`;
   }).join('');
 
-  const chk = (ok, label) => `<span class="${ok ? 'ok' : 'no'}">${ok ? '✓' : '✗'} ${label}</span>`;
+  const chk = (ok, label, c) => site.unmeasured?.includes(c)
+    ? `<span class="no">? ${label}</span>`
+    : `<span class="${ok ? 'ok' : 'no'}">${ok ? '✓' : '✗'} ${label}</span>`;
   const checks = site ? `<div class="checks">
-    ${chk(site.robotsTxtFound, 'robots.txt')}
-    ${chk(!(site.blockedSearchCrawlers ?? site.blockedAiCrawlers ?? []).length, lang === 'zh' ? 'AI 爬虫未被封' : 'AI crawlers allowed')}
-    ${chk(site.sitemapFound, 'sitemap')} ${chk(site.llmsTxtFound, 'llms.txt')}</div>` : '';
+    ${chk(site.robotsTxtFound, 'robots.txt', 'robots')}
+    ${chk(!(site.blockedSearchCrawlers ?? site.blockedAiCrawlers ?? []).length, lang === 'zh' ? 'AI 爬虫未被封' : 'AI crawlers allowed', 'robots')}
+    ${chk(site.sitemapFound, 'sitemap', 'sitemap')} ${chk(site.llmsTxtFound, 'llms.txt', 'llms')}</div>` : '';
 
   // Every ticket carries what "done" has to look like. That line is the whole
   // difference between a recommendation and something you can check later.

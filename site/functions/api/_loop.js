@@ -14,7 +14,7 @@
  * Most runs should end with "nothing to report" and write nothing but a
  * last-checked marker. That is the loop working, not the loop failing.
  */
-import { auditPage, checkSite } from '@fastergeo/audit';
+import { auditPage, checkSite, carryForwardSite } from '@fastergeo/audit';
 import { generateTickets, mergeFeed, feedCounts, stationForTicket, playbookFor } from '@fastergeo/tickets';
 
 const DAY = 86400e3;
@@ -58,8 +58,8 @@ export async function runDailyCheck(p, env) {
     Promise.all(urls.map(u => auditPage(u, { timeoutMs: 15000 }).catch(() => null))),
     checkSite(p.url, 10000).catch(() => null),
   ]);
-  const ok = pages.filter(Boolean);
-  if (!ok.length) {
+  const reached = pages.filter(Boolean);
+  if (!reached.length) {
     // Not silent: a site we cannot reach at all is itself worth one line, but
     // only once per cooldown so an outage does not become a daily drumbeat.
     if (!quiet('blocker:unreachable')) {
@@ -73,10 +73,14 @@ export async function runDailyCheck(p, env) {
     return { acted: false, reasons: ['unreachable, already reported'] };
   }
 
+  // A page that failed today keeps its last audit. Dropped instead, its tickets
+  // vanish, and the merge below would announce a fix nobody made.
+  const ok = urls.map((u, i) => pages[i] ?? (before.pages ?? []).find(x => x.url === u)).filter(Boolean);
+
   const avg = Math.round((ok.reduce((s, x) => s + x.score, 0) / ok.length) * 10) / 10;
   const after = {
     ...before, generatedAt: new Date().toISOString(),
-    site: site ?? before.site, pages: ok, avgScore: avg,
+    site: site ? carryForwardSite(before.site, site) : before.site, pages: ok, avgScore: avg,
   };
 
   /* ── what changed, and is any of it worth saying ─────────────────────── */
@@ -92,7 +96,10 @@ export async function runDailyCheck(p, env) {
       `修好了：${pg.url} 现在对 AI 爬虫可见了 —— 从读不到变成 ${pg.wordCount} 个词。`);
     reasons.push('blocker cleared');
   }
-  if (!before.site?.llmsTxtFound && after.site?.llmsTxtFound) {
+  // Only against a baseline that was measured: going from "could not tell" to
+  // "there" is learning something, not a fix landing.
+  // A scan whose site checks failed outright stored no baseline at all.
+  if (before.site && !before.site.llmsTxtFound && after.site?.llmsTxtFound && !before.site.unmeasured?.includes('llms')) {
     say(lines, lang, `Fixed: llms.txt is live.`, `修好了：llms.txt 上线了。`);
     reasons.push('llms.txt added');
   }
@@ -120,7 +127,7 @@ export async function runDailyCheck(p, env) {
       }
     }
   }
-  const newlyBlocked = (after.site?.blockedSearchCrawlers ?? [])
+  const newlyBlocked = !before.site || before.site.unmeasured?.includes('robots') ? [] : (after.site?.blockedSearchCrawlers ?? [])
     .filter(c => !(before.site?.blockedSearchCrawlers ?? []).includes(c));
   if (newlyBlocked.length && !quiet('crawler:blocked')) {
     say(lines, lang,
@@ -144,11 +151,14 @@ export async function runDailyCheck(p, env) {
   p.tickets = fresh;
   // The queue already knows what cleared; say it in the user's words rather
   // than re-deriving it from page blockers.
-  for (const r of merged.resolved) {
+  // The score-target ticket flips as the average crosses 70, even by one point.
+  // Score movement has its own noise floor above; this must not route around it.
+  const isScore = r => String(r.key).startsWith('site.avg_score_gte');
+  for (const r of merged.resolved.filter(x => !isScore(x))) {
     say(lines, lang, `Fixed: ${r.title}`, `修好了：${r.title}`);
     reasons.push('ticket cleared');
   }
-  for (const r of merged.regressed) {
+  for (const r of merged.regressed.filter(x => !isScore(x))) {
     if (r.neverVerified) {
       say(lines, lang,
         `Still there: ${r.title}. You marked this done, but the crawl still finds it.`,

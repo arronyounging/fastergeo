@@ -81,7 +81,11 @@ if (!L.text.includes('Fixed:')) fail('the letter must say what was fixed in the 
 if (!after.mail?.sent || !after.unsub) fail('the outcome and an unsubscribe token must be stored on the project');
 console.log(`✓ sweep re-crawled ${target}, saw the fix land, wrote one letter: "${L.subject}"`);
 
+// A day later: inside the same day it would be skipped, and prove nothing.
+const nextDay = key => { const x = JSON.parse(SCANS.m.get(key)); x.loop.lastCheck -= 86400e3; SCANS.m.set(key, JSON.stringify(x)); };
+nextDay(`p:${p.id}`);
 const again = await sweep(env);
+if (again.checked !== 1) fail(`second sweep did not re-check: ${JSON.stringify(again)}`);
 if (sent.length !== 1) fail(`a second sweep with nothing new wrote again (${JSON.stringify(again)})`);
 console.log('✓ a second sweep with nothing new stays quiet');
 

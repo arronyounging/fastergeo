@@ -176,7 +176,8 @@ export function generateTickets(
         acceptance: { type: 'auto', check: 'pages.issue_lte:spa-shell:0', desc: t9['spa-shell'].desc },
       });
     }
-    if (!audit.site.llmsTxtFound) {
+    // "Could not tell" is not "missing": no ticket for what was never measured.
+    if (!audit.site.llmsTxtFound && !audit.site.unmeasured?.includes('llms')) {
       mk('llms-txt', {
         title: m.llmsTitle,
         priority: 'P2', // honest grading: zero weight for Google
@@ -184,7 +185,7 @@ export function generateTickets(
         acceptance: { type: 'auto', check: 'site.llms_txt', desc: m.llmsDesc },
       });
     }
-    if (!audit.site.sitemapFound) {
+    if (!audit.site.sitemapFound && !audit.site.unmeasured?.includes('sitemap')) {
       mk('sitemap', {
         title: m.sitemapTitle,
         priority: 'P1',

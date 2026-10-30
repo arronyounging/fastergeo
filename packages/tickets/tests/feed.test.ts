@@ -17,6 +17,31 @@ const seed = (check: string, over: Partial<FeedItem> = {}): FeedItem => ({
 const NOW = '2026-08-05T00:00:00Z';
 
 describe('mergeFeed', () => {
+  it('the same issue on a different page count is the same finding, not a fix', () => {
+    const prev = [seed('pages.issue_lte:faq:1')];
+    const r = mergeFeed(prev, [tk('pages.issue_lte:faq:2')], NOW);
+    expect(r.resolved).toEqual([]);
+    expect(r.added).toEqual([]);
+    expect(r.items.map(i => i.key)).toEqual(['pages.issue_lte:faq']);
+  });
+
+  it('collapses old duplicate keys, keeping the open one', () => {
+    const prev = [seed('pages.issue_lte:faq:1', { state: 'done' }), seed('pages.issue_lte:faq:0', { state: 'seen' })];
+    const r = mergeFeed(prev, [tk('pages.issue_lte:faq:0')], NOW);
+    expect(r.items.length).toBe(1);
+    expect(r.items[0].state).toBe('seen');
+    expect(r.regressed).toEqual([]);
+  });
+
+  it('a claimed fix the crawl confirms is reported once and becomes verified', () => {
+    const claimed = seed('a', { state: 'done', doneBy: 'owner' });
+    const r = mergeFeed([claimed], [], NOW);
+    expect(r.resolved.map(i => i.key)).toEqual(['a']);
+    expect(r.items[0].doneBy).toBeUndefined();
+    expect(mergeFeed(r.items, [], NOW).resolved).toEqual([]);
+    expect(mergeFeed(r.items, [tk('a')], NOW).regressed[0].neverVerified).toBeUndefined();
+  });
+
   it('keys on the acceptance check, not the id — ids drift between runs', () => {
     expect(feedKey(tk('site.llms_txt'))).toBe('site.llms_txt');
     const prev = [seed('site.llms_txt', { id: 'T-001' })];

@@ -11,12 +11,17 @@ import { mergeFeed } from '@fastergeo/tickets';
 import { loadProject, saveProject } from './project.js';
 import { runDailyCheck } from './_loop.js';
 import { reprobe } from './_reprobe.js';
-import { composeLetter, sendMail, newUnsubToken } from './_mail.js';
+import { composeLetter, sendMail, newUnsubToken, mailReady } from './_mail.js';
 
-// A Worker has a wall-clock budget, and a sweep that dies halfway is worse than
-// one that does less: the projects at the end of the list would never be
-// checked. Bounded per run, and the cursor carries on next time.
-const MAX_PER_RUN = 20;
+// A Worker has a wall-clock and a subrequest budget (50 on the free plan; one
+// site costs about 9 before retries, more on its weekly re-ask), and a sweep
+// that dies halfway is worse than one that does less. So each run takes a few,
+// and the clock in ../../cron knocks hourly: already-checked sites are skipped,
+// which is what walks the list without any cursor to lose.
+const MAX_PER_RUN = 3;
+const CHECKED_RECENTLY = 20 * 3600e3;
+/** A letter that failed to leave is retried, but stale news is not news. */
+const PENDING_MAX_AGE = 14 * 86400e3;
 
 /**
  * A watched scan, seen as the one-page project it is. The loop and the letter
@@ -27,6 +32,7 @@ export function scanAsProject(rec) {
   return {
     id: rec.id, url: rec.url, lang: rec.lang, email: rec.email, unsub: rec.unsub,
     probe: rec.probe, probeCheckedAt: rec.probeCheckedAt, probeHistory: rec.probeHistory,
+    mailPending: rec.mailPending,
     stage: 'done', path: 'r', log: rec.log ?? [], loop: rec.loop,
     // Seeded from the tickets the scan showed, so a fix that lands before the
     // first sweep is still recognised as a fix rather than as silence.
@@ -44,7 +50,9 @@ export function projectIntoScan(rec, p) {
   return {
     ...rec, audit: p.audit, page: page ?? rec.page, site: p.audit.site ?? rec.site,
     tickets: p.tickets ?? rec.tickets, feed: p.feed, loop: p.loop, log: p.log,
-    unsub: p.unsub, mail: p.mail ?? rec.mail,
+    unsub: p.unsub, mail: p.mail ?? rec.mail, mailPending: p.mailPending,
+    // Absent on the view means they unsubscribed during the check.
+    email: p.email,
     probe: p.probe ?? rec.probe, probeCheckedAt: p.probeCheckedAt, probeHistory: p.probeHistory,
   };
 }
@@ -52,8 +60,8 @@ export function projectIntoScan(rec, p) {
 export async function sweep(env) {
   const store = kv(env);
   if (!store) return { error: 'storage not configured' };
-  const seen = new Set();
-  let checked = 0, acted = 0, quiet = 0, failed = 0, mailed = 0, unmailed = 0;
+  const seen = new Map();
+  let checked = 0, acted = 0, quiet = 0, failed = 0, mailed = 0, unmailed = 0, waiting = false;
   const origin = env.SITE_ORIGIN || 'https://fastergeo.co';
 
   let cursor;
@@ -61,18 +69,31 @@ export async function sweep(env) {
     const page = await store.list({ prefix: 'w:', limit: 100, cursor });
     cursor = page.list_complete ? null : page.cursor;
     for (const k of page.keys) {
-      if (checked >= MAX_PER_RUN) { cursor = null; break; }
-      // w:<email>:<id> — one project may be watched by more than one address.
-      const id = k.name.split(':').pop();
-      if (!id || seen.has(id)) continue;
-      seen.add(id);
+      if (checked >= MAX_PER_RUN) { cursor = null; waiting = true; break; }
+      // w:<email>:<id>
+      const cut = k.name.lastIndexOf(':');
+      const id = k.name.slice(cut + 1);
+      const watcher = k.name.slice(2, cut);
+      if (!id) continue;
+      if (seen.has(id)) {
+        // Same record under a second key: only one address can be the live one.
+        if (seen.get(id) !== watcher) await store.delete(k.name);
+        continue;
+      }
       // Two kinds of thing can be watched: a project, and a one-page scan from
       // the landing page. The scan's own page promises a re-check, so it gets
       // one — through the same loop, via a project-shaped view of the record.
-      const proj = await loadProject(env, id);
+      const load = () => loadProject(env, id);
+      const proj = await load();
       const scan = proj ? null : await loadScan(env, id);
-      const p = proj ?? (scan?.email ? scanAsProject(scan) : null);
+      const rec = proj ?? scan;
+      if (rec?.email === watcher) seen.set(id, watcher);
+      // A key left behind by an older address must not keep the record alive
+      // or the sweep visiting it.
+      if (rec && rec.email !== watcher) { await store.delete(k.name); continue; }
+      const p = proj ?? (scan ? scanAsProject(scan) : null);
       if (!p || p.stage !== 'done') continue;
+      if (p.loop?.lastCheck && Date.now() - p.loop.lastCheck < CHECKED_RECENTLY) continue;
       checked++;
       try {
         const r = await runDailyCheck(p, env);
@@ -86,16 +107,29 @@ export async function sweep(env) {
           r.lines = [...(r.lines ?? []), l];
         }
         r.acted ? acted++ : quiet++;
+        // The check above can take a minute. If they unsubscribed meanwhile, this
+        // run must neither write to them nor save their address back.
+        const latest = proj ? await load() : await loadScan(env, id);
+        if (!latest?.email) { delete p.email; delete p.mailPending; }
         // The letter is the reason anyone left an address. Its outcome is kept
         // on the record either way: a letter that silently failed to leave is
         // the same broken promise as one that was never written.
-        if (r.acted && p.email) {
+        const pending = (p.mailPending?.lines ?? []).filter(l => Date.now() - l.t < PENDING_MAX_AGE);
+        const toSay = {
+          reasons: [...(pending.length ? p.mailPending.reasons : []), ...(r.reasons ?? [])],
+          lines: [...pending, ...(r.lines ?? [])],
+        };
+        if (p.email && toSay.lines.length) {
           p.unsub = p.unsub ?? newUnsubToken();
-          const letter = composeLetter(p, r, origin);
+          const letter = composeLetter(p, toSay, origin);
           if (letter) {
             const m = await sendMail(env, p.email, letter);
             p.mail = { at: new Date().toISOString(), kind: letter.kind, ...m };
             m.sent ? mailed++ : unmailed++;
+            // Only a transport failure is retried. With no sender configured
+            // there is nothing to retry, and a backlog would land all at once
+            // on the day mail is switched on.
+            if (!m.sent && mailReady(env)) p.mailPending = toSay; else delete p.mailPending;
           }
         }
         if (proj) await saveProject(env, p);
@@ -106,7 +140,7 @@ export async function sweep(env) {
 
   // Reported honestly: a sweep where nothing happened is the expected outcome,
   // not a failure, and the counts should make that legible at a glance.
-  return { checked, acted, quiet, failed, mailed, unmailed };
+  return { checked, acted, quiet, failed, mailed, unmailed, more: waiting };
 }
 
 export async function onRequestGet({ request, env }) {

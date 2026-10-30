@@ -41,6 +41,9 @@ export async function reprobe(p, env, { ask = probe, fetch = fetchPage, now = Da
 
   const host = new URL(p.url).hostname;
   const features = await fetch(p.url, 15000).catch(() => null);
+  // Without the site's own words the judge has nothing to compare against, and
+  // a site that was down this morning would read as "AI no longer knows you".
+  if (!features) return { asked: false, reason: 'site unreachable' };
   const once = () => ask({ hostname: host, features, lang: p.lang, env, brand: last.brand });
   const a = await once().catch(() => null);
   // Tried, so the week is spent either way: retrying an outage daily would
@@ -61,17 +64,17 @@ export async function reprobe(p, env, { ask = probe, fetch = fetchPage, now = Da
   const said = s => String(s).replace(/\s+/g, ' ').trim().slice(0, 160);
   if (a.verdict === 'knows') {
     return { asked: true, kind: 'fixed', line: {
-      en: `AI changed its mind: asked "${a.question}", it now describes ${brand} correctly — "${said(a.answer)}…" (one engine, same answer three times).`,
-      zh: `AI 改口了：问「${a.question}」，它现在说对了 ${brand} ——「${said(a.answer)}…」（一个引擎，连问三次一致）。` } };
+      en: `AI changed its mind: asked "${a.question}", it now describes ${brand} correctly — "${said(a.answer)}…" (one engine, same verdict three times).`,
+      zh: `AI 改口了：问「${a.question}」，它现在说对了 ${brand} ——「${said(a.answer)}…」（一个引擎，连问三次判定一致）。` } };
   }
   if (a.verdict === 'confused') {
     return { asked: true, kind: 'broke', line: {
-      en: `AI now has ${brand} mixed up: "${said(a.evidence)}" (one engine, same answer three times).`,
-      zh: `AI 现在把 ${brand} 认错了：「${said(a.evidence)}」（一个引擎，连问三次一致）。` } };
+      en: `AI now has ${brand} mixed up: "${said(a.evidence)}" (one engine, same verdict three times).`,
+      zh: `AI 现在把 ${brand} 认错了：「${said(a.evidence)}」（一个引擎，连问三次判定一致）。` } };
   }
   // knows/confused → unknown: it forgot you. Worth a line on the page, and a
   // letter only when it had known you; losing a wrong answer is not bad news.
   return { asked: true, kind: last.verdict === 'knows' ? 'broke' : null, line: {
-    en: last.verdict === 'knows' ? `AI no longer recognises ${brand} (one engine, same answer three times).` : `AI stopped confusing ${brand} with someone else — it now says it does not know you (one engine, same answer three times).`,
-    zh: last.verdict === 'knows' ? `AI 不再认识 ${brand} 了（一个引擎，连问三次一致）。` : `AI 不再把 ${brand} 认成别人了 —— 它现在说不知道你（一个引擎，连问三次一致）。` } };
+    en: last.verdict === 'knows' ? `AI no longer recognises ${brand} (one engine, same verdict three times).` : `AI stopped confusing ${brand} with someone else — it now says it does not know you (one engine, same verdict three times).`,
+    zh: last.verdict === 'knows' ? `AI 不再认识 ${brand} 了（一个引擎，连问三次判定一致）。` : `AI 不再把 ${brand} 认成别人了 —— 它现在说不知道你（一个引擎，连问三次判定一致）。` } };
 }

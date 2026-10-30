@@ -1,7 +1,7 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { extractFeatures, detectBlocks } from '../src/extract.js';
 import { scorePage } from '../src/score.js';
-import { blockedAiCrawlersFromRobots } from '../src/site.js';
+import { blockedAiCrawlersFromRobots, checkSite, carryForwardSite } from '../src/site.js';
 
 const GOOD_ZH_PAGE = `<!doctype html><html lang="zh-CN"><head>
 <title>什么是生成式引擎优化：完整指南</title>
@@ -188,5 +188,53 @@ describe('report-derived checks (前30%/孤岛/新鲜度/实体层)', () => {
     const f = extractFeatures('https://a.com/', 200, `<html><body>${html}</body></html>`);
     const audit = scorePage(f, detectBlocks(f));
     expect(audit.entity).toEqual({ organizationSchema: true, sameAsCount: 1 });
+  });
+});
+
+describe('checkSite: no answer is not a no', () => {
+  const stub = (fn: (url: string) => Response | Promise<Response>) => {
+    vi.stubGlobal('fetch', vi.fn(async (u: string) => fn(String(u))));
+  };
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('a 404 is a measured no; a 503 and a dropped request are unmeasured', async () => {
+    stub(u => {
+      if (u.endsWith('/llms.txt')) return new Response('', { status: 404 });
+      if (u.endsWith('/sitemap.xml')) return new Response('', { status: 503 });
+      throw new Error('dropped');
+    });
+    const s = await checkSite('https://x.test/', 1000);
+    expect(s.llmsTxtFound).toBe(false);
+    expect(s.unmeasured).toEqual(['robots', 'sitemap']);
+  });
+
+  it('one dropped request is retried before giving up', async () => {
+    let tries = 0;
+    stub(u => {
+      if (u.endsWith('/llms.txt') && tries++ === 0) throw new Error('dropped');
+      return new Response('ok', { status: 200 });
+    });
+    const s = await checkSite('https://x.test/', 1000);
+    expect(s.llmsTxtFound).toBe(true);
+    expect(s.unmeasured).toBeUndefined();
+  });
+
+  it('a server that refuses HEAD is asked with GET', async () => {
+    stub(() => new Response('', { status: 405 }));
+    vi.stubGlobal('fetch', vi.fn(async (_u: string, o?: RequestInit) =>
+      new Response('', { status: o?.method === 'HEAD' ? 405 : 200 })));
+    const s = await checkSite('https://x.test/', 1000);
+    expect(s.llmsTxtFound).toBe(true);
+  });
+
+  it('carryForwardSite keeps the last known value for what could not be measured', () => {
+    const prev = { robotsTxtFound: true, blockedAiCrawlers: ['GPTBot'], blockedSearchCrawlers: [], blockedTrainingCrawlers: ['GPTBot'], sitemapFound: false, llmsTxtFound: true };
+    const next = { robotsTxtFound: false, blockedAiCrawlers: [], blockedSearchCrawlers: [], blockedTrainingCrawlers: [], sitemapFound: true, llmsTxtFound: false, unmeasured: ['llms', 'robots'] as ('llms' | 'robots')[] };
+    const out = carryForwardSite(prev, next);
+    expect(out.llmsTxtFound).toBe(true);
+    expect(out.blockedAiCrawlers).toEqual(['GPTBot']);
+    expect(out.sitemapFound).toBe(true);
+    expect(out.unmeasured).toBeUndefined();
+    expect(carryForwardSite({ ...prev, unmeasured: ['llms'] }, next).unmeasured).toEqual(['llms']);
   });
 });
