@@ -6,7 +6,8 @@
   "scripts": {
     "check": "node scripts/check-panel.mjs",
     "//ship": "Builds workspace deps FIRST. Functions bundle from dist/, so a package edited but not rebuilt deploys as its old self — silently, with a green deploy and the previous behaviour live. Cost an hour of chasing a phantom.",
-    "ship": "pnpm -r --filter \"@fastergeo/site^...\" build && node scripts/check-panel.mjs && wrangler pages deploy . --project-name=fastergeo --commit-dirty=true"
+    "ship": "pnpm -r --filter \"@fastergeo/site^...\" build && node scripts/check-panel.mjs && wrangler pages deploy . --project-name=fastergeo --commit-dirty=true",
+    "check:mail": "node scripts/check-mail.mjs"
   },
   "dependencies": {
     "@fastergeo/audit": "workspace:^",

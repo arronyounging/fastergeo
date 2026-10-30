@@ -9,6 +9,7 @@
 import { kv } from './_store.js';
 import { loadProject, saveProject } from './project.js';
 import { runDailyCheck } from './_loop.js';
+import { composeLetter, sendMail, newUnsubToken } from './_mail.js';
 
 // A Worker has a wall-clock budget, and a sweep that dies halfway is worse than
 // one that does less: the projects at the end of the list would never be
@@ -19,7 +20,8 @@ export async function sweep(env) {
   const store = kv(env);
   if (!store) return { error: 'storage not configured' };
   const seen = new Set();
-  let checked = 0, acted = 0, quiet = 0, failed = 0;
+  let checked = 0, acted = 0, quiet = 0, failed = 0, mailed = 0, unmailed = 0;
+  const origin = env.SITE_ORIGIN || 'https://fastergeo.co';
 
   let cursor;
   do {
@@ -36,15 +38,27 @@ export async function sweep(env) {
       checked++;
       try {
         const r = await runDailyCheck(p, env);
-        await saveProject(env, p);
         r.acted ? acted++ : quiet++;
+        // The letter is the reason anyone left an address. Its outcome is kept
+        // on the project either way: a letter that silently failed to leave is
+        // the same broken promise as one that was never written.
+        if (r.acted && p.email) {
+          p.unsub = p.unsub ?? newUnsubToken();
+          const letter = composeLetter(p, r, origin);
+          if (letter) {
+            const m = await sendMail(env, p.email, letter);
+            p.mail = { at: new Date().toISOString(), kind: letter.kind, ...m };
+            m.sent ? mailed++ : unmailed++;
+          }
+        }
+        await saveProject(env, p);
       } catch { failed++; }
     }
   } while (cursor);
 
   // Reported honestly: a sweep where nothing happened is the expected outcome,
   // not a failure, and the counts should make that legible at a glance.
-  return { checked, acted, quiet, failed };
+  return { checked, acted, quiet, failed, mailed, unmailed };
 }
 
 export async function onRequestGet({ request, env }) {

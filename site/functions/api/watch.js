@@ -9,6 +9,7 @@
  */
 import { watchScan, validEmail, kv } from './_store.js';
 import { loadProject, saveProject } from './project.js';
+import { mailReady, newUnsubToken } from './_mail.js';
 
 export async function onRequestPost({ request, env }) {
   const headers = { 'Content-Type': 'application/json; charset=utf-8' };
@@ -31,9 +32,12 @@ export async function onRequestPost({ request, env }) {
     if (!p) return new Response(JSON.stringify({ error: 'project not found — it may have expired' }), { status: 404, headers });
     p.email = email;
     p.watchedAt = p.watchedAt ?? new Date().toISOString();
+    p.unsub = p.unsub ?? newUnsubToken();
     await saveProject(env, p);
     await kv(env).put(`w:${email}:${id}`, 'project');
-    return new Response(JSON.stringify({ ok: true, url: p.url }), { headers });
+    // `mail` tells the page which sentence is true: "I will write" or "results
+    // land here". Decided by the same check the sender uses.
+    return new Response(JSON.stringify({ ok: true, url: p.url, mail: mailReady(env) }), { headers });
   }
   const rec = await watchScan(env, id, email);
   if (!rec) {
