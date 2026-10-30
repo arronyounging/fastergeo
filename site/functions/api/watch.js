@@ -43,5 +43,5 @@ export async function onRequestPost({ request, env }) {
   if (!rec) {
     return new Response(JSON.stringify({ error: 'report not found — it may have expired' }), { status: 404, headers });
   }
-  return new Response(JSON.stringify({ ok: true, url: rec.url }), { headers });
+  return new Response(JSON.stringify({ ok: true, url: rec.url, mail: mailReady(env) }), { headers });
 }

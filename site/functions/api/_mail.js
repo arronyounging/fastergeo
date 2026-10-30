@@ -56,7 +56,7 @@ export function composeLetter(p, result, origin) {
   const zh = p.lang === 'zh';
   const host = new URL(p.url).hostname;
   const lines = (result.lines ?? []).map(l => l.m);
-  const page = `${origin}/p/${p.id}`;
+  const page = `${origin}/${p.path === 'r' ? 'r' : 'p'}/${p.id}`;
   const unsub = `${origin}/api/unwatch?id=${encodeURIComponent(p.id)}&t=${encodeURIComponent(p.unsub ?? '')}`;
 
   const subject = kind === 'fixed'

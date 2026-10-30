@@ -16,6 +16,7 @@
  * carrying what "done" has to look like, and a dash wherever nothing was
  * measured.
  */
+import { mailReady } from '../api/_mail.js';
 import { loadScan } from '../api/_store.js';
 
 const clean = s => String(s ?? '').replace(/[*_`#]+/g, '').replace(/[ \t]+/g, ' ').trim();
@@ -53,8 +54,11 @@ const T = {
     doneWhen: 'Done when', how: 'How to fix', noTickets: 'Nothing to fix on this page — rare.',
     quoteMissing: 'No engine was asked about this scan.',
     watchH: 'Want me to keep an eye on it?',
-    watchP: 'I re-check this page and write to you when something you fixed actually lands. No account, no newsletter.',
+    watchP: 'I re-crawl this page every day and write to you when a fix is confirmed or something breaks. No account, no newsletter.',
+    watchPNoMail: 'I re-crawl this page every day and record what changed here; the link stays put. Email is not wired yet — you will be in the first batch.',
+    sinceH: 'Since you started watching', lastCheck: d => `last re-crawl ${d}`, noChange: 'No change worth reporting yet. Most days should look like this.',
     watchBtn: 'Watch this page', watchOk: 'Done. I will write when something changes.',
+    watchOkNoMail: 'Done. Re-crawled daily; results appear on this page.',
     ph: 'you@company.com', watching: 'Watching this page for you.',
     deeper: 'What this scan could not see',
     deeperP: 'One page, one engine. The open-source CLI runs 18 engines across China and global, judges whether each one knows you or confuses you with someone else, and re-checks every fix by crawling again.',
@@ -79,8 +83,11 @@ const T = {
     doneWhen: '修到这样算好', how: '怎么修', noTickets: '这一页没什么可修的 —— 少见。',
     quoteMissing: '这次扫描没有问过任何引擎。',
     watchH: '要我替你盯着吗？',
-    watchP: '我会定期重看这个页面，等你改的东西真的生效了写信告诉你。不用注册，不发周报。',
+    watchP: '我每天重爬这一页，核对到你改的东西真的生效（或者有东西坏了）就写信告诉你。不用注册，不发周报。',
+    watchPNoMail: '我每天重爬这一页，变化记在这里，链接不会变。发信还没接通，接通后你会第一批收到。',
+    sinceH: '盯上之后的变化', lastCheck: d => `上次重爬 ${d}`, noChange: '还没有值得说的变化。大多数日子本来就该这样。',
     watchBtn: '盯着这一页', watchOk: '好了。有变化我写信给你。',
+    watchOkNoMail: '好了。每天重爬，结果更新在这一页。',
     ph: 'you@company.com', watching: '已经在替你盯着这一页了。',
     deeper: '这次扫描看不到的东西',
     deeperP: '一个页面、一个引擎。开源命令行会跑中外 18 个引擎，逐个判定它认不认识你、有没有把你认成别人，并且每修一处都重爬验收。',
@@ -105,6 +112,16 @@ export async function onRequestGet({ params, env, request }) {
   }
 
   const p = rec.page, q = rec.probe, site = rec.site, tickets = rec.tickets ?? [];
+  const mail = mailReady(env);
+  // What the daily re-crawl found, newest first. Shown only once someone is
+  // watching: it is the visible proof the loop runs, and the only place its
+  // results land when no letter can be sent.
+  const since = !rec.email ? '' : `<section class="pane"><h2>${t.sinceH}</h2>`
+    + (rec.loop?.lastCheck ? `<p class="fine">${esc(t.lastCheck(new Date(rec.loop.lastCheck).toISOString().slice(0, 10)))}</p>` : '')
+    + ((rec.log ?? []).length
+      ? `<ul>${rec.log.slice(-8).reverse().map(l => `<li><span class="fine">${esc(new Date(l.t).toISOString().slice(0, 10))}</span> ${esc(l.m)}</li>`).join('')}</ul>`
+      : `<p class="fine">${t.noChange}</p>`)
+    + `</section>`;
   const host = new URL(rec.url).hostname;
   const brand = q?.brand ?? host;
   const desc = q ? clean(q.answer).slice(0, 180) : `${p.score}/100 · ${t.reads(p.wordCount)}`;
@@ -163,8 +180,9 @@ export async function onRequestGet({ params, env, request }) {
         <h2>${t.today} <span class="n">${t.fixCount(tickets.length)}</span></h2>
         ${cards || `<p class="fine">${t.noTickets}</p>`}
       </section>
+      ${since}
       <section class="pane watch">
-        <h2>${t.watchH}</h2><p>${t.watchP}</p>
+        <h2>${t.watchH}</h2><p>${mail ? t.watchP : t.watchPNoMail}</p>
         ${rec.email ? `<p class="okmsg">${t.watching}</p>` : `
         <form id="wf"><input id="we" type="email" required placeholder="${esc(t.ph)}" autocomplete="email">
           <button type="submit">${t.watchBtn}</button></form><div id="wm" class="wm"></div>`}
@@ -183,7 +201,7 @@ export async function onRequestGet({ params, env, request }) {
     const r = await fetch('/api/watch', { method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ id: ${JSON.stringify(rec.id)}, email: document.getElementById('we').value }) });
     const d = await r.json().catch(() => ({}));
-    m.textContent = r.ok ? ${JSON.stringify(t.watchOk)} : (d.error || 'failed');
+    m.textContent = r.ok ? (d.mail ? ${JSON.stringify(t.watchOk)} : ${JSON.stringify(t.watchOkNoMail)}) : (d.error || 'failed');
     m.className = 'wm ' + (r.ok ? 'ok' : 'err');
   });</script>`}`;
   return new Response(page(body, meta(t.title(brand), desc), t.title(brand)), { headers: html() });

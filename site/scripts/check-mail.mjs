@@ -103,3 +103,41 @@ console.log('✓ unsubscribe needs the token and a POST; a prefetching GET chang
 const r3 = await sweep(env);
 if (r3.checked !== 0 || sent.length !== 1) fail('an unsubscribed project was swept or written to');
 console.log('✓ after unsubscribing, the sweep leaves it alone');
+
+/* ── a watched scan from the landing page gets the same loop ──────────── */
+// Its report page has always said "I re-check this page and write to you".
+// Until 2026-10-30 nothing re-checked it; this is the guard on that promise.
+const { watchScan } = await import('../functions/api/_store.js');
+const { onRequestGet: reportGet } = await import('../functions/r/[id].js');
+const scanEmail = 'brand@example.com';
+const sid = 'TESTscan01';
+await SCANS.put(`r:${sid}`, JSON.stringify({
+  id: sid, url: target, lang: 'zh', probe: null, tickets: [], createdAt: '2026-10-01T00:00:00Z',
+  page: { url: target, score: 40, grade: 'D', wordCount: 3, blockers: ['spa-shell'], dimensions: [] },
+  site: { llmsTxtFound: false },
+}));
+await watchScan(env, sid, scanEmail);
+const before = sent.length;
+const rs = await sweep(env);
+if (rs.checked !== 1 || rs.failed) fail(`watched scan was not swept: ${JSON.stringify(rs)}`);
+const srec = JSON.parse(SCANS.m.get(`r:${sid}`));
+if (srec.page.blockers?.length || !srec.loop?.lastCheck) fail('re-crawl results did not land on the scan record');
+if (srec.email !== scanEmail) fail('sweeping a scan dropped its watcher');
+if (sent.length !== before + 1) fail('a fix on a watched scan wrote no letter');
+const SL = sent.at(-1);
+if (!SL.text.includes(`/r/${sid}`) || !/重爬确认修好了/.test(SL.subject)) fail(`scan letter should link /r/ and be in the scan's language: ${SL.subject}`);
+console.log(`✓ a watched scan is re-crawled and written to: "${SL.subject}"`);
+
+const html = async e => (await reportGet({ params: { id: sid }, env: e, request: new Request(`https://x/r/${sid}`) })).text();
+const withMail = await html(env);
+if (!withMail.includes('盯上之后的变化') || !withMail.includes('修好了')) fail('report page does not show what the re-crawl found');
+if (withMail.includes(scanEmail)) fail('report page leaks the watcher address');
+const noMail = await html({ SCANS });
+if (!noMail.includes('发信还没接通') || noMail.includes('就写信告诉你')) fail('without a sender the report page must not promise a letter');
+if (!withMail.includes('就写信告诉你')) fail('with a sender the report page should promise the letter');
+console.log('✓ report page shows the re-crawl log, and promises a letter only when one can leave');
+
+const su = new Request(`https://x/api/unwatch?id=${sid}&t=${srec.unsub}`, { method: 'POST' });
+if ((await unwatchPost({ request: su, env })).status !== 200) fail('scan unsubscribe failed');
+if (SCANS.m.has(`w:${scanEmail}:${sid}`) || JSON.parse(SCANS.m.get(`r:${sid}`)).email) fail('scan unsubscribe left the watch in place');
+console.log('✓ a scan unsubscribes the same way');

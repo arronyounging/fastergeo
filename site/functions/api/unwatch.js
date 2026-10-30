@@ -10,7 +10,7 @@
  * The project page itself is kept: stopping the letters is not deleting the
  * work, and the link someone pasted into a chat should still open.
  */
-import { kv } from './_store.js';
+import { kv, loadScan, saveWatchedScan } from './_store.js';
 import { loadProject, saveProject } from './project.js';
 
 const HTML_H = { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' };
@@ -18,8 +18,11 @@ const HTML_H = { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'n
 async function authorised(env, url) {
   const id = url.searchParams.get('id');
   const t = url.searchParams.get('t');
-  const p = await loadProject(env, id);
+  // Either kind of watched thing: a project, or a scan from the landing page.
+  const proj = await loadProject(env, id);
+  const p = proj ?? await loadScan(env, id);
   if (!p || !t || !p.unsub || t !== p.unsub) return null;
+  p.kind = proj ? 'p' : 'r';
   return p;
 }
 
@@ -52,10 +55,12 @@ export async function onRequestPost({ request, env }) {
     await kv(env).delete(`w:${p.email}:${p.id}`);
     delete p.email;
     p.unwatchedAt = new Date().toISOString();
-    // saveProject restores the 30-day expiry for a project nobody watches.
-    await saveProject(env, p);
+    const { kind, ...rec } = p;
+    // Both savers restore the 30-day expiry for a record nobody watches.
+    if (kind === 'p') await saveProject(env, rec);
+    else await saveWatchedScan(env, rec);
   }
   return new Response(page(`<p>${zh ? '好了，不会再写信。' : 'Done — no more letters.'}</p>`
-    + `<p><a href="/p/${encodeURIComponent(p.id)}" style="color:#B23A26">${zh ? '回到页面' : 'Back to the page'} →</a></p>`, zh),
+    + `<p><a href="/${p.kind}/${encodeURIComponent(p.id)}" style="color:#B23A26">${zh ? '回到页面' : 'Back to the page'} →</a></p>`, zh),
     { headers: HTML_H });
 }

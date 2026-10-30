@@ -16,6 +16,8 @@
  *   · attaching an email means "watch this for me", and that record persists
  */
 
+import { newUnsubToken } from './_mail.js';
+
 const CASUAL_TTL = 60 * 60 * 24 * 30;
 
 /** URL-safe, short, and not guessable by counting. */
@@ -56,9 +58,17 @@ export async function watchScan(env, id, email) {
   if (!store || !rec) return null;
   rec.email = email;
   rec.watchedAt = rec.watchedAt ?? new Date().toISOString();
+  rec.unsub = rec.unsub ?? newUnsubToken();
   await store.put(`r:${id}`, JSON.stringify(rec));            // no TTL — kept
   await store.put(`w:${email}:${id}`, '1');                    // for the recrawl sweep
   return rec;
+}
+
+/** Persist a watched scan: no expiry while someone is watching it. */
+export async function saveWatchedScan(env, rec) {
+  const store = kv(env);
+  await store.put(`r:${rec.id}`, JSON.stringify(rec),
+    rec.email ? undefined : { expirationTtl: CASUAL_TTL });
 }
 
 /** Conservative: rejects things that are clearly not addresses, nothing more. */
