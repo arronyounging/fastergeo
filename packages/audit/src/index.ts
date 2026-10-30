@@ -8,4 +8,4 @@ export { extractFeatures, detectBlocks } from './extract.js';
 export { scorePage } from './score.js';
 export { detectBotWall, wallBlocker } from './botwall.js';
 export type { BotWall, WallVendor } from './botwall.js';
-export { checkSite, auditPage, auditSite, blockedAiCrawlersFromRobots, fetchPage } from './site.js';
+export { checkSite, carryForwardSite, auditPage, auditSite, blockedAiCrawlersFromRobots, fetchPage } from './site.js';

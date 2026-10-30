@@ -45,20 +45,11 @@ export async function loadScan(env, id) {
   return raw ? JSON.parse(raw) : null;
 }
 
-/**
- * Attach an email and drop the expiry. Idempotent: re-submitting the same
- * address is a no-op rather than an error, because the honest reason someone
- * submits twice is that they were not sure it worked.
- */
-export async function watchScan(env, id, email) {
+/** Persist a watched scan: no expiry while someone is watching it. */
+export async function saveWatchedScan(env, rec) {
   const store = kv(env);
-  const rec = await loadScan(env, id);
-  if (!store || !rec) return null;
-  rec.email = email;
-  rec.watchedAt = rec.watchedAt ?? new Date().toISOString();
-  await store.put(`r:${id}`, JSON.stringify(rec));            // no TTL — kept
-  await store.put(`w:${email}:${id}`, '1');                    // for the recrawl sweep
-  return rec;
+  await store.put(`r:${rec.id}`, JSON.stringify(rec),
+    rec.email ? undefined : { expirationTtl: CASUAL_TTL });
 }
 
 /** Conservative: rejects things that are clearly not addresses, nothing more. */

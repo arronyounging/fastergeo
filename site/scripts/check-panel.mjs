@@ -51,7 +51,7 @@ try {
     return rest.slice(0, end + 2);
   };
   const src = ['const T = ', 'const esc = ', 'const h2 = ', 'const waiting = ',
-    'function chip(', 'function verifyLine(', 'function today('].map(take).join('\n');
+    'function chip(', 'function verifyLine(', 'function watchLine(', 'function today('].map(take).join('\n');
 
   const el = { innerHTML: '', querySelectorAll: () => [] };
   const feed = [
@@ -74,7 +74,16 @@ try {
   // Both halves of the verification claim. The strong one must not appear until
   // a loop run has actually happened — that sentence going out early is exactly
   // the promise-before-plumbing failure that keeps recurring here.
-  if (!pane.includes('还没接上')) throw new Error('unwatched project must not claim a daily re-crawl');
+  if (pane.includes('每天重爬核对') || !pane.includes('留邮箱')) throw new Error('unwatched project must not claim a daily re-crawl, and must say how to get one');
+  // The letter. Promised only when the server says a letter can leave; and a
+  // watched page does not ask for the address again.
+  if (!pane.includes('发信还没接通') || pane.includes('写信给你')) throw new Error('without a mail sender the page must not promise a letter');
+  const ready = mk({ stage: 'done', url: 'https://x.com', mailReady: true })(feed, { unread: 0 }, []);
+  if (!ready.includes('写信给你') || ready.includes('还没接通')) throw new Error('with a mail sender the page should promise the letter');
+  const w2 = mk({ stage: 'done', url: 'https://x.com', mailReady: true, watched: true, watchConfirmed: true })(feed, { unread: 0 }, []);
+  const w3 = mk({ stage: 'done', url: 'https://x.com', mailReady: true, watched: true, watchConfirmed: false })(feed, { unread: 0 }, []);
+  if (!w3.includes('去邮箱点一下确认') || w3.includes('才写信')) throw new Error('an unconfirmed watch must ask for the click, not promise letters');
+  if (!w2.includes('已经在盯了') || w2.includes('id="wf"')) throw new Error('a watched page should say so and not ask for the address again');
   const watched = mk({ stage: 'done', url: 'https://x.com', loop: { lastCheck: 1785000000000 } })(feed, { unread: 0 }, []);
   if (!watched.includes('每天重爬核对')) throw new Error('a project the loop has run on should say so');
   console.log('✓ today() renders the queue, its states, its actions and its empty case');

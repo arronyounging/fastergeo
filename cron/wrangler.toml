@@ -2,10 +2,11 @@ name = "fastergeo-cron"
 main = "index.js"
 compatibility_date = "2026-01-01"
 
-# 03:00 UTC — 11am China, early morning US. Chosen so the digest is waiting when
-# the people who use this start their day, not delivered at 3am to either.
+# Hourly, though each site is checked once a day: a run handles only a few sites
+# to stay inside the Worker's budget, and skips those already checked. Starts at
+# 03:00 UTC in effect, since most sites were last checked around then.
 [triggers]
-crons = ["0 3 * * *"]
+crons = ["0 * * * *"]
 
 [vars]
 SWEEP_URL = "https://fastergeo.co/api/sweep"

@@ -403,8 +403,26 @@ function verifyLine(){
   const at = P.loop && P.loop.lastCheck;
   if (at) return T('每天重爬核对（上次 '+String(new Date(at).toISOString()).slice(0,10)+'）—— 说了修好但没修好，它会自己回来。',
     'Re-crawled and checked daily (last '+String(new Date(at).toISOString()).slice(0,10)+'). If it is not actually fixed, it comes back on its own.');
-  return T('你下次重跑时会核对 —— 说了修好但没修好，它会自己回来。每日自动重爬还没接上。',
-    'Checked the next time you re-run this. If it is not actually fixed, it comes back on its own. The daily re-crawl is not wired up yet.');
+  // The daily re-crawl only covers watched pages, so an unwatched page is told
+  // how to get it rather than told it does not exist.
+  return T('你下次重跑时会核对 —— 说了修好但没修好，它会自己回来。在下面留邮箱，就每天自动重爬。',
+    'Checked the next time you re-run this. If it is not actually fixed, it comes back on its own. Leave an address below and it is re-crawled daily.');
+}
+
+/* The watch sentence, from the server's own answer to "can a letter leave".
+   Daily re-crawl is real for every watched page; the letter is only promised
+   when the sender is configured. */
+function watchLine(){
+  if (P.watched && P.mailReady && !P.watchConfirmed) return T('已经在盯了：每天重爬，结果更新在这里。<b>去邮箱点一下确认</b>，之后才会写信。',
+    'Watching: re-crawled daily, with results here. <b>Check your inbox and confirm</b>; letters start after that.');
+  if (P.watched) return P.mailReady
+    ? T('已经在盯了：每天重爬，核对到真的修好或者又坏了才写信。','Watching: re-crawled daily, and you get a letter only when a fix is confirmed or something breaks.')
+    : T('已经在盯了：每天重爬，结果更新在这个页面上。发信还没接通，接通后你会第一批收到。','Watching: re-crawled daily, with results on this page. Email is not wired yet; you will be in the first batch.');
+  return P.mailReady
+    ? T('留个邮箱：每天重爬这一页，核对到你的修复真的生效（或者有东西坏了）时写信给你。分数小幅波动不会打扰你。',
+        'Leave an address: this page is re-crawled daily, and you get a letter when a fix is confirmed (or something breaks). Score wobble never interrupts you.')
+    : T('留个邮箱，每天重爬这一页，结果更新在这里，链接不会变。<b>发信还没接通</b>，接通后你会第一批收到。',
+        'Leave an address and this page is re-crawled daily, with results here and the link unchanged. <b>Email is not wired yet</b>; you will be in the first batch.');
 }
 
 function today(ts, counts, done){
@@ -443,9 +461,9 @@ function today(ts, counts, done){
             + (k.key ? '<button class="act" data-k="'+esc(k.key)+'" data-a="reopen">'+T('放回去','reopen')+'</button>' : '')
             + '</div>').join('') + '</details>' : '')
     + '<div class="sect">'+T('要我替你盯着吗？','Want me to watch it?')+'</div>'
-    + '<p class="fine">'+T('留个邮箱，我把这一页记下来。<b>发信还没接通</b> —— 接通之前，重爬的结果会更新在这个页面上，链接不会变。',
-        'Leave an address and I will keep this page on the list. <b>Email is not wired yet</b> — until it is, re-crawl results land on this page and the link stays put.')+'</p>'
-    + '<form id="wf"><input id="we" type="email" required placeholder="you@company.com"><button class="go" type="submit">'+T('盯着','Watch')+'</button></form><div id="wm" class="wm"></div>'
+    + '<p class="fine">'+watchLine()+'</p>'
+    + (P.watched ? '' : '<form id="wf"><input id="we" type="email" required placeholder="you@company.com"><button class="go" type="submit">'+T('盯着','Watch')+'</button></form>')
+    + '<div id="wm" class="wm"></div>'
     + '<div class="sect">'+T('看得更深','Go deeper')+'</div>'
     + '<p class="fine">'+T('这里问了 1 个引擎。命令行跑中外 18 个，并且每修一处都重爬验收。','This asked one engine. The CLI runs 18 across China and global, and re-crawls to verify every fix.')+'</p>'
     + '<code>npx fastergeo start '+esc(new URL(P.url).hostname)+'</code>';
@@ -460,7 +478,12 @@ function today(ts, counts, done){
     const r = await fetch('/api/watch', {method:'POST',headers:{'Content-Type':'application/json'},
       body: JSON.stringify({id: ID, email: document.getElementById('we').value, kind:'project'})});
     const d = await r.json().catch(()=>({}));
-    m.textContent = r.ok ? T('记下了。发信接通后你会第一批收到。','Noted. You will be in the first batch once email is wired.') : (d.error||'failed');
+    m.textContent = r.ok
+      ? (d.confirm === 'sent' ? T('记下了。每天重爬一次。确认信已发出，点一下之后才会写信。','Noted. Re-crawled daily. A confirmation is on its way; letters start after you click it.')
+       : d.confirm === 'limited' || d.confirm === 'failed' ? T('记下了，每天重爬。确认信这次没发出去，结果先更新在这个页面上。','Noted, and re-crawled daily. The confirmation did not go out this time; results land on this page meanwhile.')
+       : d.mail ? T('记下了。每天重爬一次，核对到真的修好或者又坏了，我写信给你。','Noted. Re-crawled daily; when a fix is confirmed or something breaks, I will write.')
+                : T('记下了。每天重爬，结果更新在这个页面上；发信接通后你会第一批收到。','Noted. Re-crawled daily, with results on this page; you will be in the first batch once email is wired.'))
+      : (d.error||'failed');
     m.className = 'wm ' + (r.ok?'ok':'err');
   };
 }

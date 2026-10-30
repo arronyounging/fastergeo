@@ -6,7 +6,7 @@
 import { extractFeatures, detectBlocks } from './extract.js';
 import { scorePage } from './score.js';
 import { detectBotWall, wallBlocker } from './botwall.js';
-import { AI_CRAWLERS, AI_CRAWLER_PURPOSES, type AuditOptions, type PageAudit, type SiteAudit, type SiteChecks } from './types.js';
+import { AI_CRAWLERS, AI_CRAWLER_PURPOSES, type AuditOptions, type PageAudit, type SiteAudit, type SiteChecks, type SiteCheckName } from './types.js';
 
 const DEFAULT_TIMEOUT_MS = 20_000;
 
@@ -78,19 +78,52 @@ export function blockedAiCrawlersFromRobots(robotsTxt: string): string[] {
   return [...blocked];
 }
 
+/** No answer, as opposed to an answer of "no": the server or the road failed. */
+const noAnswer = (status: number): boolean => status >= 500 || status === 408 || status === 429;
+
+/**
+ * Does this file exist? Three answers, because "we could not tell" is not "no".
+ * A flaky request recorded as "missing" reads later as a fix landing, and one on
+ * a re-crawl reads as a regression: both are claims this product signs.
+ * One retry, since most of these are a single dropped request.
+ */
+async function probeFile(url: string, timeoutMs: number): Promise<boolean | null> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      let res = await fetch(url, { method: 'HEAD', signal: AbortSignal.timeout(timeoutMs) });
+      // Some servers refuse HEAD outright; that says nothing about the file.
+      if (res.status === 405 || res.status === 501) {
+        res = await fetch(url, { signal: AbortSignal.timeout(timeoutMs) });
+      }
+      if (!noAnswer(res.status)) return res.ok;
+    } catch { /* falls through to the retry */ }
+  }
+  return null;
+}
+
 export async function checkSite(root: string, timeoutMs = DEFAULT_TIMEOUT_MS): Promise<SiteChecks> {
   const origin = new URL(root).origin;
+  const fetchRobots = async () => {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const r = await fetchText(`${origin}/robots.txt`, timeoutMs);
+      if (r && !noAnswer(r.status)) return r;
+    }
+    return null;
+  };
   const [robots, sitemap, llms] = await Promise.all([
-    fetchText(`${origin}/robots.txt`, timeoutMs),
-    fetch(`${origin}/sitemap.xml`, { method: 'HEAD', signal: AbortSignal.timeout(timeoutMs) })
-      .then(r => r.ok).catch(() => false),
-    fetch(`${origin}/llms.txt`, { method: 'HEAD', signal: AbortSignal.timeout(timeoutMs) })
-      .then(r => r.ok).catch(() => false),
+    fetchRobots(),
+    probeFile(`${origin}/sitemap.xml`, timeoutMs),
+    probeFile(`${origin}/llms.txt`, timeoutMs),
   ]);
   const blockedAiCrawlers =
     robots && robots.status === 200 ? blockedAiCrawlersFromRobots(robots.body) : [];
   const purpose = (c: string): string =>
     AI_CRAWLER_PURPOSES[c as (typeof AI_CRAWLERS)[number]] ?? 'training';
+  const unmeasured: SiteCheckName[] = [
+    ...(robots === null ? (['robots'] as const) : []),
+    ...(sitemap === null ? (['sitemap'] as const) : []),
+    ...(llms === null ? (['llms'] as const) : []),
+  ];
   return {
     robotsTxtFound: Boolean(robots && robots.status === 200),
     blockedAiCrawlers,
@@ -98,12 +131,41 @@ export async function checkSite(root: string, timeoutMs = DEFAULT_TIMEOUT_MS): P
     blockedTrainingCrawlers: blockedAiCrawlers.filter(c => purpose(c) === 'training'),
     sitemapFound: Boolean(sitemap),
     llmsTxtFound: Boolean(llms),
+    unmeasured,
   };
+}
+
+/**
+ * A re-crawl's site checks, with anything it could not measure kept at its last
+ * known value. Without this, one dropped request on the re-crawl erases a
+ * finding, and the diff calls that a fix.
+ */
+export function carryForwardSite(prev: SiteChecks | null | undefined, next: SiteChecks): SiteChecks {
+  if (!prev || !next.unmeasured?.length) return next;
+  const out: SiteChecks = { ...next };
+  const still: SiteCheckName[] = [];
+  for (const c of next.unmeasured) {
+    // Unknown last time too: nothing to carry, and it stays unknown.
+    if (prev.unmeasured?.includes(c)) { still.push(c); continue; }
+    if (c === 'llms') out.llmsTxtFound = prev.llmsTxtFound;
+    if (c === 'sitemap') out.sitemapFound = prev.sitemapFound;
+    if (c === 'robots') {
+      out.robotsTxtFound = prev.robotsTxtFound;
+      out.blockedAiCrawlers = prev.blockedAiCrawlers;
+      out.blockedSearchCrawlers = prev.blockedSearchCrawlers;
+      out.blockedTrainingCrawlers = prev.blockedTrainingCrawlers;
+    }
+  }
+  out.unmeasured = still;
+  return out;
 }
 
 export async function auditPage(url: string, opts: AuditOptions = {}): Promise<PageAudit | null> {
   const res = await fetchText(url, opts.timeoutMs ?? DEFAULT_TIMEOUT_MS);
   if (!res) return null;
+  // A 503 page is not this site's content: scoring it invents findings about a
+  // page nobody read. Same as not reaching it, and named as such by callers.
+  if (noAnswer(res.status)) return null;
   const features = extractFeatures(url, res.status, res.body);
   // Blocks in the first 30% of visible text — where extraction actually reaches.
   const earlyBlocks = detectBlocks({

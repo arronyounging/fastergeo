@@ -120,7 +120,14 @@ export interface SiteChecks {
   blockedTrainingCrawlers?: string[];
   sitemapFound: boolean;
   llmsTxtFound: boolean;
+  /** Checks that got no answer (network error, 5xx, 429), not a "no". Their
+   * value above is a placeholder and must not be read as a finding.
+   * Absent on audits stored before this field existed, whose "no" answers may
+   * be failed requests: treat them as a baseline that cannot prove a change. */
+  unmeasured?: SiteCheckName[];
 }
+
+export type SiteCheckName = 'robots' | 'sitemap' | 'llms';
 
 export interface SiteAudit {
   root: string;
