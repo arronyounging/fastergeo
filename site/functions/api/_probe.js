@@ -120,10 +120,13 @@ function quoteFound(answer, quote) {
   return q.length >= 6 && a.includes(q.slice(0, 60));
 }
 
-export async function probe({ hostname, features, lang, env }) {
+export async function probe({ hostname, features, lang, env, brand: asBrand }) {
   if (!env?.OPENROUTER_API_KEY) return null;
   const zh = lang === 'zh';
-  const brand = deriveBrand(hostname, features?.title);
+  // A re-ask passes the brand it asked about last time: comparing answers to
+  // two different questions would report a change in our wording as a change
+  // in what the AI believes.
+  const brand = asBrand || deriveBrand(hostname, features?.title);
   if (!brand) return null;
 
   const ctrl = new AbortController();

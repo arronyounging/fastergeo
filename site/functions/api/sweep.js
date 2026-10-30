@@ -10,6 +10,7 @@ import { kv, loadScan, saveWatchedScan } from './_store.js';
 import { mergeFeed } from '@fastergeo/tickets';
 import { loadProject, saveProject } from './project.js';
 import { runDailyCheck } from './_loop.js';
+import { reprobe } from './_reprobe.js';
 import { composeLetter, sendMail, newUnsubToken } from './_mail.js';
 
 // A Worker has a wall-clock budget, and a sweep that dies halfway is worse than
@@ -25,6 +26,7 @@ const MAX_PER_RUN = 20;
 export function scanAsProject(rec) {
   return {
     id: rec.id, url: rec.url, lang: rec.lang, email: rec.email, unsub: rec.unsub,
+    probe: rec.probe, probeCheckedAt: rec.probeCheckedAt, probeHistory: rec.probeHistory,
     stage: 'done', path: 'r', log: rec.log ?? [], loop: rec.loop,
     // Seeded from the tickets the scan showed, so a fix that lands before the
     // first sweep is still recognised as a fix rather than as silence.
@@ -43,6 +45,7 @@ export function projectIntoScan(rec, p) {
     ...rec, audit: p.audit, page: page ?? rec.page, site: p.audit.site ?? rec.site,
     tickets: p.tickets ?? rec.tickets, feed: p.feed, loop: p.loop, log: p.log,
     unsub: p.unsub, mail: p.mail ?? rec.mail,
+    probe: p.probe ?? rec.probe, probeCheckedAt: p.probeCheckedAt, probeHistory: p.probeHistory,
   };
 }
 
@@ -73,6 +76,15 @@ export async function sweep(env) {
       checked++;
       try {
         const r = await runDailyCheck(p, env);
+        // Weekly, and off unless the owner turns it on: what the AI now says.
+        const ai = await reprobe(p, env).catch(() => ({ asked: false }));
+        if (ai.line) {
+          const l = { t: Date.now(), m: p.lang === 'zh' ? ai.line.zh : ai.line.en, loop: true };
+          p.log = [...(p.log ?? []), l];
+          r.acted = true;
+          r.reasons = [...(r.reasons ?? []), ai.kind === 'fixed' ? 'ai learned' : ai.kind === 'broke' ? 'ai confused' : 'ai changed'];
+          r.lines = [...(r.lines ?? []), l];
+        }
         r.acted ? acted++ : quiet++;
         // The letter is the reason anyone left an address. Its outcome is kept
         // on the record either way: a letter that silently failed to leave is
