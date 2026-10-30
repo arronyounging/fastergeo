@@ -63,7 +63,7 @@ globalThis.fetch = async (url, init) => {
 const env = { SCANS, MAIL_API_KEY: 'k', MAIL_FROM: 'FasterGEO <letters@fastergeo.co>', MAIL_API_URL: 'https://mail.test/emails' };
 const email = 'owner@example.com';
 const p = {
-  id: 'TESTproj01', url: target, lang: 'en', stage: 'done', email, log: [], pages: [], tickets: [],
+  id: 'TESTproj01', url: target, lang: 'en', stage: 'done', email, emailConfirmed: true, log: [], pages: [], tickets: [],
   audit: { avgScore: null, site: { llmsTxtFound: false }, pages: [{ url: target, score: 40, blockers: ['spa-shell'] }] },
 };
 await SCANS.put(`p:${p.id}`, JSON.stringify(p));
@@ -111,7 +111,6 @@ console.log('✓ after unsubscribing, the sweep leaves it alone');
 /* ── a watched scan from the landing page gets the same loop ──────────── */
 // Its report page has always said "I re-check this page and write to you".
 // Until 2026-10-30 nothing re-checked it; this is the guard on that promise.
-const { watchScan } = await import('../functions/api/_store.js');
 const { onRequestGet: reportGet } = await import('../functions/r/[id].js');
 const scanEmail = 'brand@example.com';
 const sid = 'TESTscan01';
@@ -120,7 +119,13 @@ await SCANS.put(`r:${sid}`, JSON.stringify({
   page: { url: target, score: 40, grade: 'D', wordCount: 3, blockers: ['spa-shell'], dimensions: [] },
   site: { llmsTxtFound: false },
 }));
-await watchScan(env, sid, scanEmail);
+// Through the real form and the real confirmation, not a shortcut around them.
+const { onRequestPost: watchPost } = await import('../functions/api/watch.js');
+const { onRequestPost: confirmPost } = await import('../functions/api/confirm.js');
+await watchPost({ request: new Request('https://x/api/watch', { method: 'POST', body: JSON.stringify({ id: sid, email: scanEmail }) }), env });
+if (!sent.at(-1)?.subject.includes('确认')) fail(`watching a scan should ask for confirmation: ${sent.at(-1)?.subject}`);
+const stok = JSON.parse(SCANS.m.get(`r:${sid}`)).confirmToken;
+await confirmPost({ request: new Request(`https://x/api/confirm?id=${sid}&t=${stok}`, { method: 'POST' }), env });
 const before = sent.length;
 const rs = await sweep(env);
 if (rs.checked !== 1 || rs.failed) fail(`watched scan was not swept: ${JSON.stringify(rs)}`);

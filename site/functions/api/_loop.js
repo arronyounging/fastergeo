@@ -52,6 +52,10 @@ export async function runDailyCheck(p, env) {
 
   const before = p.audit;
   if (!before) return { acted: false, reasons: ['never audited'] };
+  // Stored before site checks could say "could not tell", or with no site checks
+  // at all. Its "no" may be a failed request, so this run may set the baseline
+  // but cannot call anything about the site a change.
+  const siteBaselineSound = Array.isArray(before.site?.unmeasured);
 
   const urls = (before.pages ?? []).map(x => x.url).slice(0, 5);
   const [pages, site] = await Promise.all([
@@ -99,7 +103,7 @@ export async function runDailyCheck(p, env) {
   // Only against a baseline that was measured: going from "could not tell" to
   // "there" is learning something, not a fix landing.
   // A scan whose site checks failed outright stored no baseline at all.
-  if (before.site && !before.site.llmsTxtFound && after.site?.llmsTxtFound && !before.site.unmeasured?.includes('llms')) {
+  if (siteBaselineSound && !before.site.llmsTxtFound && after.site?.llmsTxtFound && !before.site.unmeasured.includes('llms')) {
     say(lines, lang, `Fixed: llms.txt is live.`, `修好了：llms.txt 上线了。`);
     reasons.push('llms.txt added');
   }
@@ -127,7 +131,7 @@ export async function runDailyCheck(p, env) {
       }
     }
   }
-  const newlyBlocked = !before.site || before.site.unmeasured?.includes('robots') ? [] : (after.site?.blockedSearchCrawlers ?? [])
+  const newlyBlocked = !siteBaselineSound || before.site.unmeasured.includes('robots') ? [] : (after.site?.blockedSearchCrawlers ?? [])
     .filter(c => !(before.site?.blockedSearchCrawlers ?? []).includes(c));
   if (newlyBlocked.length && !quiet('crawler:blocked')) {
     say(lines, lang,
@@ -154,7 +158,9 @@ export async function runDailyCheck(p, env) {
   // The score-target ticket flips as the average crosses 70, even by one point.
   // Score movement has its own noise floor above; this must not route around it.
   const isScore = r => String(r.key).startsWith('site.avg_score_gte');
-  for (const r of merged.resolved.filter(x => !isScore(x))) {
+  const SITE_KEYS = new Set(['site.llms_txt', 'site.sitemap', 'site.no_ai_block']);
+  const unproven = r => !siteBaselineSound && SITE_KEYS.has(r.key);
+  for (const r of merged.resolved.filter(x => !isScore(x) && !unproven(x))) {
     say(lines, lang, `Fixed: ${r.title}`, `修好了：${r.title}`);
     reasons.push('ticket cleared');
   }

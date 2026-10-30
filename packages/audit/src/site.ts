@@ -131,7 +131,7 @@ export async function checkSite(root: string, timeoutMs = DEFAULT_TIMEOUT_MS): P
     blockedTrainingCrawlers: blockedAiCrawlers.filter(c => purpose(c) === 'training'),
     sitemapFound: Boolean(sitemap),
     llmsTxtFound: Boolean(llms),
-    ...(unmeasured.length ? { unmeasured } : {}),
+    unmeasured,
   };
 }
 
@@ -156,7 +156,7 @@ export function carryForwardSite(prev: SiteChecks | null | undefined, next: Site
       out.blockedTrainingCrawlers = prev.blockedTrainingCrawlers;
     }
   }
-  if (still.length) out.unmeasured = still; else delete out.unmeasured;
+  out.unmeasured = still;
   return out;
 }
 

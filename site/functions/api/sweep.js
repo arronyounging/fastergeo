@@ -11,7 +11,7 @@ import { mergeFeed } from '@fastergeo/tickets';
 import { loadProject, saveProject } from './project.js';
 import { runDailyCheck } from './_loop.js';
 import { reprobe } from './_reprobe.js';
-import { composeLetter, sendMail, newUnsubToken, mailReady } from './_mail.js';
+import { composeLetter, composeConfirm, sendMail, newUnsubToken, mailReady, ensureWatchTokens, forgetWatcher } from './_mail.js';
 
 // A Worker has a wall-clock and a subrequest budget (50 on the free plan; one
 // site costs about 9 before retries, more on its weekly re-ask), and a sweep
@@ -22,6 +22,7 @@ const MAX_PER_RUN = 3;
 const CHECKED_RECENTLY = 20 * 3600e3;
 /** A letter that failed to leave is retried, but stale news is not news. */
 const PENDING_MAX_AGE = 14 * 86400e3;
+const UNCONFIRMED_MAX_AGE = 14 * 86400e3;
 
 /**
  * A watched scan, seen as the one-page project it is. The loop and the letter
@@ -32,7 +33,8 @@ export function scanAsProject(rec) {
   return {
     id: rec.id, url: rec.url, lang: rec.lang, email: rec.email, unsub: rec.unsub,
     probe: rec.probe, probeCheckedAt: rec.probeCheckedAt, probeHistory: rec.probeHistory,
-    mailPending: rec.mailPending,
+    mailPending: rec.mailPending, emailConfirmed: rec.emailConfirmed,
+    confirmToken: rec.confirmToken, confirmSentAt: rec.confirmSentAt,
     stage: 'done', path: 'r', log: rec.log ?? [], loop: rec.loop,
     // Seeded from the tickets the scan showed, so a fix that lands before the
     // first sweep is still recognised as a fix rather than as silence.
@@ -52,7 +54,8 @@ export function projectIntoScan(rec, p) {
     tickets: p.tickets ?? rec.tickets, feed: p.feed, loop: p.loop, log: p.log,
     unsub: p.unsub, mail: p.mail ?? rec.mail, mailPending: p.mailPending,
     // Absent on the view means they unsubscribed during the check.
-    email: p.email,
+    email: p.email, emailConfirmed: p.emailConfirmed,
+    confirmToken: p.confirmToken, confirmSentAt: p.confirmSentAt,
     probe: p.probe ?? rec.probe, probeCheckedAt: p.probeCheckedAt, probeHistory: p.probeHistory,
   };
 }
@@ -110,16 +113,30 @@ export async function sweep(env) {
         // The check above can take a minute. If they unsubscribed meanwhile, this
         // run must neither write to them nor save their address back.
         const latest = proj ? await load() : await loadScan(env, id);
-        if (!latest?.email) { delete p.email; delete p.mailPending; }
+        if (!latest?.email) forgetWatcher(p);
+        else if (latest.emailConfirmed) p.emailConfirmed = true;
         // The letter is the reason anyone left an address. Its outcome is kept
         // on the record either way: a letter that silently failed to leave is
         // the same broken promise as one that was never written.
+        // Letters only to an address its owner confirmed. An older record, from
+        // before confirmation existed, gets the one question instead; nobody
+        // answering for two weeks means the address goes.
+        if (p.email && !p.emailConfirmed && mailReady(env)) {
+          ensureWatchTokens(p);
+          if (!p.confirmSentAt) {
+            const m = await sendMail(env, p.email, composeConfirm(p, origin));
+            if (m.sent) p.confirmSentAt = new Date().toISOString();
+          } else if (Date.now() - Date.parse(p.confirmSentAt) > UNCONFIRMED_MAX_AGE) {
+            await store.delete(k.name);
+            forgetWatcher(p);
+          }
+        }
         const pending = (p.mailPending?.lines ?? []).filter(l => Date.now() - l.t < PENDING_MAX_AGE);
         const toSay = {
           reasons: [...(pending.length ? p.mailPending.reasons : []), ...(r.reasons ?? [])],
           lines: [...pending, ...(r.lines ?? [])],
         };
-        if (p.email && toSay.lines.length) {
+        if (p.email && p.emailConfirmed && toSay.lines.length) {
           p.unsub = p.unsub ?? newUnsubToken();
           const letter = composeLetter(p, toSay, origin);
           if (letter) {

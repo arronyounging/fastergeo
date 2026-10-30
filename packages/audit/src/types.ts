@@ -122,7 +122,8 @@ export interface SiteChecks {
   llmsTxtFound: boolean;
   /** Checks that got no answer (network error, 5xx, 429), not a "no". Their
    * value above is a placeholder and must not be read as a finding.
-   * Optional for audits stored before this field existed. */
+   * Absent on audits stored before this field existed, whose "no" answers may
+   * be failed requests: treat them as a baseline that cannot prove a change. */
   unmeasured?: SiteCheckName[];
 }
 

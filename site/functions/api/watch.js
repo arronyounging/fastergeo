@@ -7,9 +7,11 @@
  * re-crawl the page and write when a fix lands, which is the one hand-off in
  * the funnel that does not depend on the user remembering to come back.
  */
-import { watchScan, loadScan, validEmail, kv } from './_store.js';
-import { loadProject, saveProject } from './project.js';
-import { mailReady, newUnsubToken } from './_mail.js';
+import { validEmail, kv } from './_store.js';
+import { loadWatched, saveWatched } from './_watched.js';
+import { mailReady, ensureWatchTokens, forgetWatcher, composeConfirm, sendMail } from './_mail.js';
+
+const CONFIRMS_PER_DAY = 3;
 
 export async function onRequestPost({ request, env }) {
   const headers = { 'Content-Type': 'application/json; charset=utf-8' };
@@ -27,30 +29,47 @@ export async function onRequestPost({ request, env }) {
     return new Response(JSON.stringify({ error: 'storage not configured' }), { status: 503, headers });
   }
   // Projects and one-off scans are both watchable; the caller says which.
-  if (body?.kind === 'project') {
-    const p = await loadProject(env, id);
-    if (!p) return new Response(JSON.stringify({ error: 'project not found — it may have expired' }), { status: 404, headers });
-    // A project link is made to be pasted around; holding it must not let someone
-    // replace the address, which would silently cut off the person watching.
-    if (p.email && p.email !== email) {
+  const w = await loadWatched(env, id);
+  if (!w || (body?.kind === 'project') !== (w.kind === 'p')) {
+    const what = body?.kind === 'project' ? 'project' : 'report';
+    return new Response(JSON.stringify({ error: `${what} not found — it may have expired` }), { status: 404, headers });
+  }
+  const rec = w.rec;
+  const store = kv(env);
+  // A link is made to be pasted around; holding it must not let someone replace
+  // a confirmed watcher, which would silently cut them off. An address nobody
+  // ever confirmed has no such claim, or a typo could lock the owner out forever.
+  if (rec.email && rec.email !== email) {
+    if (rec.emailConfirmed) {
       return new Response(JSON.stringify({ error: 'already being watched' }), { status: 409, headers });
     }
-    p.email = email;
-    p.watchedAt = p.watchedAt ?? new Date().toISOString();
-    p.unsub = p.unsub ?? newUnsubToken();
-    await saveProject(env, p);
-    await kv(env).put(`w:${email}:${id}`, 'project');
-    // `mail` tells the page which sentence is true: "I will write" or "results
-    // land here". Decided by the same check the sender uses.
-    return new Response(JSON.stringify({ ok: true, url: p.url, mail: mailReady(env) }), { headers });
+    await store.delete(`w:${rec.email}:${rec.id}`);
+    forgetWatcher(rec);
+    delete rec.unsub;
   }
-  const existing = await loadScan(env, id);
-  if (existing?.email && existing.email !== email) {
-    return new Response(JSON.stringify({ error: 'already being watched' }), { status: 409, headers });
+  rec.email = email;
+  rec.watchedAt = rec.watchedAt ?? new Date().toISOString();
+  ensureWatchTokens(rec);
+  let confirm = rec.emailConfirmed ? 'confirmed' : 'none';
+  if (!rec.emailConfirmed && mailReady(env)) {
+    // One ask per record, however often the form is resubmitted; and a cap per
+    // inbox, so this form cannot be used to send mail at someone.
+    const capKey = `c:${email}`;
+    const asked = Number(await store.get(capKey)) || 0;
+    if (rec.confirmSentAt) confirm = 'sent';
+    else if (asked >= CONFIRMS_PER_DAY) confirm = 'limited';
+    else {
+      const m = await sendMail(env, email, composeConfirm(rec, new URL(request.url).origin));
+      if (m.sent) {
+        rec.confirmSentAt = new Date().toISOString();
+        await store.put(capKey, String(asked + 1), { expirationTtl: 86400 });
+        confirm = 'sent';
+      } else confirm = 'failed';
+    }
   }
-  const rec = await watchScan(env, id, email);
-  if (!rec) {
-    return new Response(JSON.stringify({ error: 'report not found — it may have expired' }), { status: 404, headers });
-  }
-  return new Response(JSON.stringify({ ok: true, url: rec.url, mail: mailReady(env) }), { headers });
+  await saveWatched(env, w);
+  await store.put(`w:${email}:${rec.id}`, w.kind === 'p' ? 'project' : '1');
+  // `mail` tells the page which sentence is true: "I will write" or "results
+  // land here". Decided by the same check the sender uses.
+  return new Response(JSON.stringify({ ok: true, url: rec.url, mail: mailReady(env), confirm }), { headers });
 }

@@ -10,31 +10,21 @@
  * The project page itself is kept: stopping the letters is not deleting the
  * work, and the link someone pasted into a chat should still open.
  */
-import { kv, loadScan, saveWatchedScan } from './_store.js';
-import { loadProject, saveProject } from './project.js';
-
-const HTML_H = { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' };
+import { kv } from './_store.js';
+import { forgetWatcher } from './_mail.js';
+import { loadWatched, saveWatched, page, HTML_H } from './_watched.js';
 
 async function authorised(env, url) {
-  const id = url.searchParams.get('id');
+  const w = await loadWatched(env, url.searchParams.get('id'));
   const t = url.searchParams.get('t');
-  // Either kind of watched thing: a project, or a scan from the landing page.
-  const proj = await loadProject(env, id);
-  const p = proj ?? await loadScan(env, id);
-  if (!p || !t || !p.unsub || t !== p.unsub) return null;
-  p.kind = proj ? 'p' : 'r';
-  return p;
+  if (!w || !t || !w.rec.unsub || t !== w.rec.unsub) return null;
+  return w;
 }
 
-const page = (body, zh) => `<!DOCTYPE html><html lang="${zh ? 'zh' : 'en'}"><head><meta charset="utf-8">`
-  + `<meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex">`
-  + `<title>FasterGEO</title></head><body style="font:16px/1.6 Georgia,serif;color:#1C1A15;background:#F6F3EC;`
-  + `max-width:520px;margin:12vh auto;padding:0 20px">${body}</body></html>`;
-
 export async function onRequestGet({ request, env }) {
-  const url = new URL(request.url);
-  const p = await authorised(env, url);
-  if (!p) return new Response(page('<p>This link is not valid any more.</p>', false), { status: 404, headers: HTML_H });
+  const w = await authorised(env, new URL(request.url));
+  if (!w) return new Response(page('<p>This link is not valid any more.</p>', false), { status: 404, headers: HTML_H });
+  const p = w.rec;
   const zh = p.lang === 'zh';
   const host = new URL(p.url).hostname;
   if (!p.email) {
@@ -47,20 +37,18 @@ export async function onRequestGet({ request, env }) {
 }
 
 export async function onRequestPost({ request, env }) {
-  const url = new URL(request.url);
-  const p = await authorised(env, url);
-  if (!p) return new Response(page('<p>This link is not valid any more.</p>', false), { status: 404, headers: HTML_H });
+  const w = await authorised(env, new URL(request.url));
+  if (!w) return new Response(page('<p>This link is not valid any more.</p>', false), { status: 404, headers: HTML_H });
+  const p = w.rec;
   const zh = p.lang === 'zh';
   if (p.email) {
     await kv(env).delete(`w:${p.email}:${p.id}`);
-    delete p.email;
+    forgetWatcher(p);
     p.unwatchedAt = new Date().toISOString();
-    const { kind, ...rec } = p;
     // Both savers restore the 30-day expiry for a record nobody watches.
-    if (kind === 'p') await saveProject(env, rec);
-    else await saveWatchedScan(env, rec);
+    await saveWatched(env, w);
   }
   return new Response(page(`<p>${zh ? '好了，不会再写信。' : 'Done — no more letters.'}</p>`
-    + `<p><a href="/${p.kind}/${encodeURIComponent(p.id)}" style="color:#B23A26">${zh ? '回到页面' : 'Back to the page'} →</a></p>`, zh),
+    + `<p><a href="/${w.kind}/${encodeURIComponent(p.id)}" style="color:#B23A26">${zh ? '回到页面' : 'Back to the page'} →</a></p>`, zh),
     { headers: HTML_H });
 }

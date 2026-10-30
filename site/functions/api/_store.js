@@ -16,8 +16,6 @@
  *   · attaching an email means "watch this for me", and that record persists
  */
 
-import { newUnsubToken } from './_mail.js';
-
 const CASUAL_TTL = 60 * 60 * 24 * 30;
 
 /** URL-safe, short, and not guessable by counting. */
@@ -45,23 +43,6 @@ export async function loadScan(env, id) {
   if (!store || !/^[A-Za-z0-9_-]{6,32}$/.test(id ?? '')) return null;
   const raw = await store.get(`r:${id}`);
   return raw ? JSON.parse(raw) : null;
-}
-
-/**
- * Attach an email and drop the expiry. Idempotent: re-submitting the same
- * address is a no-op rather than an error, because the honest reason someone
- * submits twice is that they were not sure it worked.
- */
-export async function watchScan(env, id, email) {
-  const store = kv(env);
-  const rec = await loadScan(env, id);
-  if (!store || !rec) return null;
-  rec.email = email;
-  rec.watchedAt = rec.watchedAt ?? new Date().toISOString();
-  rec.unsub = rec.unsub ?? newUnsubToken();
-  await store.put(`r:${id}`, JSON.stringify(rec));            // no TTL — kept
-  await store.put(`w:${email}:${id}`, '1');                    // for the recrawl sweep
-  return rec;
 }
 
 /** Persist a watched scan: no expiry while someone is watching it. */

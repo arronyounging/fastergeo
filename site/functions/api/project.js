@@ -75,7 +75,7 @@ export async function onRequestGet({ request, env }) {
   // The address and the unsubscribe token never leave the server: a project
   // link is made to be pasted into chats, and whoever it reaches should not
   // learn who is watching it or be able to switch that off.
-  const { pages, feed, email, unsub, ...lite } = p;
+  const { pages, feed, email, unsub, confirmToken, emailConfirmed, ...lite } = p;
   // Order and counts are computed here, not in the browser. Two implementations
   // of "which of these is unread" drift, and the one the user sees would be the
   // one nothing tests.
@@ -88,7 +88,7 @@ export async function onRequestGet({ request, env }) {
     lite.engine.summary.converged = converge(lite.engine.summary.actions ?? []);
   }
   return new Response(JSON.stringify({
-    ...lite, pageCount: pages.length, watched: Boolean(email), mailReady: mailReady(env),
+    ...lite, pageCount: pages.length, watched: Boolean(email), watchConfirmed: Boolean(emailConfirmed), mailReady: mailReady(env),
     ...(feed?.length ? {
       feedOpen: sortFeed(feed, now),
       feedDone: feed.filter(i => i.state === 'done')

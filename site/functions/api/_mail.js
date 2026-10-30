@@ -26,6 +26,21 @@ export function newUnsubToken() {
   return btoa(String.fromCharCode(...b)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
+/** Both tokens for this record's current address; a new address gets new ones. */
+export function ensureWatchTokens(rec) {
+  rec.unsub = rec.unsub ?? newUnsubToken();
+  rec.confirmToken = rec.confirmToken ?? newUnsubToken();
+}
+
+/** Everything tied to the address, gone together when the address goes. */
+export function forgetWatcher(rec) {
+  delete rec.email;
+  delete rec.emailConfirmed;
+  delete rec.confirmToken;
+  delete rec.confirmSentAt;
+  delete rec.mailPending;
+}
+
 export function mailReady(env) {
   return Boolean(env?.MAIL_API_KEY && env?.MAIL_FROM);
 }
@@ -93,6 +108,27 @@ export function composeLetter(p, result, origin) {
       + `<p style="font:12px/1.5 monospace;color:#6b665c">${esc(foot)} <a href="${esc(unsub)}" style="color:#6b665c">${esc(stop)}</a></p></div>`;
     return { kind, subject, text, html, unsub };
   }
+}
+
+/** The only letter that goes to an address nobody has confirmed: one question. */
+export function composeConfirm(rec, origin) {
+  const zh = rec.lang === 'zh';
+  const host = new URL(rec.url).hostname;
+  const link = `${origin}/api/confirm?id=${encodeURIComponent(rec.id)}&t=${encodeURIComponent(rec.confirmToken)}`;
+  const unsub = `${origin}/api/unwatch?id=${encodeURIComponent(rec.id)}&t=${encodeURIComponent(rec.unsub)}`;
+  const subject = zh ? `确认：接收关于 ${host} 的信` : `Confirm: letters about ${host}`;
+  const lead = zh
+    ? `有人在 FasterGEO 用这个邮箱盯 ${host}。如果是你，点下面确认；之后只有重爬核对到真实变化时才会写信。`
+    : `Someone used this address to watch ${host} on FasterGEO. If that was you, confirm below; after that you only hear from us when a check confirms a real change.`;
+  const cta = zh ? '确认' : 'Confirm';
+  const not = zh ? '不是你？不用理会，我们不会再写信，这个地址 14 天后删除。' : 'Not you? Ignore this. We will not write again, and the address is deleted after 14 days.';
+  return {
+    kind: 'confirm', subject, unsub,
+    text: [lead, '', `${cta}: ${link}`, '', not].join('\n'),
+    html: `<div style="font:15px/1.6 Georgia,serif;color:#1C1A15;max-width:560px"><p>${esc(lead)}</p>`
+      + `<p><a href="${esc(link)}" style="color:#B23A26">${esc(cta)} →</a></p>`
+      + `<p style="font:12px/1.5 monospace;color:#6b665c">${esc(not)}</p></div>`,
+  };
 }
 
 /** @returns {{sent: boolean, reason?: string, id?: string}} never throws */

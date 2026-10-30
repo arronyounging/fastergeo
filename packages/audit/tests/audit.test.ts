@@ -216,7 +216,7 @@ describe('checkSite: no answer is not a no', () => {
     });
     const s = await checkSite('https://x.test/', 1000);
     expect(s.llmsTxtFound).toBe(true);
-    expect(s.unmeasured).toBeUndefined();
+    expect(s.unmeasured).toEqual([]);
   });
 
   it('a server that refuses HEAD is asked with GET', async () => {
@@ -234,7 +234,7 @@ describe('checkSite: no answer is not a no', () => {
     expect(out.llmsTxtFound).toBe(true);
     expect(out.blockedAiCrawlers).toEqual(['GPTBot']);
     expect(out.sitemapFound).toBe(true);
-    expect(out.unmeasured).toBeUndefined();
+    expect(out.unmeasured).toEqual([]);
     expect(carryForwardSite({ ...prev, unmeasured: ['llms'] }, next).unmeasured).toEqual(['llms']);
   });
 });

@@ -80,7 +80,9 @@ try {
   if (!pane.includes('发信还没接通') || pane.includes('写信给你')) throw new Error('without a mail sender the page must not promise a letter');
   const ready = mk({ stage: 'done', url: 'https://x.com', mailReady: true })(feed, { unread: 0 }, []);
   if (!ready.includes('写信给你') || ready.includes('还没接通')) throw new Error('with a mail sender the page should promise the letter');
-  const w2 = mk({ stage: 'done', url: 'https://x.com', mailReady: true, watched: true })(feed, { unread: 0 }, []);
+  const w2 = mk({ stage: 'done', url: 'https://x.com', mailReady: true, watched: true, watchConfirmed: true })(feed, { unread: 0 }, []);
+  const w3 = mk({ stage: 'done', url: 'https://x.com', mailReady: true, watched: true, watchConfirmed: false })(feed, { unread: 0 }, []);
+  if (!w3.includes('去邮箱点一下确认') || w3.includes('才写信')) throw new Error('an unconfirmed watch must ask for the click, not promise letters');
   if (!w2.includes('已经在盯了') || w2.includes('id="wf"')) throw new Error('a watched page should say so and not ask for the address again');
   const watched = mk({ stage: 'done', url: 'https://x.com', loop: { lastCheck: 1785000000000 } })(feed, { unread: 0 }, []);
   if (!watched.includes('每天重爬核对')) throw new Error('a project the loop has run on should say so');

@@ -413,6 +413,8 @@ function verifyLine(){
    Daily re-crawl is real for every watched page; the letter is only promised
    when the sender is configured. */
 function watchLine(){
+  if (P.watched && P.mailReady && !P.watchConfirmed) return T('已经在盯了：每天重爬，结果更新在这里。<b>去邮箱点一下确认</b>，之后才会写信。',
+    'Watching: re-crawled daily, with results here. <b>Check your inbox and confirm</b>; letters start after that.');
   if (P.watched) return P.mailReady
     ? T('已经在盯了：每天重爬，核对到真的修好或者又坏了才写信。','Watching: re-crawled daily, and you get a letter only when a fix is confirmed or something breaks.')
     : T('已经在盯了：每天重爬，结果更新在这个页面上。发信还没接通，接通后你会第一批收到。','Watching: re-crawled daily, with results on this page. Email is not wired yet; you will be in the first batch.');
@@ -477,7 +479,9 @@ function today(ts, counts, done){
       body: JSON.stringify({id: ID, email: document.getElementById('we').value, kind:'project'})});
     const d = await r.json().catch(()=>({}));
     m.textContent = r.ok
-      ? (d.mail ? T('记下了。每天重爬一次，核对到真的修好或者又坏了，我写信给你。','Noted. Re-crawled daily; when a fix is confirmed or something breaks, I will write.')
+      ? (d.confirm === 'sent' ? T('记下了。每天重爬一次。确认信已发出，点一下之后才会写信。','Noted. Re-crawled daily. A confirmation is on its way; letters start after you click it.')
+       : d.confirm === 'limited' || d.confirm === 'failed' ? T('记下了，每天重爬。确认信这次没发出去，结果先更新在这个页面上。','Noted, and re-crawled daily. The confirmation did not go out this time; results land on this page meanwhile.')
+       : d.mail ? T('记下了。每天重爬一次，核对到真的修好或者又坏了，我写信给你。','Noted. Re-crawled daily; when a fix is confirmed or something breaks, I will write.')
                 : T('记下了。每天重爬，结果更新在这个页面上；发信接通后你会第一批收到。','Noted. Re-crawled daily, with results on this page; you will be in the first batch once email is wired.'))
       : (d.error||'failed');
     m.className = 'wm ' + (r.ok?'ok':'err');

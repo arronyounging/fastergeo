@@ -59,6 +59,8 @@ const T = {
     sinceH: 'Since you started watching', lastCheck: d => `last re-crawl ${d}`, noChange: 'No change worth reporting yet. Most days should look like this.',
     watchBtn: 'Watch this page', watchOk: 'Done. I will write when something changes.',
     watchOkNoMail: 'Done. Re-crawled daily; results appear on this page.',
+    watchOkConfirm: 'Done. Re-crawled daily. A confirmation is on its way; letters start after you click it.',
+    watchingUnconfirmed: 'Watching this page. Check your inbox and confirm; letters start after that.',
     ph: 'you@company.com', watching: 'Watching this page for you.',
     deeper: 'What this scan could not see',
     deeperP: 'One page, one engine. The open-source CLI runs 18 engines across China and global, judges whether each one knows you or confuses you with someone else, and re-checks every fix by crawling again.',
@@ -88,6 +90,8 @@ const T = {
     sinceH: '盯上之后的变化', lastCheck: d => `上次重爬 ${d}`, noChange: '还没有值得说的变化。大多数日子本来就该这样。',
     watchBtn: '盯着这一页', watchOk: '好了。有变化我写信给你。',
     watchOkNoMail: '好了。每天重爬，结果更新在这一页。',
+    watchOkConfirm: '好了，每天重爬。确认信已发出，点一下之后才会写信。',
+    watchingUnconfirmed: '已经在盯着这一页。去邮箱点一下确认，之后才会写信。',
     ph: 'you@company.com', watching: '已经在替你盯着这一页了。',
     deeper: '这次扫描看不到的东西',
     deeperP: '一个页面、一个引擎。开源命令行会跑中外 18 个引擎，逐个判定它认不认识你、有没有把你认成别人，并且每修一处都重爬验收。',
@@ -185,7 +189,7 @@ export async function onRequestGet({ params, env, request }) {
       ${since}
       <section class="pane watch">
         <h2>${t.watchH}</h2><p>${mail ? t.watchP : t.watchPNoMail}</p>
-        ${rec.email ? `<p class="okmsg">${t.watching}</p>` : `
+        ${rec.email ? `<p class="okmsg">${mail && !rec.emailConfirmed ? t.watchingUnconfirmed : t.watching}</p>` : `
         <form id="wf"><input id="we" type="email" required placeholder="${esc(t.ph)}" autocomplete="email">
           <button type="submit">${t.watchBtn}</button></form><div id="wm" class="wm"></div>`}
       </section>
@@ -203,7 +207,7 @@ export async function onRequestGet({ params, env, request }) {
     const r = await fetch('/api/watch', { method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ id: ${JSON.stringify(rec.id)}, email: document.getElementById('we').value }) });
     const d = await r.json().catch(() => ({}));
-    m.textContent = r.ok ? (d.mail ? ${JSON.stringify(t.watchOk)} : ${JSON.stringify(t.watchOkNoMail)}) : (d.error || 'failed');
+    m.textContent = r.ok ? (d.confirm === 'sent' ? ${JSON.stringify(t.watchOkConfirm)} : d.mail && d.confirm === 'confirmed' ? ${JSON.stringify(t.watchOk)} : ${JSON.stringify(t.watchOkNoMail)}) : (d.error || 'failed');
     m.className = 'wm ' + (r.ok ? 'ok' : 'err');
   });</script>`}`;
   return new Response(page(body, meta(t.title(brand), desc), t.title(brand)), { headers: html() });
